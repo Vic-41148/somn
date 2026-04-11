@@ -1,0 +1,8 @@
+dev.vic41148.somn.core.ui-pngs-0 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/build/generated/res/pngs/debug
+dev.vic41148.somn.core.ui-updated_navigation_xml-1 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/build/generated/updated_navigation_xml/debug
+dev.vic41148.somn.core.ui-mergeDebugResources-2 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+dev.vic41148.somn.core.ui-mergeDebugResources-3 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+dev.vic41148.somn.core.ui-debug-4 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/build/intermediates/merged_res/debug/mergeDebugResources
+dev.vic41148.somn.core.ui-debug-5 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/build/intermediates/packaged_res/debug/packageDebugResources
+dev.vic41148.somn.core.ui-debug-6 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/src/debug/res
+dev.vic41148.somn.core.ui-main-7 /home/vic/Projects/Sleep Tracker/SleepTracker/core/ui/src/main/res

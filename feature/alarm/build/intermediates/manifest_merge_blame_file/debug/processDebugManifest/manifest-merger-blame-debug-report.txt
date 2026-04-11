@@ -1,0 +1,44 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="dev.vic41148.somn.feature.alarm" >
+4
+5    <uses-sdk android:minSdkVersion="26" />
+5-->INJECTED
+5-->INJECTED
+6
+7    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+7-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:4:5-77
+7-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:4:22-74
+8    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+8-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:5:5-79
+8-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:5:22-76
+9    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+9-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:6:5-74
+9-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:6:22-71
+10    <uses-permission android:name="android.permission.VIBRATE" />
+10-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:7:5-66
+10-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:7:22-63
+11    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+11-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:8:5-81
+11-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:8:22-78
+12
+13    <application>
+13-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:10:5-19:19
+14        <receiver
+14-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:11:9-13:40
+15            android:name="dev.vic41148.somn.feature.alarm.receiver.AlarmReceiver"
+15-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:12:13-82
+16            android:exported="false" />
+16-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:13:13-37
+17
+18        <service
+18-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:15:9-18:40
+19            android:name="dev.vic41148.somn.feature.alarm.service.AlarmService"
+19-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:16:13-80
+20            android:exported="false"
+20-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:18:13-37
+21            android:foregroundServiceType="mediaPlayback" />
+21-->/home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:17:13-58
+22    </application>
+23
+24</manifest>

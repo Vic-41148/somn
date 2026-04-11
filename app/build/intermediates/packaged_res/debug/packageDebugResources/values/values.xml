@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent">#FFBBC3FF</color>
+    <color name="background_dark">#FF0E0E11</color>
+    <color name="ic_launcher_background">#1A1A2E</color>
+    <color name="primary">#FF4A5AC7</color>
+    <color name="primary_dark">#FF2D40A0</color>
+    <color name="surface_dark">#FF1B1B1F</color>
+    <string name="app_name">Somn</string>
+    <style name="Theme.Somn" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

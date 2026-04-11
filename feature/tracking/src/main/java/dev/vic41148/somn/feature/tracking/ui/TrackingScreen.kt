@@ -1,0 +1,141 @@
+package dev.vic41148.somn.feature.tracking.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.ui.components.Hypnogram
+import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
+import kotlinx.coroutines.delay
+
+@Composable
+fun TrackingScreen(
+    onTrackingStopped: (sessionId: Long) -> Unit,
+    viewModel: SleepTrackingViewModel = hiltViewModel()
+) {
+    val context = LocalContext.current
+    val activeSession by viewModel.activeSession.collectAsState()
+    val epochs by viewModel.epochs.collectAsState()
+
+    // Timer
+    var elapsedSeconds by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(activeSession) {
+        activeSession?.let { session ->
+            while (true) {
+                elapsedSeconds = (System.currentTimeMillis() - session.startTimeMillis) / 1000
+                delay(1000L)
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Tracking indicator
+        Text(
+            text = "Tracking Your Sleep",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Place your phone on the bed and relax",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Timer display
+        val hours = elapsedSeconds / 3600
+        val minutes = (elapsedSeconds % 3600) / 60
+        val seconds = elapsedSeconds % 60
+        Text(
+            text = String.format("%02d:%02d:%02d", hours, minutes, seconds),
+            style = MaterialTheme.typography.displayLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "${epochs.size} epochs recorded",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Live hypnogram (last 60 epochs = ~30 min)
+        if (epochs.isNotEmpty()) {
+            Text(
+                text = "Live Movement",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Hypnogram(
+                stages = epochs.takeLast(60).map { it.stage },
+                modifier = Modifier.fillMaxWidth(),
+                height = 80.dp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Stop button
+        FilledTonalButton(
+            onClick = {
+                viewModel.stopTracking(context)
+                activeSession?.let { session ->
+                    onTrackingStopped(session.id)
+                }
+            },
+            modifier = Modifier.size(width = 200.dp, height = 56.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Stop,
+                contentDescription = "Stop tracking",
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = "  Wake Up",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}

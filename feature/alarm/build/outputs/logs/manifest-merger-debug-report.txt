@@ -1,0 +1,52 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:2:1-21:12
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:2:1-21:12
+	package
+		INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:4:5-77
+	android:name
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:4:22-74
+uses-permission#android.permission.SCHEDULE_EXACT_ALARM
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:5:5-79
+	android:name
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:5:22-76
+uses-permission#android.permission.USE_EXACT_ALARM
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:6:5-74
+	android:name
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:6:22-71
+uses-permission#android.permission.VIBRATE
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:7:5-66
+	android:name
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:7:22-63
+uses-permission#android.permission.USE_FULL_SCREEN_INTENT
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:8:5-81
+	android:name
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:8:22-78
+application
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:10:5-19:19
+receiver#dev.vic41148.somn.feature.alarm.receiver.AlarmReceiver
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:11:9-13:40
+	android:exported
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:13:13-37
+	android:name
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:12:13-82
+service#dev.vic41148.somn.feature.alarm.service.AlarmService
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:15:9-18:40
+	android:exported
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:18:13-37
+	android:foregroundServiceType
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:17:13-58
+	android:name
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml:16:13-80
+uses-sdk
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/AndroidManifest.xml

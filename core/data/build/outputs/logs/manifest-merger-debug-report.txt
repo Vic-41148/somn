@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml:2:13-83
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml:2:13-83
+	package
+		INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml
+	xmlns:android
+		ADDED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml:2:23-81
+uses-sdk
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml reason: use-sdk injection requested
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml
+INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml
+	android:targetSdkVersion
+		INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml
+	android:minSdkVersion
+		INJECTED from /home/vic/Projects/Sleep Tracker/SleepTracker/core/data/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest9824301208959098800.xml
