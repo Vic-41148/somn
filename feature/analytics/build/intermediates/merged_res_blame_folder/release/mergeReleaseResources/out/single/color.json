@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "dev.vic41148.somn.feature.analytics-release-60:/color/vector_tint_theme_color.xml",
+        "source": "dev.vic41148.somn.feature.analytics-ui-release-15:/color/vector_tint_theme_color.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.analytics-release-60:/color/vector_tint_color.xml",
+        "source": "dev.vic41148.somn.feature.analytics-ui-release-15:/color/vector_tint_color.xml"
+    }
+]

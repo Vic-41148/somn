@@ -1,8 +1,8 @@
-dev.vic41148.somn.feature.settings-pngs-0 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/build/generated/res/pngs/debug
-dev.vic41148.somn.feature.settings-updated_navigation_xml-1 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/build/generated/updated_navigation_xml/debug
-dev.vic41148.somn.feature.settings-mergeDebugResources-2 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-dev.vic41148.somn.feature.settings-mergeDebugResources-3 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-dev.vic41148.somn.feature.settings-debug-4 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/build/intermediates/merged_res/debug/mergeDebugResources
-dev.vic41148.somn.feature.settings-debug-5 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/build/intermediates/packaged_res/debug/packageDebugResources
-dev.vic41148.somn.feature.settings-debug-6 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/src/debug/res
-dev.vic41148.somn.feature.settings-main-7 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/settings/src/main/res
+dev.vic41148.somn.feature.settings-pngs-0 /home/vic/Projects/somn/somn/feature/settings/build/generated/res/pngs/debug
+dev.vic41148.somn.feature.settings-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/settings/build/generated/updated_navigation_xml/debug
+dev.vic41148.somn.feature.settings-mergeDebugResources-2 /home/vic/Projects/somn/somn/feature/settings/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+dev.vic41148.somn.feature.settings-mergeDebugResources-3 /home/vic/Projects/somn/somn/feature/settings/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+dev.vic41148.somn.feature.settings-debug-4 /home/vic/Projects/somn/somn/feature/settings/build/intermediates/merged_res/debug/mergeDebugResources
+dev.vic41148.somn.feature.settings-debug-5 /home/vic/Projects/somn/somn/feature/settings/build/intermediates/packaged_res/debug/packageDebugResources
+dev.vic41148.somn.feature.settings-debug-6 /home/vic/Projects/somn/somn/feature/settings/src/debug/res
+dev.vic41148.somn.feature.settings-main-7 /home/vic/Projects/somn/somn/feature/settings/src/main/res

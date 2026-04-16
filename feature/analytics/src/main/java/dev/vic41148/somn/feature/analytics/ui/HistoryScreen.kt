@@ -32,6 +32,7 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     onSessionClick: (Long) -> Unit,
+    onNavigateToCircadian: () -> Unit,
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val sessions by viewModel.sessions.collectAsState()
@@ -68,6 +69,14 @@ fun HistoryScreen(
                     session = session,
                     onClick = { onSessionClick(session.id) }
                 )
+            }
+            item {
+                androidx.compose.material3.Button(
+                    onClick = onNavigateToCircadian,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+                ) {
+                    Text("View Circadian Insights")
+                }
             }
         }
     }

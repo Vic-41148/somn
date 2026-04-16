@@ -24,12 +24,13 @@ import androidx.compose.ui.unit.dp
 fun SleepCard(
     modifier: Modifier = Modifier,
     title: String? = null,
+    containerColor: androidx.compose.ui.graphics.Color? = null,
     content: @Composable () -> Unit
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = containerColor ?: MaterialTheme.colorScheme.surfaceContainerLow
         ),
         shape = MaterialTheme.shapes.large
     ) {

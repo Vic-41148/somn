@@ -1,0 +1,8 @@
+dev.vic41148.somn.feature.onboarding-pngs-0 /home/vic/Projects/somn/somn/feature/onboarding/build/generated/res/pngs/release
+dev.vic41148.somn.feature.onboarding-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/onboarding/build/generated/updated_navigation_xml/release
+dev.vic41148.somn.feature.onboarding-mergeReleaseResources-2 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+dev.vic41148.somn.feature.onboarding-mergeReleaseResources-3 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+dev.vic41148.somn.feature.onboarding-release-4 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/merged_res/release/mergeReleaseResources
+dev.vic41148.somn.feature.onboarding-release-5 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/packaged_res/release/packageReleaseResources
+dev.vic41148.somn.feature.onboarding-main-6 /home/vic/Projects/somn/somn/feature/onboarding/src/main/res
+dev.vic41148.somn.feature.onboarding-release-7 /home/vic/Projects/somn/somn/feature/onboarding/src/release/res

@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.room.Room
 import dev.vic41148.somn.core.data.database.SleepDatabase
 import dev.vic41148.somn.core.data.database.dao.AlarmDao
+import dev.vic41148.somn.core.data.database.dao.HabitLogDao
 import dev.vic41148.somn.core.data.database.dao.SleepEpochDao
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
 import dev.vic41148.somn.core.data.database.dao.TagDao
 import dev.vic41148.somn.core.data.database.dao.UserProfileDao
+import dev.vic41148.somn.core.data.database.dao.AudioEventDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,4 +47,10 @@ object DataModule {
 
     @Provides
     fun provideUserProfileDao(db: SleepDatabase): UserProfileDao = db.userProfileDao()
+
+    @Provides
+    fun provideHabitLogDao(db: SleepDatabase): HabitLogDao = db.habitLogDao()
+
+    @Provides
+    fun provideAudioEventDao(db: SleepDatabase): AudioEventDao = db.audioEventDao()
 }

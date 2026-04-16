@@ -37,6 +37,7 @@ fun AlarmFiringScreen(
 ) {
     val context = LocalContext.current
     val label by viewModel.currentAlarmLabel.collectAsState()
+    val canSnooze by viewModel.canSnooze.collectAsState()
 
     Column(
         modifier = Modifier
@@ -80,7 +81,8 @@ fun AlarmFiringScreen(
                 onClick = {
                     viewModel.snoozeAlarm(context)
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                enabled = canSnooze
             ) {
                 Text("Snooze", style = MaterialTheme.typography.titleMedium)
             }

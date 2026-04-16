@@ -14,7 +14,7 @@ enum class SleepStage {
         AWAKE -> "Awake"
         LIGHT -> "Light Sleep"
         DEEP -> "Deep Sleep"
-        REM -> "REM Sleep"
+        REM -> "Light/REM Sleep"
         UNKNOWN -> "Unknown"
     }
 }

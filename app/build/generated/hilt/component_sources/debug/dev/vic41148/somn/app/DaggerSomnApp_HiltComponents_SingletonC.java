@@ -28,32 +28,60 @@ import dagger.internal.MapBuilder;
 import dagger.internal.Preconditions;
 import dagger.internal.Provider;
 import dev.vic41148.somn.app.di.AppModule_ProvideCalculateSleepScoreUseCaseFactory;
+import dev.vic41148.somn.app.di.AppModule_ProvideChronotypeAssessmentUseCaseFactory;
 import dev.vic41148.somn.app.di.AppModule_ProvideClassifySleepStageUseCaseFactory;
+import dev.vic41148.somn.app.di.AppModule_ProvideCorrelationUseCaseFactory;
 import dev.vic41148.somn.app.di.AppModule_ProvideExportCsvUseCaseFactory;
+import dev.vic41148.somn.app.di.AppModule_ProvideSeasonalAnalysisUseCaseFactory;
+import dev.vic41148.somn.app.di.AppModule_ProvideSleepDebtUseCaseFactory;
+import dev.vic41148.somn.app.di.AppModule_ProvideSmartAlarmUseCaseFactory;
+import dev.vic41148.somn.app.di.AppModule_ProvideSocialJetLagUseCaseFactory;
 import dev.vic41148.somn.core.data.database.SleepDatabase;
 import dev.vic41148.somn.core.data.database.dao.AlarmDao;
+import dev.vic41148.somn.core.data.database.dao.AudioEventDao;
+import dev.vic41148.somn.core.data.database.dao.HabitLogDao;
 import dev.vic41148.somn.core.data.database.dao.SleepEpochDao;
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao;
 import dev.vic41148.somn.core.data.database.dao.UserProfileDao;
 import dev.vic41148.somn.core.data.di.DataModule_ProvideAlarmDaoFactory;
+import dev.vic41148.somn.core.data.di.DataModule_ProvideAudioEventDaoFactory;
 import dev.vic41148.somn.core.data.di.DataModule_ProvideDatabaseFactory;
+import dev.vic41148.somn.core.data.di.DataModule_ProvideHabitLogDaoFactory;
 import dev.vic41148.somn.core.data.di.DataModule_ProvideSleepEpochDaoFactory;
 import dev.vic41148.somn.core.data.di.DataModule_ProvideSleepSessionDaoFactory;
 import dev.vic41148.somn.core.data.di.DataModule_ProvideUserProfileDaoFactory;
 import dev.vic41148.somn.core.data.repository.AlarmRepository;
+import dev.vic41148.somn.core.data.repository.HabitLogRepository;
 import dev.vic41148.somn.core.data.repository.SleepRepository;
 import dev.vic41148.somn.core.data.repository.UserProfileRepository;
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase;
+import dev.vic41148.somn.core.domain.usecase.ChronotypeAssessmentUseCase;
 import dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase;
+import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase;
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase;
+import dev.vic41148.somn.core.domain.usecase.SeasonalAnalysisUseCase;
+import dev.vic41148.somn.core.domain.usecase.SleepDebtUseCase;
+import dev.vic41148.somn.core.domain.usecase.SmartAlarmUseCase;
+import dev.vic41148.somn.core.domain.usecase.SocialJetLagUseCase;
 import dev.vic41148.somn.feature.alarm.AlarmViewModel;
 import dev.vic41148.somn.feature.alarm.AlarmViewModel_HiltModules;
 import dev.vic41148.somn.feature.alarm.AlarmViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
 import dev.vic41148.somn.feature.alarm.AlarmViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
+import dev.vic41148.somn.feature.alarm.service.AlarmService;
+import dev.vic41148.somn.feature.alarm.service.AlarmService_MembersInjector;
+import dev.vic41148.somn.feature.alarm.ui.AlarmActivity;
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel;
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel_HiltModules;
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
+import dev.vic41148.somn.feature.analytics.CircadianViewModel;
+import dev.vic41148.somn.feature.analytics.CircadianViewModel_HiltModules;
+import dev.vic41148.somn.feature.analytics.CircadianViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
+import dev.vic41148.somn.feature.analytics.CircadianViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
+import dev.vic41148.somn.feature.habits.HabitViewModel;
+import dev.vic41148.somn.feature.habits.HabitViewModel_HiltModules;
+import dev.vic41148.somn.feature.habits.HabitViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
+import dev.vic41148.somn.feature.habits.HabitViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
 import dev.vic41148.somn.feature.onboarding.OnboardingViewModel;
 import dev.vic41148.somn.feature.onboarding.OnboardingViewModel_HiltModules;
 import dev.vic41148.somn.feature.onboarding.OnboardingViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
@@ -396,9 +424,11 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
     }
 
     Map keySetMapOfClassOfAndBooleanBuilder() {
-      MapBuilder mapBuilder = MapBuilder.<String, Boolean>newMapBuilder(5);
+      MapBuilder mapBuilder = MapBuilder.<String, Boolean>newMapBuilder(7);
       mapBuilder.put(AlarmViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, AlarmViewModel_HiltModules.KeyModule.provide());
       mapBuilder.put(AnalyticsViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, AnalyticsViewModel_HiltModules.KeyModule.provide());
+      mapBuilder.put(CircadianViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, CircadianViewModel_HiltModules.KeyModule.provide());
+      mapBuilder.put(HabitViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, HabitViewModel_HiltModules.KeyModule.provide());
       mapBuilder.put(OnboardingViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, OnboardingViewModel_HiltModules.KeyModule.provide());
       mapBuilder.put(SettingsViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SettingsViewModel_HiltModules.KeyModule.provide());
       mapBuilder.put(SleepTrackingViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, SleepTrackingViewModel_HiltModules.KeyModule.provide());
@@ -435,6 +465,10 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
       injectMainActivity2(arg0);
     }
 
+    @Override
+    public void injectAlarmActivity(AlarmActivity arg0) {
+    }
+
     private MainActivity injectMainActivity2(MainActivity instance) {
       MainActivity_MembersInjector.injectProfileRepository(instance, singletonCImpl.userProfileRepositoryProvider.get());
       return instance;
@@ -452,6 +486,10 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
 
     Provider<AnalyticsViewModel> analyticsViewModelProvider;
 
+    Provider<CircadianViewModel> circadianViewModelProvider;
+
+    Provider<HabitViewModel> habitViewModelProvider;
+
     Provider<OnboardingViewModel> onboardingViewModelProvider;
 
     Provider<SettingsViewModel> settingsViewModelProvider;
@@ -468,9 +506,11 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
     }
 
     Map hiltViewModelMapMapOfClassOfAndProviderOfViewModelBuilder() {
-      MapBuilder mapBuilder = MapBuilder.<String, javax.inject.Provider<ViewModel>>newMapBuilder(5);
+      MapBuilder mapBuilder = MapBuilder.<String, javax.inject.Provider<ViewModel>>newMapBuilder(7);
       mapBuilder.put(AlarmViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (alarmViewModelProvider)));
       mapBuilder.put(AnalyticsViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (analyticsViewModelProvider)));
+      mapBuilder.put(CircadianViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (circadianViewModelProvider)));
+      mapBuilder.put(HabitViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (habitViewModelProvider)));
       mapBuilder.put(OnboardingViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (onboardingViewModelProvider)));
       mapBuilder.put(SettingsViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (settingsViewModelProvider)));
       mapBuilder.put(SleepTrackingViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (sleepTrackingViewModelProvider)));
@@ -482,9 +522,11 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
         final ViewModelLifecycle viewModelLifecycleParam) {
       this.alarmViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
       this.analyticsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 1);
-      this.onboardingViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
-      this.settingsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
-      this.sleepTrackingViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 4);
+      this.circadianViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
+      this.habitViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
+      this.onboardingViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 4);
+      this.settingsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 5);
+      this.sleepTrackingViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 6);
     }
 
     @Override
@@ -524,13 +566,19 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
           case 1: // dev.vic41148.somn.feature.analytics.AnalyticsViewModel
           return (T) new AnalyticsViewModel(singletonCImpl.sleepRepositoryProvider.get(), singletonCImpl.provideExportCsvUseCaseProvider.get());
 
-          case 2: // dev.vic41148.somn.feature.onboarding.OnboardingViewModel
+          case 2: // dev.vic41148.somn.feature.analytics.CircadianViewModel
+          return (T) new CircadianViewModel(singletonCImpl.sleepRepositoryProvider.get(), singletonCImpl.userProfileRepositoryProvider.get(), singletonCImpl.provideChronotypeAssessmentUseCaseProvider.get(), singletonCImpl.provideSocialJetLagUseCaseProvider.get(), singletonCImpl.provideSeasonalAnalysisUseCaseProvider.get());
+
+          case 3: // dev.vic41148.somn.feature.habits.HabitViewModel
+          return (T) new HabitViewModel(singletonCImpl.habitLogRepositoryProvider.get(), singletonCImpl.sleepRepositoryProvider.get(), singletonCImpl.userProfileRepositoryProvider.get(), singletonCImpl.provideSleepDebtUseCaseProvider.get(), singletonCImpl.provideCorrelationUseCaseProvider.get());
+
+          case 4: // dev.vic41148.somn.feature.onboarding.OnboardingViewModel
           return (T) new OnboardingViewModel(singletonCImpl.userProfileRepositoryProvider.get());
 
-          case 3: // dev.vic41148.somn.feature.settings.SettingsViewModel
+          case 5: // dev.vic41148.somn.feature.settings.SettingsViewModel
           return (T) new SettingsViewModel(singletonCImpl.sleepRepositoryProvider.get(), singletonCImpl.provideExportCsvUseCaseProvider.get());
 
-          case 4: // dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
+          case 6: // dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
           return (T) new SleepTrackingViewModel(singletonCImpl.sleepRepositoryProvider.get(), singletonCImpl.provideCalculateSleepScoreUseCaseProvider.get(), singletonCImpl.provideClassifySleepStageUseCaseProvider.get());
 
           default: throw new AssertionError(id);
@@ -608,13 +656,25 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
     }
 
     @Override
+    public void injectAlarmService(AlarmService arg0) {
+      injectAlarmService2(arg0);
+    }
+
+    @Override
     public void injectSleepTrackingService(SleepTrackingService arg0) {
       injectSleepTrackingService2(arg0);
     }
 
-    private SleepTrackingService injectSleepTrackingService2(SleepTrackingService instance) {
-      SleepTrackingService_MembersInjector.injectSleepRepository(instance, singletonCImpl.sleepRepositoryProvider.get());
+    private AlarmService injectAlarmService2(AlarmService instance) {
+      AlarmService_MembersInjector.injectUserProfileRepository(instance, singletonCImpl.userProfileRepositoryProvider.get());
       return instance;
+    }
+
+    private SleepTrackingService injectSleepTrackingService2(SleepTrackingService instance2) {
+      SleepTrackingService_MembersInjector.injectSleepRepository(instance2, singletonCImpl.sleepRepositoryProvider.get());
+      SleepTrackingService_MembersInjector.injectAlarmRepository(instance2, singletonCImpl.alarmRepositoryProvider.get());
+      SleepTrackingService_MembersInjector.injectSmartAlarmUseCase(instance2, singletonCImpl.provideSmartAlarmUseCaseProvider.get());
+      return instance2;
     }
   }
 
@@ -633,9 +693,23 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
 
     Provider<ExportCsvUseCase> provideExportCsvUseCaseProvider;
 
+    Provider<ChronotypeAssessmentUseCase> provideChronotypeAssessmentUseCaseProvider;
+
+    Provider<SocialJetLagUseCase> provideSocialJetLagUseCaseProvider;
+
+    Provider<SeasonalAnalysisUseCase> provideSeasonalAnalysisUseCaseProvider;
+
+    Provider<HabitLogRepository> habitLogRepositoryProvider;
+
+    Provider<SleepDebtUseCase> provideSleepDebtUseCaseProvider;
+
+    Provider<CorrelationUseCase> provideCorrelationUseCaseProvider;
+
     Provider<CalculateSleepScoreUseCase> provideCalculateSleepScoreUseCaseProvider;
 
     Provider<ClassifySleepStageUseCase> provideClassifySleepStageUseCaseProvider;
+
+    Provider<SmartAlarmUseCase> provideSmartAlarmUseCaseProvider;
 
     SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
@@ -659,6 +733,14 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
       return DataModule_ProvideSleepEpochDaoFactory.provideSleepEpochDao(provideDatabaseProvider.get());
     }
 
+    AudioEventDao audioEventDao() {
+      return DataModule_ProvideAudioEventDaoFactory.provideAudioEventDao(provideDatabaseProvider.get());
+    }
+
+    HabitLogDao habitLogDao() {
+      return DataModule_ProvideHabitLogDaoFactory.provideHabitLogDao(provideDatabaseProvider.get());
+    }
+
     @SuppressWarnings("unchecked")
     private void initialize(final ApplicationContextModule applicationContextModuleParam) {
       this.provideDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<SleepDatabase>(singletonCImpl, 1));
@@ -666,8 +748,15 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
       this.alarmRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AlarmRepository>(singletonCImpl, 2));
       this.sleepRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<SleepRepository>(singletonCImpl, 3));
       this.provideExportCsvUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<ExportCsvUseCase>(singletonCImpl, 4));
-      this.provideCalculateSleepScoreUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<CalculateSleepScoreUseCase>(singletonCImpl, 5));
-      this.provideClassifySleepStageUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<ClassifySleepStageUseCase>(singletonCImpl, 6));
+      this.provideChronotypeAssessmentUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<ChronotypeAssessmentUseCase>(singletonCImpl, 5));
+      this.provideSocialJetLagUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<SocialJetLagUseCase>(singletonCImpl, 6));
+      this.provideSeasonalAnalysisUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<SeasonalAnalysisUseCase>(singletonCImpl, 7));
+      this.habitLogRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<HabitLogRepository>(singletonCImpl, 8));
+      this.provideSleepDebtUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<SleepDebtUseCase>(singletonCImpl, 9));
+      this.provideCorrelationUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<CorrelationUseCase>(singletonCImpl, 10));
+      this.provideCalculateSleepScoreUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<CalculateSleepScoreUseCase>(singletonCImpl, 11));
+      this.provideClassifySleepStageUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<ClassifySleepStageUseCase>(singletonCImpl, 12));
+      this.provideSmartAlarmUseCaseProvider = DoubleCheck.provider(new SwitchingProvider<SmartAlarmUseCase>(singletonCImpl, 13));
     }
 
     @Override
@@ -713,16 +802,37 @@ public final class DaggerSomnApp_HiltComponents_SingletonC {
           return (T) new AlarmRepository(singletonCImpl.alarmDao());
 
           case 3: // dev.vic41148.somn.core.data.repository.SleepRepository
-          return (T) new SleepRepository(singletonCImpl.sleepSessionDao(), singletonCImpl.sleepEpochDao());
+          return (T) new SleepRepository(singletonCImpl.sleepSessionDao(), singletonCImpl.sleepEpochDao(), singletonCImpl.audioEventDao());
 
           case 4: // dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
           return (T) AppModule_ProvideExportCsvUseCaseFactory.provideExportCsvUseCase();
 
-          case 5: // dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
+          case 5: // dev.vic41148.somn.core.domain.usecase.ChronotypeAssessmentUseCase
+          return (T) AppModule_ProvideChronotypeAssessmentUseCaseFactory.provideChronotypeAssessmentUseCase();
+
+          case 6: // dev.vic41148.somn.core.domain.usecase.SocialJetLagUseCase
+          return (T) AppModule_ProvideSocialJetLagUseCaseFactory.provideSocialJetLagUseCase();
+
+          case 7: // dev.vic41148.somn.core.domain.usecase.SeasonalAnalysisUseCase
+          return (T) AppModule_ProvideSeasonalAnalysisUseCaseFactory.provideSeasonalAnalysisUseCase();
+
+          case 8: // dev.vic41148.somn.core.data.repository.HabitLogRepository
+          return (T) new HabitLogRepository(singletonCImpl.habitLogDao());
+
+          case 9: // dev.vic41148.somn.core.domain.usecase.SleepDebtUseCase
+          return (T) AppModule_ProvideSleepDebtUseCaseFactory.provideSleepDebtUseCase();
+
+          case 10: // dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
+          return (T) AppModule_ProvideCorrelationUseCaseFactory.provideCorrelationUseCase();
+
+          case 11: // dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
           return (T) AppModule_ProvideCalculateSleepScoreUseCaseFactory.provideCalculateSleepScoreUseCase();
 
-          case 6: // dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase
+          case 12: // dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase
           return (T) AppModule_ProvideClassifySleepStageUseCaseFactory.provideClassifySleepStageUseCase();
+
+          case 13: // dev.vic41148.somn.core.domain.usecase.SmartAlarmUseCase
+          return (T) AppModule_ProvideSmartAlarmUseCaseFactory.provideSmartAlarmUseCase();
 
           default: throw new AssertionError(id);
         }

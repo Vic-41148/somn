@@ -1,0 +1,42 @@
+[
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/notification_tile_bg.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/notification_tile_bg.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/ic_call_decline_low.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/ic_call_decline_low.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/notification_bg.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/notification_bg.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/ic_call_answer_low.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/ic_call_answer_low.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/ic_call_answer_video.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/ic_call_answer_video.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/ic_call_answer_video_low.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/ic_call_answer_video_low.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/ic_call_answer.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/ic_call_answer.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/notification_bg_low.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/notification_bg_low.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/notification_icon_background.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/notification_icon_background.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.habits-release-60:/drawable/ic_call_decline.xml",
+        "source": "dev.vic41148.somn.feature.habits-core-1.15.0-14:/drawable/ic_call_decline.xml"
+    }
+]

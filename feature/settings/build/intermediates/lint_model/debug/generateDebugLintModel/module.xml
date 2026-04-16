@@ -1,0 +1,20 @@
+<lint-module
+    format="1"
+    dir="/home/vic/Projects/somn/somn/feature/settings"
+    name=":feature:settings"
+    type="LIBRARY"
+    maven="Somn.feature:settings:unspecified"
+    agpVersion="9.1.0"
+    buildFolder="build"
+    bootClassPath="/home/vic/Android/Sdk/platforms/android-35/android.jar:/home/vic/Android/Sdk/build-tools/36.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-35"
+    neverShrinking="true"
+    highlightGradualR8Api="false">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="debug"/>
+</lint-module>

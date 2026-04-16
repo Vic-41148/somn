@@ -26,6 +26,7 @@ class AlarmViewModel @Inject constructor(
     val isAlarmFiring = AlarmService.isAlarmFiring
     val currentAlarmLabel = AlarmService.currentAlarmLabel
     val currentCaptchaType = AlarmService.currentCaptchaType
+    val canSnooze = AlarmService.canSnooze
 
     private val _editingAlarm = MutableStateFlow<Alarm?>(null)
     val editingAlarm: StateFlow<Alarm?> = _editingAlarm.asStateFlow()

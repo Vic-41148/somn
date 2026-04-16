@@ -1,0 +1,7 @@
+dev.vic41148.somn.app-pngs-0 /home/vic/Projects/somn/somn/app/build/generated/res/pngs/release
+dev.vic41148.somn.app-updated_navigation_xml-1 /home/vic/Projects/somn/somn/app/build/generated/updated_navigation_xml/release
+dev.vic41148.somn.app-packageReleaseResources-2 /home/vic/Projects/somn/somn/app/build/intermediates/incremental/release/packageReleaseResources/merged.dir
+dev.vic41148.somn.app-packageReleaseResources-3 /home/vic/Projects/somn/somn/app/build/intermediates/incremental/release/packageReleaseResources/stripped.dir
+dev.vic41148.somn.app-release-4 /home/vic/Projects/somn/somn/app/build/intermediates/merged_res/release/mergeReleaseResources
+dev.vic41148.somn.app-main-5 /home/vic/Projects/somn/somn/app/src/main/res
+dev.vic41148.somn.app-release-6 /home/vic/Projects/somn/somn/app/src/release/res

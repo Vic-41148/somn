@@ -1,0 +1,8 @@
+dev.vic41148.somn.feature.alarm-pngs-0 /home/vic/Projects/somn/somn/feature/alarm/build/generated/res/pngs/release
+dev.vic41148.somn.feature.alarm-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/alarm/build/generated/updated_navigation_xml/release
+dev.vic41148.somn.feature.alarm-mergeReleaseResources-2 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+dev.vic41148.somn.feature.alarm-mergeReleaseResources-3 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+dev.vic41148.somn.feature.alarm-release-4 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/merged_res/release/mergeReleaseResources
+dev.vic41148.somn.feature.alarm-release-5 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/packaged_res/release/packageReleaseResources
+dev.vic41148.somn.feature.alarm-main-6 /home/vic/Projects/somn/somn/feature/alarm/src/main/res
+dev.vic41148.somn.feature.alarm-release-7 /home/vic/Projects/somn/somn/feature/alarm/src/release/res

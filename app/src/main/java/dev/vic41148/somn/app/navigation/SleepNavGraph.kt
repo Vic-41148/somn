@@ -6,17 +6,16 @@ import androidx.compose.material.icons.filled.AccessAlarm
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -28,16 +27,25 @@ import androidx.navigation.navArgument
 import dev.vic41148.somn.feature.alarm.ui.AlarmEditScreen
 import dev.vic41148.somn.feature.alarm.ui.AlarmFiringScreen
 import dev.vic41148.somn.feature.alarm.ui.AlarmListScreen
+import dev.vic41148.somn.feature.analytics.ui.CircadianInsightsScreen
 import dev.vic41148.somn.feature.analytics.ui.HistoryScreen
 import dev.vic41148.somn.feature.analytics.ui.SessionDetailScreen
+import dev.vic41148.somn.feature.habits.ui.CorrelationInsightsScreen
+import dev.vic41148.somn.feature.habits.ui.DailyLogScreen
+import dev.vic41148.somn.feature.habits.ui.MedicationLogScreen
+import dev.vic41148.somn.feature.habits.ui.SleepDebtDetailScreen
 import dev.vic41148.somn.feature.onboarding.ui.OnboardingFlow
 import dev.vic41148.somn.feature.settings.ui.SettingsScreen
 import dev.vic41148.somn.feature.tracking.ui.HomeScreen
 import dev.vic41148.somn.feature.tracking.ui.MorningReviewScreen
 import dev.vic41148.somn.feature.tracking.ui.TrackingScreen
+import dev.vic41148.somn.feature.winddown.ui.BreathingExerciseScreen
+import dev.vic41148.somn.feature.winddown.ui.CognitiveWindDownScreen
+import dev.vic41148.somn.feature.winddown.ui.ADHDCooldownScreen
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     data object Home : Screen("home", "Home", Icons.Default.Nightlight)
+    data object Habits : Screen("habits", "Habits", Icons.Default.Spa)
     data object History : Screen("history", "History", Icons.Default.BarChart)
     data object Alarms : Screen("alarms", "Alarms", Icons.Default.AccessAlarm)
     data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
@@ -45,9 +53,26 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 
 private val bottomNavScreens = listOf(
     Screen.Home,
+    Screen.Habits,
     Screen.History,
     Screen.Alarms,
     Screen.Settings
+)
+
+/** Routes where the bottom bar should be hidden. */
+private val hideNavRoutes = setOf(
+    "onboarding",
+    "tracking",
+    "morning_review/{sessionId}",
+    "alarm_firing",
+    "alarm_edit",
+    "medication_log",
+    "sleep_debt",
+    "correlation_insights",
+    "circadian_insights",
+    "breathing_exercise",
+    "cognitive_winddown",
+    "adhd_cooldown"
 )
 
 @Composable
@@ -58,13 +83,9 @@ fun SleepNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Determine start destination based on onboarding status
     val startDestination = if (isOnboardingCompleted) Screen.Home.route else "onboarding"
 
-    // Hide bottom bar on certain screens
-    val hideBottomBar = currentDestination?.route in listOf(
-        "onboarding", "tracking", "morning_review/{sessionId}", "alarm_firing", "alarm_edit"
-    )
+    val hideBottomBar = currentDestination?.route in hideNavRoutes
 
     Scaffold(
         bottomBar = {
@@ -97,7 +118,7 @@ fun SleepNavGraph(
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Onboarding flow
+            // Onboarding
             composable("onboarding") {
                 OnboardingFlow(
                     onOnboardingComplete = {
@@ -108,13 +129,21 @@ fun SleepNavGraph(
                 )
             }
 
-            // Main tabs
+            // ---- Main tabs ----
+
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToTracking = { navController.navigate("tracking") },
                     onNavigateToMorningReview = { sessionId ->
                         navController.navigate("morning_review/$sessionId")
-                    }
+                    },
+                    onNavigateToDebt = { navController.navigate("sleep_debt") }
+                )
+            }
+
+            composable(Screen.Habits.route) {
+                DailyLogScreen(
+                    onNavigateToMedication = { navController.navigate("medication_log") }
                 )
             }
 
@@ -122,6 +151,9 @@ fun SleepNavGraph(
                 HistoryScreen(
                     onSessionClick = { sessionId ->
                         navController.navigate("session_detail/$sessionId")
+                    },
+                    onNavigateToCircadian = {
+                        navController.navigate("circadian_insights")
                     }
                 )
             }
@@ -133,10 +165,15 @@ fun SleepNavGraph(
             }
 
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    onNavigateToBreathing = { navController.navigate("breathing_exercise") },
+                    onNavigateToCognitiveWindDown = { navController.navigate("cognitive_winddown") },
+                    onNavigateToADHDCooldown = { navController.navigate("adhd_cooldown") }
+                )
             }
 
-            // Detail screens
+            // ---- Tracking ----
+
             composable("tracking") {
                 TrackingScreen(
                     onTrackingStopped = { sessionId ->
@@ -173,6 +210,8 @@ fun SleepNavGraph(
                 )
             }
 
+            // ---- Alarms ----
+
             composable("alarm_edit") {
                 AlarmEditScreen(
                     onSaved = { navController.popBackStack() }
@@ -186,6 +225,48 @@ fun SleepNavGraph(
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                     }
+                )
+            }
+
+            // ---- Phase 2: Habits detail screens ----
+
+            composable("sleep_debt") {
+                SleepDebtDetailScreen()
+            }
+
+            composable("medication_log") {
+                MedicationLogScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("correlation_insights") {
+                CorrelationInsightsScreen()
+            }
+
+            composable("circadian_insights") {
+                CircadianInsightsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // ---- Phase 5: Wind-down screens ----
+
+            composable("breathing_exercise") {
+                BreathingExerciseScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("cognitive_winddown") {
+                CognitiveWindDownScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("adhd_cooldown") {
+                ADHDCooldownScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

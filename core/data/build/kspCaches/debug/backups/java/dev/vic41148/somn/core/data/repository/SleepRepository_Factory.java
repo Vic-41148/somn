@@ -5,6 +5,7 @@ import dagger.internal.Factory;
 import dagger.internal.Provider;
 import dagger.internal.QualifierMetadata;
 import dagger.internal.ScopeMetadata;
+import dev.vic41148.somn.core.data.database.dao.AudioEventDao;
 import dev.vic41148.somn.core.data.database.dao.SleepEpochDao;
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao;
 import javax.annotation.processing.Generated;
@@ -30,23 +31,27 @@ public final class SleepRepository_Factory implements Factory<SleepRepository> {
 
   private final Provider<SleepEpochDao> epochDaoProvider;
 
+  private final Provider<AudioEventDao> audioEventDaoProvider;
+
   private SleepRepository_Factory(Provider<SleepSessionDao> sessionDaoProvider,
-      Provider<SleepEpochDao> epochDaoProvider) {
+      Provider<SleepEpochDao> epochDaoProvider, Provider<AudioEventDao> audioEventDaoProvider) {
     this.sessionDaoProvider = sessionDaoProvider;
     this.epochDaoProvider = epochDaoProvider;
+    this.audioEventDaoProvider = audioEventDaoProvider;
   }
 
   @Override
   public SleepRepository get() {
-    return newInstance(sessionDaoProvider.get(), epochDaoProvider.get());
+    return newInstance(sessionDaoProvider.get(), epochDaoProvider.get(), audioEventDaoProvider.get());
   }
 
   public static SleepRepository_Factory create(Provider<SleepSessionDao> sessionDaoProvider,
-      Provider<SleepEpochDao> epochDaoProvider) {
-    return new SleepRepository_Factory(sessionDaoProvider, epochDaoProvider);
+      Provider<SleepEpochDao> epochDaoProvider, Provider<AudioEventDao> audioEventDaoProvider) {
+    return new SleepRepository_Factory(sessionDaoProvider, epochDaoProvider, audioEventDaoProvider);
   }
 
-  public static SleepRepository newInstance(SleepSessionDao sessionDao, SleepEpochDao epochDao) {
-    return new SleepRepository(sessionDao, epochDao);
+  public static SleepRepository newInstance(SleepSessionDao sessionDao, SleepEpochDao epochDao,
+      AudioEventDao audioEventDao) {
+    return new SleepRepository(sessionDao, epochDao, audioEventDao);
   }
 }

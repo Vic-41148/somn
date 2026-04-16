@@ -14,6 +14,8 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
+import dagger.hilt.android.AndroidEntryPoint
+import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.feature.alarm.receiver.AlarmReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,8 +30,13 @@ import kotlinx.coroutines.launch
 
 /**
  * Service that manages alarm playback with gradual volume increase.
+ * Uses Hilt for injection.
  */
+@AndroidEntryPoint
 class AlarmService : Service() {
+
+    @javax.inject.Inject
+    lateinit var userProfileRepository: UserProfileRepository
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
@@ -48,6 +55,11 @@ class AlarmService : Service() {
 
         private val _currentCaptchaType = MutableStateFlow("NONE")
         val currentCaptchaType: StateFlow<String> = _currentCaptchaType.asStateFlow()
+
+        private val _canSnooze = MutableStateFlow(true)
+        val canSnooze: StateFlow<Boolean> = _canSnooze.asStateFlow()
+        
+        private var snoozeCount = 0
 
         fun dismiss(context: Context) {
             val intent = Intent(context, AlarmService::class.java).apply {
@@ -73,11 +85,17 @@ class AlarmService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "DISMISS" -> {
+                snoozeCount = 0
+                _canSnooze.value = true
                 stopAlarm()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
             "SNOOZE" -> {
+                snoozeCount++
+                if (snoozeCount >= dev.vic41148.somn.core.domain.model.AlarmPreferences.maxSnoozeCount) {
+                    _canSnooze.value = false
+                }
                 stopAlarm()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
@@ -102,50 +120,61 @@ class AlarmService : Service() {
     }
 
     private fun startAlarm(vibrationEnabled: Boolean, gradualSeconds: Int) {
-        // Play default alarm sound with gradual volume
-        try {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        serviceScope.launch {
+            val profile = userProfileRepository.getProfile()
+            val asdMode = profile?.neurodivergentProfile?.asdMode == true
+            
+            // If ASD mode is on, force vibration only, no sound
+            val finalVibrationEnabled = vibrationEnabled || asdMode
+            val playSound = !asdMode
 
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                setDataSource(this@AlarmService, alarmUri)
-                isLooping = true
-                setVolume(0f, 0f)
-                prepare()
-                start()
-            }
+            if (playSound) {
+                // Play default alarm sound with gradual volume
+                try {
+                    val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-            // Gradually increase volume
-            volumeJob = serviceScope.launch {
-                val steps = gradualSeconds * 2  // Update every 500ms
-                for (i in 1..steps) {
-                    val volume = i.toFloat() / steps
-                    mediaPlayer?.setVolume(volume, volume)
-                    delay(500)
+                    mediaPlayer = MediaPlayer().apply {
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_ALARM)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        )
+                        setDataSource(this@AlarmService, alarmUri)
+                        isLooping = true
+                        setVolume(0f, 0f)
+                        prepare()
+                        start()
+                    }
+
+                    // Gradually increase volume
+                    volumeJob = launch {
+                        val steps = gradualSeconds * 2  // Update every 500ms
+                        for (i in 1..steps) {
+                            val volume = i.toFloat() / steps
+                            mediaPlayer?.setVolume(volume, volume)
+                            delay(500)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
 
-        // Vibration
-        if (vibrationEnabled) {
-            vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                vm.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            // Vibration
+            if (finalVibrationEnabled) {
+                vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vm.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+
+                val pattern = longArrayOf(0, 500, 500, 500, 500, 500)
+                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
             }
-
-            val pattern = longArrayOf(0, 500, 500, 500, 500, 500)
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
         }
     }
 
@@ -185,7 +214,15 @@ class AlarmService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)
-            .setFullScreenIntent(null, true)
+            .setFullScreenIntent(
+                android.app.PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, dev.vic41148.somn.feature.alarm.ui.AlarmActivity::class.java),
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                ),
+                true
+            )
             .build()
     }
 

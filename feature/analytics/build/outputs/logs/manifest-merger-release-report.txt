@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml:2:13-83
+INJECTED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml:2:13-83
+	package
+		INJECTED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml
+	xmlns:android
+		ADDED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml:2:23-81
+uses-sdk
+INJECTED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml reason: use-sdk injection requested
+INJECTED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml
+INJECTED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml
+	android:targetSdkVersion
+		INJECTED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml
+	android:minSdkVersion
+		INJECTED from /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest17480115538485732499.xml

@@ -1,15 +1,68 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-
-*.iml
-.gradle
-/local.properties
-/.idea/
-.DS_Store
+# Built artifacts
 /build
 /captures
+*.apk
+*.ap_
+*.dex
+
+# IDE - IntelliJ / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+/out
+/shelf
+/workspace.xml
+/httpRequests
+
+# Gradle
+.gradle/
+/local.properties
+.kotlin/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Signing files
+*.jks
+*.keystore
+*.p12
+
+# External Native Build
 .externalNativeBuild
 .cxx
+
+# Logging
+*.log
+
+# Lint & Test Reports
+**/build/reports/
+**/build/test-results/
+
+
+# Firebase / Google Services (If you use them)
+# Keep the template, but ignore the actual secret
+google-services.json
+
+# Secrets Gradle Plugin (Common for API keys)
+secrets.properties
+
+# Navigation Editor preferences
+.navigation/
+
+# Android Studio Search Index
+.idea/caches/
+.idea/libraries/
+
+# macOS leftovers (if collaborating with Mac users)
+.DS_Store
+
+# User-specific configurations
+.idea/usage.statistics.xml
+.idea/tasks.xml
+
+# Additional build artifacts
+*.aab
+*.flat
+

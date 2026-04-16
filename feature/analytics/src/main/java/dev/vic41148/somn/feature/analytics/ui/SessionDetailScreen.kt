@@ -13,9 +13,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,8 +25,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,10 +37,13 @@ import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
+import dev.vic41148.somn.core.domain.model.AudioEventType
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.media.MediaPlayer
+import android.net.Uri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +54,8 @@ fun SessionDetailScreen(
 ) {
     val sessions by viewModel.sessions.collectAsState()
     val session = sessions.find { it.id == sessionId } ?: return
+    
+    val audioEvents by viewModel.observeAudioEvents(sessionId).collectAsState(initial = emptyList())
 
     val dateFormat = SimpleDateFormat("EEEE, MMM d, yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
@@ -132,6 +141,65 @@ fun SessionDetailScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Audio Events Summary
+            if (audioEvents.isNotEmpty()) {
+                SleepCard(title = "Audio Events") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        val snoreCount = audioEvents.count { it.type == AudioEventType.SNORE }
+                        val coughCount = audioEvents.count { it.type == AudioEventType.COUGH }
+                        val talkCount = audioEvents.count { it.type == AudioEventType.TALK }
+                        MetricChip(label = "Snoring", value = "$snoreCount events")
+                        MetricChip(label = "Coughs", value = "$coughCount events")
+                        MetricChip(label = "Talking", value = "$talkCount events")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Sleep Talk Clips
+            val talkEvents = audioEvents.filter { it.type == AudioEventType.TALK && it.clipPath != null }
+            if (talkEvents.isNotEmpty()) {
+                val context = LocalContext.current
+                val mediaPlayer = remember { MediaPlayer() }
+
+                SleepCard(title = "Sleep Talk Recordings") {
+                    talkEvents.forEach { event ->
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = "Talk Clip - ${timeFormat.format(Date(event.timestampMillis))}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            },
+                            supportingContent = {
+                                Text(
+                                    text = "${event.durationSeconds}s",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            trailingContent = {
+                                IconButton(onClick = {
+                                    try {
+                                        mediaPlayer.reset()
+                                        mediaPlayer.setDataSource(context, Uri.parse(event.clipPath!!))
+                                        mediaPlayer.prepare()
+                                        mediaPlayer.start()
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+                                }
+                            }
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }

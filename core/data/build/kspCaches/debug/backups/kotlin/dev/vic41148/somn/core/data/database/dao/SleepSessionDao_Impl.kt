@@ -37,7 +37,7 @@ public class SleepSessionDao_Impl(
   init {
     this.__db = __db
     this.__insertAdapterOfSleepSessionEntity = object : EntityInsertAdapter<SleepSessionEntity>() {
-      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `sleep_sessions` (`id`,`startTimeMillis`,`endTimeMillis`,`sleepDurationMinutes`,`timeInBedMinutes`,`sleepEfficiency`,`sleepOnsetMinutes`,`wakeEvents`,`deepSleepPercent`,`lightSleepPercent`,`remSleepPercent`,`sleepScore`,`moodRating`,`notes`,`isCompleted`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+      protected override fun createQuery(): String = "INSERT OR REPLACE INTO `sleep_sessions` (`id`,`startTimeMillis`,`endTimeMillis`,`sleepDurationMinutes`,`timeInBedMinutes`,`sleepEfficiency`,`sleepOnsetMinutes`,`wakeEvents`,`deepSleepPercent`,`lightSleepPercent`,`remSleepPercent`,`sleepScore`,`moodRating`,`notes`,`isCompleted`,`timezoneId`,`isHomeSleep`,`alarmUsed`,`avgBreathingRateBrpm`,`coughEventCount`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
       protected override fun bind(statement: SQLiteStatement, entity: SleepSessionEntity) {
         statement.bindLong(1, entity.id)
@@ -56,6 +56,18 @@ public class SleepSessionDao_Impl(
         statement.bindText(14, entity.notes)
         val _tmp: Int = if (entity.isCompleted) 1 else 0
         statement.bindLong(15, _tmp.toLong())
+        statement.bindText(16, entity.timezoneId)
+        val _tmp_1: Int = if (entity.isHomeSleep) 1 else 0
+        statement.bindLong(17, _tmp_1.toLong())
+        val _tmp_2: Int = if (entity.alarmUsed) 1 else 0
+        statement.bindLong(18, _tmp_2.toLong())
+        val _tmpAvgBreathingRateBrpm: Float? = entity.avgBreathingRateBrpm
+        if (_tmpAvgBreathingRateBrpm == null) {
+          statement.bindNull(19)
+        } else {
+          statement.bindDouble(19, _tmpAvgBreathingRateBrpm.toDouble())
+        }
+        statement.bindLong(20, entity.coughEventCount.toLong())
       }
     }
     this.__deleteAdapterOfSleepSessionEntity = object : EntityDeleteOrUpdateAdapter<SleepSessionEntity>() {
@@ -66,7 +78,7 @@ public class SleepSessionDao_Impl(
       }
     }
     this.__updateAdapterOfSleepSessionEntity = object : EntityDeleteOrUpdateAdapter<SleepSessionEntity>() {
-      protected override fun createQuery(): String = "UPDATE OR ABORT `sleep_sessions` SET `id` = ?,`startTimeMillis` = ?,`endTimeMillis` = ?,`sleepDurationMinutes` = ?,`timeInBedMinutes` = ?,`sleepEfficiency` = ?,`sleepOnsetMinutes` = ?,`wakeEvents` = ?,`deepSleepPercent` = ?,`lightSleepPercent` = ?,`remSleepPercent` = ?,`sleepScore` = ?,`moodRating` = ?,`notes` = ?,`isCompleted` = ? WHERE `id` = ?"
+      protected override fun createQuery(): String = "UPDATE OR ABORT `sleep_sessions` SET `id` = ?,`startTimeMillis` = ?,`endTimeMillis` = ?,`sleepDurationMinutes` = ?,`timeInBedMinutes` = ?,`sleepEfficiency` = ?,`sleepOnsetMinutes` = ?,`wakeEvents` = ?,`deepSleepPercent` = ?,`lightSleepPercent` = ?,`remSleepPercent` = ?,`sleepScore` = ?,`moodRating` = ?,`notes` = ?,`isCompleted` = ?,`timezoneId` = ?,`isHomeSleep` = ?,`alarmUsed` = ?,`avgBreathingRateBrpm` = ?,`coughEventCount` = ? WHERE `id` = ?"
 
       protected override fun bind(statement: SQLiteStatement, entity: SleepSessionEntity) {
         statement.bindLong(1, entity.id)
@@ -85,7 +97,19 @@ public class SleepSessionDao_Impl(
         statement.bindText(14, entity.notes)
         val _tmp: Int = if (entity.isCompleted) 1 else 0
         statement.bindLong(15, _tmp.toLong())
-        statement.bindLong(16, entity.id)
+        statement.bindText(16, entity.timezoneId)
+        val _tmp_1: Int = if (entity.isHomeSleep) 1 else 0
+        statement.bindLong(17, _tmp_1.toLong())
+        val _tmp_2: Int = if (entity.alarmUsed) 1 else 0
+        statement.bindLong(18, _tmp_2.toLong())
+        val _tmpAvgBreathingRateBrpm: Float? = entity.avgBreathingRateBrpm
+        if (_tmpAvgBreathingRateBrpm == null) {
+          statement.bindNull(19)
+        } else {
+          statement.bindDouble(19, _tmpAvgBreathingRateBrpm.toDouble())
+        }
+        statement.bindLong(20, entity.coughEventCount.toLong())
+        statement.bindLong(21, entity.id)
       }
     }
   }
@@ -125,6 +149,11 @@ public class SleepSessionDao_Impl(
         val _columnIndexOfMoodRating: Int = getColumnIndexOrThrow(_stmt, "moodRating")
         val _columnIndexOfNotes: Int = getColumnIndexOrThrow(_stmt, "notes")
         val _columnIndexOfIsCompleted: Int = getColumnIndexOrThrow(_stmt, "isCompleted")
+        val _columnIndexOfTimezoneId: Int = getColumnIndexOrThrow(_stmt, "timezoneId")
+        val _columnIndexOfIsHomeSleep: Int = getColumnIndexOrThrow(_stmt, "isHomeSleep")
+        val _columnIndexOfAlarmUsed: Int = getColumnIndexOrThrow(_stmt, "alarmUsed")
+        val _columnIndexOfAvgBreathingRateBrpm: Int = getColumnIndexOrThrow(_stmt, "avgBreathingRateBrpm")
+        val _columnIndexOfCoughEventCount: Int = getColumnIndexOrThrow(_stmt, "coughEventCount")
         val _result: SleepSessionEntity?
         if (_stmt.step()) {
           val _tmpId: Long
@@ -159,7 +188,25 @@ public class SleepSessionDao_Impl(
           val _tmp: Int
           _tmp = _stmt.getLong(_columnIndexOfIsCompleted).toInt()
           _tmpIsCompleted = _tmp != 0
-          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted)
+          val _tmpTimezoneId: String
+          _tmpTimezoneId = _stmt.getText(_columnIndexOfTimezoneId)
+          val _tmpIsHomeSleep: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfIsHomeSleep).toInt()
+          _tmpIsHomeSleep = _tmp_1 != 0
+          val _tmpAlarmUsed: Boolean
+          val _tmp_2: Int
+          _tmp_2 = _stmt.getLong(_columnIndexOfAlarmUsed).toInt()
+          _tmpAlarmUsed = _tmp_2 != 0
+          val _tmpAvgBreathingRateBrpm: Float?
+          if (_stmt.isNull(_columnIndexOfAvgBreathingRateBrpm)) {
+            _tmpAvgBreathingRateBrpm = null
+          } else {
+            _tmpAvgBreathingRateBrpm = _stmt.getDouble(_columnIndexOfAvgBreathingRateBrpm).toFloat()
+          }
+          val _tmpCoughEventCount: Int
+          _tmpCoughEventCount = _stmt.getLong(_columnIndexOfCoughEventCount).toInt()
+          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted,_tmpTimezoneId,_tmpIsHomeSleep,_tmpAlarmUsed,_tmpAvgBreathingRateBrpm,_tmpCoughEventCount)
         } else {
           _result = null
         }
@@ -192,6 +239,11 @@ public class SleepSessionDao_Impl(
         val _columnIndexOfMoodRating: Int = getColumnIndexOrThrow(_stmt, "moodRating")
         val _columnIndexOfNotes: Int = getColumnIndexOrThrow(_stmt, "notes")
         val _columnIndexOfIsCompleted: Int = getColumnIndexOrThrow(_stmt, "isCompleted")
+        val _columnIndexOfTimezoneId: Int = getColumnIndexOrThrow(_stmt, "timezoneId")
+        val _columnIndexOfIsHomeSleep: Int = getColumnIndexOrThrow(_stmt, "isHomeSleep")
+        val _columnIndexOfAlarmUsed: Int = getColumnIndexOrThrow(_stmt, "alarmUsed")
+        val _columnIndexOfAvgBreathingRateBrpm: Int = getColumnIndexOrThrow(_stmt, "avgBreathingRateBrpm")
+        val _columnIndexOfCoughEventCount: Int = getColumnIndexOrThrow(_stmt, "coughEventCount")
         val _result: SleepSessionEntity?
         if (_stmt.step()) {
           val _tmpId: Long
@@ -226,7 +278,25 @@ public class SleepSessionDao_Impl(
           val _tmp: Int
           _tmp = _stmt.getLong(_columnIndexOfIsCompleted).toInt()
           _tmpIsCompleted = _tmp != 0
-          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted)
+          val _tmpTimezoneId: String
+          _tmpTimezoneId = _stmt.getText(_columnIndexOfTimezoneId)
+          val _tmpIsHomeSleep: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfIsHomeSleep).toInt()
+          _tmpIsHomeSleep = _tmp_1 != 0
+          val _tmpAlarmUsed: Boolean
+          val _tmp_2: Int
+          _tmp_2 = _stmt.getLong(_columnIndexOfAlarmUsed).toInt()
+          _tmpAlarmUsed = _tmp_2 != 0
+          val _tmpAvgBreathingRateBrpm: Float?
+          if (_stmt.isNull(_columnIndexOfAvgBreathingRateBrpm)) {
+            _tmpAvgBreathingRateBrpm = null
+          } else {
+            _tmpAvgBreathingRateBrpm = _stmt.getDouble(_columnIndexOfAvgBreathingRateBrpm).toFloat()
+          }
+          val _tmpCoughEventCount: Int
+          _tmpCoughEventCount = _stmt.getLong(_columnIndexOfCoughEventCount).toInt()
+          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted,_tmpTimezoneId,_tmpIsHomeSleep,_tmpAlarmUsed,_tmpAvgBreathingRateBrpm,_tmpCoughEventCount)
         } else {
           _result = null
         }
@@ -257,6 +327,11 @@ public class SleepSessionDao_Impl(
         val _columnIndexOfMoodRating: Int = getColumnIndexOrThrow(_stmt, "moodRating")
         val _columnIndexOfNotes: Int = getColumnIndexOrThrow(_stmt, "notes")
         val _columnIndexOfIsCompleted: Int = getColumnIndexOrThrow(_stmt, "isCompleted")
+        val _columnIndexOfTimezoneId: Int = getColumnIndexOrThrow(_stmt, "timezoneId")
+        val _columnIndexOfIsHomeSleep: Int = getColumnIndexOrThrow(_stmt, "isHomeSleep")
+        val _columnIndexOfAlarmUsed: Int = getColumnIndexOrThrow(_stmt, "alarmUsed")
+        val _columnIndexOfAvgBreathingRateBrpm: Int = getColumnIndexOrThrow(_stmt, "avgBreathingRateBrpm")
+        val _columnIndexOfCoughEventCount: Int = getColumnIndexOrThrow(_stmt, "coughEventCount")
         val _result: MutableList<SleepSessionEntity> = mutableListOf()
         while (_stmt.step()) {
           val _item: SleepSessionEntity
@@ -292,7 +367,25 @@ public class SleepSessionDao_Impl(
           val _tmp: Int
           _tmp = _stmt.getLong(_columnIndexOfIsCompleted).toInt()
           _tmpIsCompleted = _tmp != 0
-          _item = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted)
+          val _tmpTimezoneId: String
+          _tmpTimezoneId = _stmt.getText(_columnIndexOfTimezoneId)
+          val _tmpIsHomeSleep: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfIsHomeSleep).toInt()
+          _tmpIsHomeSleep = _tmp_1 != 0
+          val _tmpAlarmUsed: Boolean
+          val _tmp_2: Int
+          _tmp_2 = _stmt.getLong(_columnIndexOfAlarmUsed).toInt()
+          _tmpAlarmUsed = _tmp_2 != 0
+          val _tmpAvgBreathingRateBrpm: Float?
+          if (_stmt.isNull(_columnIndexOfAvgBreathingRateBrpm)) {
+            _tmpAvgBreathingRateBrpm = null
+          } else {
+            _tmpAvgBreathingRateBrpm = _stmt.getDouble(_columnIndexOfAvgBreathingRateBrpm).toFloat()
+          }
+          val _tmpCoughEventCount: Int
+          _tmpCoughEventCount = _stmt.getLong(_columnIndexOfCoughEventCount).toInt()
+          _item = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted,_tmpTimezoneId,_tmpIsHomeSleep,_tmpAlarmUsed,_tmpAvgBreathingRateBrpm,_tmpCoughEventCount)
           _result.add(_item)
         }
         _result
@@ -322,6 +415,11 @@ public class SleepSessionDao_Impl(
         val _columnIndexOfMoodRating: Int = getColumnIndexOrThrow(_stmt, "moodRating")
         val _columnIndexOfNotes: Int = getColumnIndexOrThrow(_stmt, "notes")
         val _columnIndexOfIsCompleted: Int = getColumnIndexOrThrow(_stmt, "isCompleted")
+        val _columnIndexOfTimezoneId: Int = getColumnIndexOrThrow(_stmt, "timezoneId")
+        val _columnIndexOfIsHomeSleep: Int = getColumnIndexOrThrow(_stmt, "isHomeSleep")
+        val _columnIndexOfAlarmUsed: Int = getColumnIndexOrThrow(_stmt, "alarmUsed")
+        val _columnIndexOfAvgBreathingRateBrpm: Int = getColumnIndexOrThrow(_stmt, "avgBreathingRateBrpm")
+        val _columnIndexOfCoughEventCount: Int = getColumnIndexOrThrow(_stmt, "coughEventCount")
         val _result: SleepSessionEntity?
         if (_stmt.step()) {
           val _tmpId: Long
@@ -356,7 +454,25 @@ public class SleepSessionDao_Impl(
           val _tmp: Int
           _tmp = _stmt.getLong(_columnIndexOfIsCompleted).toInt()
           _tmpIsCompleted = _tmp != 0
-          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted)
+          val _tmpTimezoneId: String
+          _tmpTimezoneId = _stmt.getText(_columnIndexOfTimezoneId)
+          val _tmpIsHomeSleep: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfIsHomeSleep).toInt()
+          _tmpIsHomeSleep = _tmp_1 != 0
+          val _tmpAlarmUsed: Boolean
+          val _tmp_2: Int
+          _tmp_2 = _stmt.getLong(_columnIndexOfAlarmUsed).toInt()
+          _tmpAlarmUsed = _tmp_2 != 0
+          val _tmpAvgBreathingRateBrpm: Float?
+          if (_stmt.isNull(_columnIndexOfAvgBreathingRateBrpm)) {
+            _tmpAvgBreathingRateBrpm = null
+          } else {
+            _tmpAvgBreathingRateBrpm = _stmt.getDouble(_columnIndexOfAvgBreathingRateBrpm).toFloat()
+          }
+          val _tmpCoughEventCount: Int
+          _tmpCoughEventCount = _stmt.getLong(_columnIndexOfCoughEventCount).toInt()
+          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted,_tmpTimezoneId,_tmpIsHomeSleep,_tmpAlarmUsed,_tmpAvgBreathingRateBrpm,_tmpCoughEventCount)
         } else {
           _result = null
         }
@@ -387,6 +503,11 @@ public class SleepSessionDao_Impl(
         val _columnIndexOfMoodRating: Int = getColumnIndexOrThrow(_stmt, "moodRating")
         val _columnIndexOfNotes: Int = getColumnIndexOrThrow(_stmt, "notes")
         val _columnIndexOfIsCompleted: Int = getColumnIndexOrThrow(_stmt, "isCompleted")
+        val _columnIndexOfTimezoneId: Int = getColumnIndexOrThrow(_stmt, "timezoneId")
+        val _columnIndexOfIsHomeSleep: Int = getColumnIndexOrThrow(_stmt, "isHomeSleep")
+        val _columnIndexOfAlarmUsed: Int = getColumnIndexOrThrow(_stmt, "alarmUsed")
+        val _columnIndexOfAvgBreathingRateBrpm: Int = getColumnIndexOrThrow(_stmt, "avgBreathingRateBrpm")
+        val _columnIndexOfCoughEventCount: Int = getColumnIndexOrThrow(_stmt, "coughEventCount")
         val _result: SleepSessionEntity?
         if (_stmt.step()) {
           val _tmpId: Long
@@ -421,7 +542,25 @@ public class SleepSessionDao_Impl(
           val _tmp: Int
           _tmp = _stmt.getLong(_columnIndexOfIsCompleted).toInt()
           _tmpIsCompleted = _tmp != 0
-          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted)
+          val _tmpTimezoneId: String
+          _tmpTimezoneId = _stmt.getText(_columnIndexOfTimezoneId)
+          val _tmpIsHomeSleep: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfIsHomeSleep).toInt()
+          _tmpIsHomeSleep = _tmp_1 != 0
+          val _tmpAlarmUsed: Boolean
+          val _tmp_2: Int
+          _tmp_2 = _stmt.getLong(_columnIndexOfAlarmUsed).toInt()
+          _tmpAlarmUsed = _tmp_2 != 0
+          val _tmpAvgBreathingRateBrpm: Float?
+          if (_stmt.isNull(_columnIndexOfAvgBreathingRateBrpm)) {
+            _tmpAvgBreathingRateBrpm = null
+          } else {
+            _tmpAvgBreathingRateBrpm = _stmt.getDouble(_columnIndexOfAvgBreathingRateBrpm).toFloat()
+          }
+          val _tmpCoughEventCount: Int
+          _tmpCoughEventCount = _stmt.getLong(_columnIndexOfCoughEventCount).toInt()
+          _result = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted,_tmpTimezoneId,_tmpIsHomeSleep,_tmpAlarmUsed,_tmpAvgBreathingRateBrpm,_tmpCoughEventCount)
         } else {
           _result = null
         }
@@ -454,6 +593,11 @@ public class SleepSessionDao_Impl(
         val _columnIndexOfMoodRating: Int = getColumnIndexOrThrow(_stmt, "moodRating")
         val _columnIndexOfNotes: Int = getColumnIndexOrThrow(_stmt, "notes")
         val _columnIndexOfIsCompleted: Int = getColumnIndexOrThrow(_stmt, "isCompleted")
+        val _columnIndexOfTimezoneId: Int = getColumnIndexOrThrow(_stmt, "timezoneId")
+        val _columnIndexOfIsHomeSleep: Int = getColumnIndexOrThrow(_stmt, "isHomeSleep")
+        val _columnIndexOfAlarmUsed: Int = getColumnIndexOrThrow(_stmt, "alarmUsed")
+        val _columnIndexOfAvgBreathingRateBrpm: Int = getColumnIndexOrThrow(_stmt, "avgBreathingRateBrpm")
+        val _columnIndexOfCoughEventCount: Int = getColumnIndexOrThrow(_stmt, "coughEventCount")
         val _result: MutableList<SleepSessionEntity> = mutableListOf()
         while (_stmt.step()) {
           val _item: SleepSessionEntity
@@ -489,7 +633,25 @@ public class SleepSessionDao_Impl(
           val _tmp: Int
           _tmp = _stmt.getLong(_columnIndexOfIsCompleted).toInt()
           _tmpIsCompleted = _tmp != 0
-          _item = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted)
+          val _tmpTimezoneId: String
+          _tmpTimezoneId = _stmt.getText(_columnIndexOfTimezoneId)
+          val _tmpIsHomeSleep: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfIsHomeSleep).toInt()
+          _tmpIsHomeSleep = _tmp_1 != 0
+          val _tmpAlarmUsed: Boolean
+          val _tmp_2: Int
+          _tmp_2 = _stmt.getLong(_columnIndexOfAlarmUsed).toInt()
+          _tmpAlarmUsed = _tmp_2 != 0
+          val _tmpAvgBreathingRateBrpm: Float?
+          if (_stmt.isNull(_columnIndexOfAvgBreathingRateBrpm)) {
+            _tmpAvgBreathingRateBrpm = null
+          } else {
+            _tmpAvgBreathingRateBrpm = _stmt.getDouble(_columnIndexOfAvgBreathingRateBrpm).toFloat()
+          }
+          val _tmpCoughEventCount: Int
+          _tmpCoughEventCount = _stmt.getLong(_columnIndexOfCoughEventCount).toInt()
+          _item = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted,_tmpTimezoneId,_tmpIsHomeSleep,_tmpAlarmUsed,_tmpAvgBreathingRateBrpm,_tmpCoughEventCount)
           _result.add(_item)
         }
         _result
@@ -521,6 +683,11 @@ public class SleepSessionDao_Impl(
         val _columnIndexOfMoodRating: Int = getColumnIndexOrThrow(_stmt, "moodRating")
         val _columnIndexOfNotes: Int = getColumnIndexOrThrow(_stmt, "notes")
         val _columnIndexOfIsCompleted: Int = getColumnIndexOrThrow(_stmt, "isCompleted")
+        val _columnIndexOfTimezoneId: Int = getColumnIndexOrThrow(_stmt, "timezoneId")
+        val _columnIndexOfIsHomeSleep: Int = getColumnIndexOrThrow(_stmt, "isHomeSleep")
+        val _columnIndexOfAlarmUsed: Int = getColumnIndexOrThrow(_stmt, "alarmUsed")
+        val _columnIndexOfAvgBreathingRateBrpm: Int = getColumnIndexOrThrow(_stmt, "avgBreathingRateBrpm")
+        val _columnIndexOfCoughEventCount: Int = getColumnIndexOrThrow(_stmt, "coughEventCount")
         val _result: MutableList<SleepSessionEntity> = mutableListOf()
         while (_stmt.step()) {
           val _item: SleepSessionEntity
@@ -556,7 +723,25 @@ public class SleepSessionDao_Impl(
           val _tmp: Int
           _tmp = _stmt.getLong(_columnIndexOfIsCompleted).toInt()
           _tmpIsCompleted = _tmp != 0
-          _item = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted)
+          val _tmpTimezoneId: String
+          _tmpTimezoneId = _stmt.getText(_columnIndexOfTimezoneId)
+          val _tmpIsHomeSleep: Boolean
+          val _tmp_1: Int
+          _tmp_1 = _stmt.getLong(_columnIndexOfIsHomeSleep).toInt()
+          _tmpIsHomeSleep = _tmp_1 != 0
+          val _tmpAlarmUsed: Boolean
+          val _tmp_2: Int
+          _tmp_2 = _stmt.getLong(_columnIndexOfAlarmUsed).toInt()
+          _tmpAlarmUsed = _tmp_2 != 0
+          val _tmpAvgBreathingRateBrpm: Float?
+          if (_stmt.isNull(_columnIndexOfAvgBreathingRateBrpm)) {
+            _tmpAvgBreathingRateBrpm = null
+          } else {
+            _tmpAvgBreathingRateBrpm = _stmt.getDouble(_columnIndexOfAvgBreathingRateBrpm).toFloat()
+          }
+          val _tmpCoughEventCount: Int
+          _tmpCoughEventCount = _stmt.getLong(_columnIndexOfCoughEventCount).toInt()
+          _item = SleepSessionEntity(_tmpId,_tmpStartTimeMillis,_tmpEndTimeMillis,_tmpSleepDurationMinutes,_tmpTimeInBedMinutes,_tmpSleepEfficiency,_tmpSleepOnsetMinutes,_tmpWakeEvents,_tmpDeepSleepPercent,_tmpLightSleepPercent,_tmpRemSleepPercent,_tmpSleepScore,_tmpMoodRating,_tmpNotes,_tmpIsCompleted,_tmpTimezoneId,_tmpIsHomeSleep,_tmpAlarmUsed,_tmpAvgBreathingRateBrpm,_tmpCoughEventCount)
           _result.add(_item)
         }
         _result

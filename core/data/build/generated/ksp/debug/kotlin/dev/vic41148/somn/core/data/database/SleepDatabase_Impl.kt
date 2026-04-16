@@ -11,6 +11,10 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import dev.vic41148.somn.core.`data`.database.dao.AlarmDao
 import dev.vic41148.somn.core.`data`.database.dao.AlarmDao_Impl
+import dev.vic41148.somn.core.`data`.database.dao.AudioEventDao
+import dev.vic41148.somn.core.`data`.database.dao.AudioEventDao_Impl
+import dev.vic41148.somn.core.`data`.database.dao.HabitLogDao
+import dev.vic41148.somn.core.`data`.database.dao.HabitLogDao_Impl
 import dev.vic41148.somn.core.`data`.database.dao.SleepEpochDao
 import dev.vic41148.somn.core.`data`.database.dao.SleepEpochDao_Impl
 import dev.vic41148.somn.core.`data`.database.dao.SleepSessionDao
@@ -57,10 +61,18 @@ public class SleepDatabase_Impl : SleepDatabase() {
     UserProfileDao_Impl(this)
   }
 
+  private val _habitLogDao: Lazy<HabitLogDao> = lazy {
+    HabitLogDao_Impl(this)
+  }
+
+  private val _audioEventDao: Lazy<AudioEventDao> = lazy {
+    AudioEventDao_Impl(this)
+  }
+
   protected override fun createOpenDelegate(): RoomOpenDelegate {
-    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(2, "9e3e3204d6e3fbabaa95b94f68e59298", "1a0199e44e603804cfd685ee316d450a") {
+    val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(8, "ac219d6243543b9cebf1731457d66505", "678759621df8b4b43d354cc3582b7917") {
       public override fun createAllTables(connection: SQLiteConnection) {
-        connection.execSQL("CREATE TABLE IF NOT EXISTS `sleep_sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startTimeMillis` INTEGER NOT NULL, `endTimeMillis` INTEGER NOT NULL, `sleepDurationMinutes` INTEGER NOT NULL, `timeInBedMinutes` INTEGER NOT NULL, `sleepEfficiency` REAL NOT NULL, `sleepOnsetMinutes` INTEGER NOT NULL, `wakeEvents` INTEGER NOT NULL, `deepSleepPercent` REAL NOT NULL, `lightSleepPercent` REAL NOT NULL, `remSleepPercent` REAL NOT NULL, `sleepScore` INTEGER NOT NULL, `moodRating` INTEGER NOT NULL, `notes` TEXT NOT NULL, `isCompleted` INTEGER NOT NULL)")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `sleep_sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `startTimeMillis` INTEGER NOT NULL, `endTimeMillis` INTEGER NOT NULL, `sleepDurationMinutes` INTEGER NOT NULL, `timeInBedMinutes` INTEGER NOT NULL, `sleepEfficiency` REAL NOT NULL, `sleepOnsetMinutes` INTEGER NOT NULL, `wakeEvents` INTEGER NOT NULL, `deepSleepPercent` REAL NOT NULL, `lightSleepPercent` REAL NOT NULL, `remSleepPercent` REAL NOT NULL, `sleepScore` INTEGER NOT NULL, `moodRating` INTEGER NOT NULL, `notes` TEXT NOT NULL, `isCompleted` INTEGER NOT NULL, `timezoneId` TEXT NOT NULL, `isHomeSleep` INTEGER NOT NULL, `alarmUsed` INTEGER NOT NULL, `avgBreathingRateBrpm` REAL, `coughEventCount` INTEGER NOT NULL)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `sleep_epochs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `timestampMillis` INTEGER NOT NULL, `stage` TEXT NOT NULL, `movementMagnitude` REAL NOT NULL, `movementVariability` REAL NOT NULL, FOREIGN KEY(`sessionId`) REFERENCES `sleep_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_sleep_epochs_sessionId` ON `sleep_epochs` (`sessionId`)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `alarms` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hour` INTEGER NOT NULL, `minute` INTEGER NOT NULL, `label` TEXT NOT NULL, `isEnabled` INTEGER NOT NULL, `repeatDays` TEXT NOT NULL, `wakeWindowMinutes` INTEGER NOT NULL, `snoozeDurationMinutes` INTEGER NOT NULL, `maxSnoozeCount` INTEGER NOT NULL, `soundUri` TEXT NOT NULL, `vibrationEnabled` INTEGER NOT NULL, `gradualVolumeSeconds` INTEGER NOT NULL, `captchaType` TEXT NOT NULL)")
@@ -69,8 +81,10 @@ public class SleepDatabase_Impl : SleepDatabase() {
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_session_tags_sessionId` ON `session_tags` (`sessionId`)")
         connection.execSQL("CREATE INDEX IF NOT EXISTS `index_session_tags_tagId` ON `session_tags` (`tagId`)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS `user_profile` (`id` INTEGER NOT NULL, `dateOfBirth` TEXT, `biologicalSex` TEXT NOT NULL, `lifeStage` TEXT NOT NULL, `chronotype` TEXT NOT NULL, `chronotypeMeqScore` INTEGER, `adhdMode` INTEGER NOT NULL, `asdMode` INTEGER NOT NULL, `medicationTracking` INTEGER NOT NULL, `targetSleepHours` REAL NOT NULL, `pregnancyTrimester` INTEGER, `pregnancyDueDate` TEXT, `cycleLength` INTEGER NOT NULL, `lastPeriodStartDate` TEXT, `shiftWorker` INTEGER NOT NULL, `timezoneId` TEXT NOT NULL, `onboardingCompleted` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `habit_logs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `date` TEXT NOT NULL, `entryType` TEXT NOT NULL, `caffeineMg` INTEGER, `caffeineSource` TEXT, `alcoholUnits` REAL, `exerciseType` TEXT, `exerciseDurationMinutes` INTEGER, `exerciseIntensity` TEXT, `stressLevel` INTEGER, `medicationName` TEXT, `medicationDose` TEXT, `medicationIsStimulant` INTEGER, `timeOfDayHour` INTEGER, `timeOfDayMinute` INTEGER, `notes` TEXT NOT NULL)")
+        connection.execSQL("CREATE TABLE IF NOT EXISTS `audio_events` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `timestampMillis` INTEGER NOT NULL, `durationSeconds` INTEGER NOT NULL, `type` TEXT NOT NULL, `intensityDecibels` INTEGER NOT NULL, `clipPath` TEXT)")
         connection.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
-        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9e3e3204d6e3fbabaa95b94f68e59298')")
+        connection.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ac219d6243543b9cebf1731457d66505')")
       }
 
       public override fun dropAllTables(connection: SQLiteConnection) {
@@ -80,6 +94,8 @@ public class SleepDatabase_Impl : SleepDatabase() {
         connection.execSQL("DROP TABLE IF EXISTS `tags`")
         connection.execSQL("DROP TABLE IF EXISTS `session_tags`")
         connection.execSQL("DROP TABLE IF EXISTS `user_profile`")
+        connection.execSQL("DROP TABLE IF EXISTS `habit_logs`")
+        connection.execSQL("DROP TABLE IF EXISTS `audio_events`")
       }
 
       public override fun onCreate(connection: SQLiteConnection) {
@@ -114,6 +130,11 @@ public class SleepDatabase_Impl : SleepDatabase() {
         _columnsSleepSessions.put("moodRating", TableInfo.Column("moodRating", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsSleepSessions.put("notes", TableInfo.Column("notes", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         _columnsSleepSessions.put("isCompleted", TableInfo.Column("isCompleted", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsSleepSessions.put("timezoneId", TableInfo.Column("timezoneId", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsSleepSessions.put("isHomeSleep", TableInfo.Column("isHomeSleep", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsSleepSessions.put("alarmUsed", TableInfo.Column("alarmUsed", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsSleepSessions.put("avgBreathingRateBrpm", TableInfo.Column("avgBreathingRateBrpm", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsSleepSessions.put("coughEventCount", TableInfo.Column("coughEventCount", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
         val _foreignKeysSleepSessions: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
         val _indicesSleepSessions: MutableSet<TableInfo.Index> = mutableSetOf()
         val _infoSleepSessions: TableInfo = TableInfo("sleep_sessions", _columnsSleepSessions, _foreignKeysSleepSessions, _indicesSleepSessions)
@@ -247,6 +268,57 @@ public class SleepDatabase_Impl : SleepDatabase() {
               | Found:
               |""".trimMargin() + _existingUserProfile)
         }
+        val _columnsHabitLogs: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsHabitLogs.put("id", TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("date", TableInfo.Column("date", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("entryType", TableInfo.Column("entryType", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("caffeineMg", TableInfo.Column("caffeineMg", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("caffeineSource", TableInfo.Column("caffeineSource", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("alcoholUnits", TableInfo.Column("alcoholUnits", "REAL", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("exerciseType", TableInfo.Column("exerciseType", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("exerciseDurationMinutes", TableInfo.Column("exerciseDurationMinutes", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("exerciseIntensity", TableInfo.Column("exerciseIntensity", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("stressLevel", TableInfo.Column("stressLevel", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("medicationName", TableInfo.Column("medicationName", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("medicationDose", TableInfo.Column("medicationDose", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("medicationIsStimulant", TableInfo.Column("medicationIsStimulant", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("timeOfDayHour", TableInfo.Column("timeOfDayHour", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("timeOfDayMinute", TableInfo.Column("timeOfDayMinute", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsHabitLogs.put("notes", TableInfo.Column("notes", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysHabitLogs: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesHabitLogs: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoHabitLogs: TableInfo = TableInfo("habit_logs", _columnsHabitLogs, _foreignKeysHabitLogs, _indicesHabitLogs)
+        val _existingHabitLogs: TableInfo = read(connection, "habit_logs")
+        if (!_infoHabitLogs.equals(_existingHabitLogs)) {
+          return RoomOpenDelegate.ValidationResult(false, """
+              |habit_logs(dev.vic41148.somn.core.data.database.entity.HabitLogEntity).
+              | Expected:
+              |""".trimMargin() + _infoHabitLogs + """
+              |
+              | Found:
+              |""".trimMargin() + _existingHabitLogs)
+        }
+        val _columnsAudioEvents: MutableMap<String, TableInfo.Column> = mutableMapOf()
+        _columnsAudioEvents.put("id", TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsAudioEvents.put("sessionId", TableInfo.Column("sessionId", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsAudioEvents.put("timestampMillis", TableInfo.Column("timestampMillis", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsAudioEvents.put("durationSeconds", TableInfo.Column("durationSeconds", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsAudioEvents.put("type", TableInfo.Column("type", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsAudioEvents.put("intensityDecibels", TableInfo.Column("intensityDecibels", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        _columnsAudioEvents.put("clipPath", TableInfo.Column("clipPath", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY))
+        val _foreignKeysAudioEvents: MutableSet<TableInfo.ForeignKey> = mutableSetOf()
+        val _indicesAudioEvents: MutableSet<TableInfo.Index> = mutableSetOf()
+        val _infoAudioEvents: TableInfo = TableInfo("audio_events", _columnsAudioEvents, _foreignKeysAudioEvents, _indicesAudioEvents)
+        val _existingAudioEvents: TableInfo = read(connection, "audio_events")
+        if (!_infoAudioEvents.equals(_existingAudioEvents)) {
+          return RoomOpenDelegate.ValidationResult(false, """
+              |audio_events(dev.vic41148.somn.core.data.database.entity.AudioEventEntity).
+              | Expected:
+              |""".trimMargin() + _infoAudioEvents + """
+              |
+              | Found:
+              |""".trimMargin() + _existingAudioEvents)
+        }
         return RoomOpenDelegate.ValidationResult(true, null)
       }
     }
@@ -256,11 +328,11 @@ public class SleepDatabase_Impl : SleepDatabase() {
   protected override fun createInvalidationTracker(): InvalidationTracker {
     val _shadowTablesMap: MutableMap<String, String> = mutableMapOf()
     val _viewTables: MutableMap<String, Set<String>> = mutableMapOf()
-    return InvalidationTracker(this, _shadowTablesMap, _viewTables, "sleep_sessions", "sleep_epochs", "alarms", "tags", "session_tags", "user_profile")
+    return InvalidationTracker(this, _shadowTablesMap, _viewTables, "sleep_sessions", "sleep_epochs", "alarms", "tags", "session_tags", "user_profile", "habit_logs", "audio_events")
   }
 
   public override fun clearAllTables() {
-    super.performClear(true, "sleep_sessions", "sleep_epochs", "alarms", "tags", "session_tags", "user_profile")
+    super.performClear(true, "sleep_sessions", "sleep_epochs", "alarms", "tags", "session_tags", "user_profile", "habit_logs", "audio_events")
   }
 
   protected override fun getRequiredTypeConverterClasses(): Map<KClass<*>, List<KClass<*>>> {
@@ -270,6 +342,8 @@ public class SleepDatabase_Impl : SleepDatabase() {
     _typeConvertersMap.put(AlarmDao::class, AlarmDao_Impl.getRequiredConverters())
     _typeConvertersMap.put(TagDao::class, TagDao_Impl.getRequiredConverters())
     _typeConvertersMap.put(UserProfileDao::class, UserProfileDao_Impl.getRequiredConverters())
+    _typeConvertersMap.put(HabitLogDao::class, HabitLogDao_Impl.getRequiredConverters())
+    _typeConvertersMap.put(AudioEventDao::class, AudioEventDao_Impl.getRequiredConverters())
     return _typeConvertersMap
   }
 
@@ -292,4 +366,8 @@ public class SleepDatabase_Impl : SleepDatabase() {
   public override fun tagDao(): TagDao = _tagDao.value
 
   public override fun userProfileDao(): UserProfileDao = _userProfileDao.value
+
+  public override fun habitLogDao(): HabitLogDao = _habitLogDao.value
+
+  public override fun audioEventDao(): AudioEventDao = _audioEventDao.value
 }

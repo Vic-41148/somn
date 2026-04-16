@@ -64,73 +64,94 @@ Everything here is built and compiling.
 
 ---
 
-## Phase 2 — Habit Tracking & Sleep Debt 🔜 NEXT
+## Phase 2 — Habit Tracking & Sleep Debt ✅ COMPLETE
 
-### To build:
+Everything here is built and compiling.
 
-- [ ] **Habit Log Domain & Data**
-  - [ ] `HabitLog.kt` — caffeine, alcohol, stress, exercise, medication entries
-  - [ ] `CaffeineEntry`, `AlcoholEntry`, `ExerciseEntry`, `MedicationEntry` models
-  - [ ] `HabitLogEntity.kt` — Room entity with type converters
-  - [ ] `HabitLogDao.kt` — CRUD + date range queries
-  - [ ] `HabitLogRepository.kt` — domain mapping, correlation queries
+### What was done:
 
-- [ ] **Sleep Debt Engine**
-  - [ ] `SleepDebtUseCase.kt` — rolling 14-day debt calculation
-  - [ ] `SleepDebt.kt` — debt total, trend, level, daily breakdown
-  - [ ] `RecoveryPlan.kt` — additional minutes/night, adjusted bedtime, recovery days
+- [x] **Habit Log Domain & Data**
+  - `HabitLog.kt` — sealed class hierarchy: Caffeine, Alcohol, Exercise, Stress, Medication
+  - `CaffeineSource`, `ExerciseType`, `ExerciseIntensity` — enums with display names + defaults
+  - `HabitLogEntity.kt` — flat Room entity with entryType discriminator + nullable columns per type
+  - `HabitLogDao.kt` — CRUD + date-range queries + type-filtered queries
+  - `HabitLogRepository.kt` — bidirectional entity↔domain mapping with `@Singleton` injection
+  - `SleepDatabase.kt` — bumped to v3, HabitLogEntity added (destructive migration, dev-only)
+  - `DataModule.kt` — HabitLogDao + HabitLogRepository wired
 
-- [ ] **Lifestyle Correlation Engine**
-  - [ ] `CorrelationUseCase.kt` — caffeine→onset, alcohol→efficiency, stress→wakes, exercise→quality
+- [x] **Sleep Debt Engine**
+  - `SleepDebtUseCase.kt` — rolling 14-day debt, surplus capped at 90 min/night, per-day breakdown
+  - `SleepDebt.kt` — totalDebtMinutes, trend (IMPROVING/STABLE/WORSENING), level (NONE/MILD/MODERATE/SEVERE), dailyBreakdown
+  - `RecoveryPlan.kt` — additionalMinutesPerNight (≤90), suggestedBedtimeShift, estimatedRecoveryDays, plain-language explanation
 
-- [ ] **Habit Tracking UI** (`feature:habits` — new module)
-  - [ ] `HabitViewModel.kt`
-  - [ ] `DailyLogScreen.kt` — quick evening entry
-  - [ ] `MedicationLogScreen.kt` — ADHD stimulant timing (conditional)
-  - [ ] `CorrelationInsightsScreen.kt` — visual charts
+- [x] **Lifestyle Correlation Engine**
+  - `CorrelationUseCase.kt` — Pearson r for: caffeine(after 14:00)→onset, alcohol→efficiency, stress→wakes, exercise→score
+  - Requires 7+ data points; returns null below threshold with "no data" UI state
+  - `CorrelationResult`, `CorrelationStrength`, `CorrelationReport` models
 
-- [ ] **Sleep Debt UI**
-  - [ ] Sleep debt card on `HomeScreen.kt`
-  - [ ] `SleepDebtDetailScreen.kt` — 14-day chart + recovery plan
+- [x] **Habit Tracking UI** (`feature:habits` — new module)
+  - `HabitViewModel.kt` — loads today's logs, 14-day debt, recovery plan, and correlations reactively
+  - `DailyLogScreen.kt` — expandable cards per category with quick-entry forms + today's log list
+  - `MedicationLogScreen.kt` — ADHD stimulant timing log with late-dose warnings (ADHD-gated)
+  - `CorrelationInsightsScreen.kt` — correlation bar charts, r-value, strength badge, insufficient-data states
+  - `SleepDebtDetailScreen.kt` — animated 14-day bar chart + debt summary card + recovery plan card
 
----
+- [x] **Sleep Debt UI**
+  - Sleep debt card on `HomeScreen.kt` — colour-coded by level (green→red), trend arrow, tap to detail
+  - `SleepDebtDetailScreen.kt` — full 14-day breakdown with surplus/deficit colour coding
 
-## Phase 3 — Circadian Intelligence & Chronotype
-
-- [ ] `ChronotypeAssessmentUseCase.kt` — rMEQ scoring + data-driven detection after 14 nights
-- [ ] `SocialJetLagUseCase.kt` — weekday vs weekend midpoint, cardiovascular risk flagging
-- [ ] `SeasonalAnalysisUseCase.kt` — winter hypersomnia / summer insomnia, latitude-aware
-- [ ] `CircadianInsightsScreen.kt` — social jet lag visual, seasonal trends
-- [ ] Timezone change detection in `SleepTrackingService`
-- [ ] `timezoneId` and `isHomeSleep` fields on `SleepSessionEntity`
-
----
-
-## Phase 4 — Audio Monitoring & Smart Alarm
-
-- [ ] `core:audio` module — `AudioCollector`, `SnoreDetector`, `AudioEventClassifier`
-- [ ] `AudioEvent.kt` — type, timestamp, duration, intensity
-- [ ] Audio event database entities + DAO
-- [ ] Integrate `AudioCollector` into `SleepTrackingService` (opt-in)
-- [ ] `SmartAlarmUseCase.kt` — sleep-stage-aware alarm within wake window
-- [ ] ASD mode: vibration-only alarm
-- [ ] `BreathingRateEstimator.kt` — mic-based breathing analysis
-- [ ] Audio events timeline overlay on `SessionDetailScreen`
-- [ ] Snoring summary on `MorningReviewScreen`
+- [x] **Navigation**
+  - `feature:habits` module registered in `settings.gradle.kts` and `app/build.gradle.kts`
+  - Habits bottom nav tab added (Icons.Default.Spa)
+  - Routes: `habits`, `sleep_debt`, `medication_log`, `correlation_insights`
+  - `AppModule.kt` — `SleepDebtUseCase` + `CorrelationUseCase` provided as singletons
 
 ---
 
-## Phase 5 — Intelligent Notifications & Wind-Down
+## Phase 3 — Circadian Intelligence & Chronotype ✅ COMPLETE
 
-- [ ] `core:notifications` module — `NotificationEngine`, `WeeklyReportGenerator`, `AnomalyDetector`
-- [ ] `HormonalPhaseNotifier` — cycle phase alerts
-- [ ] `DeepSleepAlertNotifier` — glymphatic framing
-- [ ] `PPDRiskNotifier` — postpartum mental health resources after 3+ weeks fragmented
-- [ ] `feature:winddown` module
-  - [ ] `BreathingExerciseScreen.kt` — 4-7-8 / box breathing with haptic
-  - [ ] `CognitiveWindDownScreen.kt` — journaling, worry list, task dump
-  - [ ] `ADHDCooldownScreen.kt` — brain disengagement techniques
-- [ ] `MorningBriefingWidget.kt` — lock screen score + insight
+Everything here is built and compiling.
+
+### What was done:
+
+- [x] `ChronotypeAssessmentUseCase.kt` — rMEQ scoring + data-driven detection after 14 nights
+- [x] `SocialJetLagUseCase.kt` — weekday vs weekend midpoint, cardiovascular risk flagging
+- [x] `SeasonalAnalysisUseCase.kt` — winter hypersomnia / summer insomnia, latitude-aware
+- [x] `CircadianInsightsScreen.kt` — social jet lag visual, seasonal trends
+- [x] Timezone change detection in `SleepTrackingService` (via `SleepRepository.createSession`)
+- [x] `timezoneId`, `alarmUsed`, and `isHomeSleep` fields on `SleepSessionEntity`
+- [x] Database bumped to v4
+
+---
+
+## Phase 4 — Audio Monitoring & Smart Alarm ✅ COMPLETE
+
+Everything here is built and compiling.
+
+### What was done:
+- [x] `core:audio` module — `AudioCollector`, `BreathingRateEstimator`, `AudioEventClassifier`
+- [x] `AudioEvent.kt` — type, timestamp, duration, intensity
+- [x] Audio event database entities + DAO
+- [x] Integrate `AudioCollector` into `SleepTrackingService` (opt-in)
+- [x] `SmartAlarmUseCase.kt` — sleep-stage-aware alarm within wake window
+- [x] ASD mode: vibration-only alarm
+- [x] `BreathingRateEstimator.kt` — mic-based breathing analysis
+- [x] Audio events timeline overlay on `SessionDetailScreen`
+- [x] Snoring summary on `MorningReviewScreen`
+
+---
+
+## Phase 5 — Intelligent Notifications & Wind-Down ✅ COMPLETE
+
+- [x] `core:notifications` module — `NotificationEngine`, `WeeklyReportGenerator`
+- [x] `HormonalPhaseNotifier` — cycle phase alerts
+- [x] `DeepSleepAlertNotifier` — glymphatic framing
+- [x] `PPDRiskNotifier` — postpartum mental health resources after 3+ weeks fragmented
+- [x] `feature:winddown` module
+  - [x] `BreathingExerciseScreen.kt` — 4-7-8 / box breathing with haptic
+  - [x] `CognitiveWindDownScreen.kt` — journaling, worry list, task dump
+  - [x] `ADHDCooldownScreen.kt` — brain disengagement techniques
+- [x] `MorningBriefingWidget.kt` — lock screen score + insight
 
 ---
 

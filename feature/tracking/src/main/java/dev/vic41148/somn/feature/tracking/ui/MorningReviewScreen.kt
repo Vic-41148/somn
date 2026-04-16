@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,6 +37,7 @@ import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
+import dev.vic41148.somn.core.domain.model.AudioEventType
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 
 @Composable
@@ -47,6 +49,7 @@ fun MorningReviewScreen(
     val lastSession by viewModel.lastSession.collectAsState()
     val lastScore by viewModel.lastScore.collectAsState()
     val epochs by viewModel.epochs.collectAsState()
+    val audioEvents by viewModel.audioEvents.collectAsState()
 
     var selectedMood by remember { mutableIntStateOf(0) }
     var notes by remember { mutableStateOf("") }
@@ -111,6 +114,39 @@ fun MorningReviewScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Sickness Flag Card
+        if (session.coughEventCount >= 3) {
+            SleepCard(
+                title = "Health Alert",
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🌡️",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Unusual breathing patterns detected",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            text = "We noticed frequent coughing during the night. You may want to monitor your symptoms.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Key metrics
         SleepCard(title = "Sleep Stats") {
             Row(
@@ -133,6 +169,24 @@ fun MorningReviewScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Audio Events
+        if (audioEvents.isNotEmpty()) {
+            SleepCard(title = "Audio Events") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val snoreCount = audioEvents.count { it.type == AudioEventType.SNORE }
+                    val coughCount = audioEvents.count { it.type == AudioEventType.COUGH }
+                    val talkCount = audioEvents.count { it.type == AudioEventType.TALK }
+                    MetricChip(label = "Snoring", value = "$snoreCount events")
+                    MetricChip(label = "Coughs", value = "$coughCount events")
+                    MetricChip(label = "Talking", value = "$talkCount events")
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         // Mood rating
         SleepCard(title = "How do you feel?") {

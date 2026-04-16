@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "dev.vic41148.somn.app-release-62:/xml_file_paths.xml.flat",
+        "source": "dev.vic41148.somn.app-main-63:/xml/file_paths.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.app-release-62:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "dev.vic41148.somn.app-main-63:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.app-release-62:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "dev.vic41148.somn.app-main-63:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.app-release-62:/xml_morning_briefing_widget_info.xml.flat",
+        "source": "dev.vic41148.somn.app-main-63:/xml/morning_briefing_widget_info.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.app-release-62:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "dev.vic41148.somn.app-main-63:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.app-release-62:/layout_widget_morning_briefing.xml.flat",
+        "source": "dev.vic41148.somn.app-main-63:/layout/widget_morning_briefing.xml"
+    }
+]

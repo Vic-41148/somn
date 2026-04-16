@@ -33,6 +33,9 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
     implementation(project(":core:ui"))
+    implementation(project(":core:audio"))
+    implementation(project(":feature:habits"))
+    implementation(project(":feature:alarm"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

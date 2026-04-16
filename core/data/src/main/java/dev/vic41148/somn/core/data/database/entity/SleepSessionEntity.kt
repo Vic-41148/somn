@@ -20,5 +20,16 @@ data class SleepSessionEntity(
     val sleepScore: Int = 0,
     val moodRating: Int = 0,
     val notes: String = "",
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    // Phase 3: Added for circadian intelligence
+    /** Timezone ID at session start — used for correct local-time circadian calculations. */
+    val timezoneId: String = "UTC",
+    /** False when sleep occurred away from home (travel) — used to tag non-baseline sessions. */
+    val isHomeSleep: Boolean = true,
+    /** True if an alarm was active during this session — used to detect alarm-free nights for chronotype assessment. */
+    val alarmUsed: Boolean = false,
+    /** Average breathing rate in breaths per minute. Null if mic disabled/not available. */
+    val avgBreathingRateBrpm: Float? = null,
+    /** Number of cough events detected by audio classifier during this session. */
+    val coughEventCount: Int = 0
 )

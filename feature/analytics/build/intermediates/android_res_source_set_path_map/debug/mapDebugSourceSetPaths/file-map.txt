@@ -1,8 +1,8 @@
-dev.vic41148.somn.feature.analytics-pngs-0 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/build/generated/res/pngs/debug
-dev.vic41148.somn.feature.analytics-updated_navigation_xml-1 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/build/generated/updated_navigation_xml/debug
-dev.vic41148.somn.feature.analytics-mergeDebugResources-2 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-dev.vic41148.somn.feature.analytics-mergeDebugResources-3 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-dev.vic41148.somn.feature.analytics-debug-4 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/build/intermediates/merged_res/debug/mergeDebugResources
-dev.vic41148.somn.feature.analytics-debug-5 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/build/intermediates/packaged_res/debug/packageDebugResources
-dev.vic41148.somn.feature.analytics-debug-6 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/src/debug/res
-dev.vic41148.somn.feature.analytics-main-7 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/analytics/src/main/res
+dev.vic41148.somn.feature.analytics-pngs-0 /home/vic/Projects/somn/somn/feature/analytics/build/generated/res/pngs/debug
+dev.vic41148.somn.feature.analytics-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/analytics/build/generated/updated_navigation_xml/debug
+dev.vic41148.somn.feature.analytics-mergeDebugResources-2 /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+dev.vic41148.somn.feature.analytics-mergeDebugResources-3 /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+dev.vic41148.somn.feature.analytics-debug-4 /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/merged_res/debug/mergeDebugResources
+dev.vic41148.somn.feature.analytics-debug-5 /home/vic/Projects/somn/somn/feature/analytics/build/intermediates/packaged_res/debug/packageDebugResources
+dev.vic41148.somn.feature.analytics-debug-6 /home/vic/Projects/somn/somn/feature/analytics/src/debug/res
+dev.vic41148.somn.feature.analytics-main-7 /home/vic/Projects/somn/somn/feature/analytics/src/main/res

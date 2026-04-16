@@ -1,0 +1,8 @@
+dev.vic41148.somn.core.ui-pngs-0 /home/vic/Projects/somn/somn/core/ui/build/generated/res/pngs/release
+dev.vic41148.somn.core.ui-updated_navigation_xml-1 /home/vic/Projects/somn/somn/core/ui/build/generated/updated_navigation_xml/release
+dev.vic41148.somn.core.ui-mergeReleaseResources-2 /home/vic/Projects/somn/somn/core/ui/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+dev.vic41148.somn.core.ui-mergeReleaseResources-3 /home/vic/Projects/somn/somn/core/ui/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+dev.vic41148.somn.core.ui-release-4 /home/vic/Projects/somn/somn/core/ui/build/intermediates/merged_res/release/mergeReleaseResources
+dev.vic41148.somn.core.ui-release-5 /home/vic/Projects/somn/somn/core/ui/build/intermediates/packaged_res/release/packageReleaseResources
+dev.vic41148.somn.core.ui-main-6 /home/vic/Projects/somn/somn/core/ui/src/main/res
+dev.vic41148.somn.core.ui-release-7 /home/vic/Projects/somn/somn/core/ui/src/release/res

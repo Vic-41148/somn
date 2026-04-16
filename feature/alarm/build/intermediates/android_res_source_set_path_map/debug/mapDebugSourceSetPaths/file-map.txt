@@ -1,8 +1,8 @@
-dev.vic41148.somn.feature.alarm-pngs-0 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/build/generated/res/pngs/debug
-dev.vic41148.somn.feature.alarm-updated_navigation_xml-1 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/build/generated/updated_navigation_xml/debug
-dev.vic41148.somn.feature.alarm-mergeDebugResources-2 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-dev.vic41148.somn.feature.alarm-mergeDebugResources-3 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-dev.vic41148.somn.feature.alarm-debug-4 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/build/intermediates/merged_res/debug/mergeDebugResources
-dev.vic41148.somn.feature.alarm-debug-5 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/build/intermediates/packaged_res/debug/packageDebugResources
-dev.vic41148.somn.feature.alarm-debug-6 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/debug/res
-dev.vic41148.somn.feature.alarm-main-7 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/alarm/src/main/res
+dev.vic41148.somn.feature.alarm-pngs-0 /home/vic/Projects/somn/somn/feature/alarm/build/generated/res/pngs/debug
+dev.vic41148.somn.feature.alarm-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/alarm/build/generated/updated_navigation_xml/debug
+dev.vic41148.somn.feature.alarm-mergeDebugResources-2 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+dev.vic41148.somn.feature.alarm-mergeDebugResources-3 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+dev.vic41148.somn.feature.alarm-debug-4 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/merged_res/debug/mergeDebugResources
+dev.vic41148.somn.feature.alarm-debug-5 /home/vic/Projects/somn/somn/feature/alarm/build/intermediates/packaged_res/debug/packageDebugResources
+dev.vic41148.somn.feature.alarm-debug-6 /home/vic/Projects/somn/somn/feature/alarm/src/debug/res
+dev.vic41148.somn.feature.alarm-main-7 /home/vic/Projects/somn/somn/feature/alarm/src/main/res

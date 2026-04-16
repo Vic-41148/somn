@@ -48,12 +48,19 @@ android {
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:domain"))
+    implementation(project(":core:audio"))
     implementation(project(":core:ui"))
     implementation(project(":feature:tracking"))
     implementation(project(":feature:alarm"))
     implementation(project(":feature:analytics"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:onboarding"))
+    implementation(project(":feature:habits"))
+    implementation(project(":core:notifications"))
+    implementation(project(":feature:winddown"))
+
+    // Room — needed for widget DB access
+    implementation(libs.room.runtime)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

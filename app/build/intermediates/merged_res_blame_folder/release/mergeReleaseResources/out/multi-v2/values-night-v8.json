@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "dev.vic41148.somn.app-mergeReleaseResources-60:/values-night-v8/values-night-v8.xml",
+            "map": [
+                {
+                    "source": "/home/vic/Projects/somn/somn/app/src/main/res/values-night/themes.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "297"
+                    }
+                }
+            ]
+        }
+    ]
+}

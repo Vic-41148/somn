@@ -1,10 +1,27 @@
 {
     "logs": [
         {
-            "outputFile": "dev.vic41148.somn.app-mergeDebugResources-60:/values-night-v8/values-night-v8.xml",
+            "outputFile": "dev.vic41148.somn.app-mergeDebugResources-72:/values-night-v8/values-night-v8.xml",
             "map": [
                 {
-                    "source": "/home/vic/Projects/Sleep Tracker/SleepTracker/app/src/main/res/values-night/themes.xml",
+                    "source": "/home/vic/.gradle/caches/9.3.1/transforms/9870d1c456a94dad4f519642df516f7d/transformed/appcompat-1.1.0/res/values-night-v8/values-night-v8.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,125,209,293,389,491,593,687",
+                        "endColumns": "69,83,83,95,101,101,93,88",
+                        "endOffsets": "120,204,288,384,486,588,682,771"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,13",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,125,209,293,389,491,593,934",
+                        "endColumns": "69,83,83,95,101,101,93,88",
+                        "endOffsets": "120,204,288,384,486,588,682,1018"
+                    }
+                },
+                {
+                    "source": "/home/vic/Projects/somn/somn/app/src/main/res/values-night/themes.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -12,6 +29,14 @@
                         "endLines": "5",
                         "endColumns": "12",
                         "endOffsets": "297"
+                    },
+                    "to": {
+                        "startLines": "9",
+                        "startColumns": "4",
+                        "startOffsets": "687",
+                        "endLines": "12",
+                        "endColumns": "12",
+                        "endOffsets": "929"
                     }
                 }
             ]

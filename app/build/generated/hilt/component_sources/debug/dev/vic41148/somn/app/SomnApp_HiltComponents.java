@@ -47,7 +47,11 @@ import dagger.hilt.migration.DisableInstallInCheck;
 import dev.vic41148.somn.app.di.AppModule;
 import dev.vic41148.somn.core.data.di.DataModule;
 import dev.vic41148.somn.feature.alarm.AlarmViewModel_HiltModules;
+import dev.vic41148.somn.feature.alarm.service.AlarmService_GeneratedInjector;
+import dev.vic41148.somn.feature.alarm.ui.AlarmActivity_GeneratedInjector;
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel_HiltModules;
+import dev.vic41148.somn.feature.analytics.CircadianViewModel_HiltModules;
+import dev.vic41148.somn.feature.habits.HabitViewModel_HiltModules;
 import dev.vic41148.somn.feature.onboarding.OnboardingViewModel_HiltModules;
 import dev.vic41148.somn.feature.settings.SettingsViewModel_HiltModules;
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel_HiltModules;
@@ -154,6 +158,7 @@ public final class SomnApp_HiltComponents {
   @ServiceScoped
   public abstract static class ServiceC implements ServiceComponent,
       GeneratedComponent,
+      AlarmService_GeneratedInjector,
       SleepTrackingService_GeneratedInjector {
     @Subcomponent.Builder
     abstract interface Builder extends ServiceComponentBuilder {
@@ -164,6 +169,8 @@ public final class SomnApp_HiltComponents {
       modules = {
           AlarmViewModel_HiltModules.KeyModule.class,
           AnalyticsViewModel_HiltModules.KeyModule.class,
+          CircadianViewModel_HiltModules.KeyModule.class,
+          HabitViewModel_HiltModules.KeyModule.class,
           HiltWrapper_ActivityRetainedComponentManager_LifecycleModule.class,
           HiltWrapper_ActivitySavedStateHandleModule.class,
           OnboardingViewModel_HiltModules.KeyModule.class,
@@ -198,7 +205,8 @@ public final class SomnApp_HiltComponents {
       FragmentComponentManager.FragmentComponentBuilderEntryPoint,
       ViewComponentManager.ViewComponentBuilderEntryPoint,
       GeneratedComponent,
-      MainActivity_GeneratedInjector {
+      MainActivity_GeneratedInjector,
+      AlarmActivity_GeneratedInjector {
     @Subcomponent.Builder
     abstract interface Builder extends ActivityComponentBuilder {
     }
@@ -208,6 +216,8 @@ public final class SomnApp_HiltComponents {
       modules = {
           AlarmViewModel_HiltModules.BindsModule.class,
           AnalyticsViewModel_HiltModules.BindsModule.class,
+          CircadianViewModel_HiltModules.BindsModule.class,
+          HabitViewModel_HiltModules.BindsModule.class,
           HiltWrapper_HiltViewModelFactory_ViewModelModule.class,
           OnboardingViewModel_HiltModules.BindsModule.class,
           SettingsViewModel_HiltModules.BindsModule.class,

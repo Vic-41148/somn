@@ -1,0 +1,8 @@
+dev.vic41148.somn.feature.tracking-pngs-0 /home/vic/Projects/somn/somn/feature/tracking/build/generated/res/pngs/release
+dev.vic41148.somn.feature.tracking-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/tracking/build/generated/updated_navigation_xml/release
+dev.vic41148.somn.feature.tracking-mergeReleaseResources-2 /home/vic/Projects/somn/somn/feature/tracking/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+dev.vic41148.somn.feature.tracking-mergeReleaseResources-3 /home/vic/Projects/somn/somn/feature/tracking/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+dev.vic41148.somn.feature.tracking-release-4 /home/vic/Projects/somn/somn/feature/tracking/build/intermediates/merged_res/release/mergeReleaseResources
+dev.vic41148.somn.feature.tracking-release-5 /home/vic/Projects/somn/somn/feature/tracking/build/intermediates/packaged_res/release/packageReleaseResources
+dev.vic41148.somn.feature.tracking-main-6 /home/vic/Projects/somn/somn/feature/tracking/src/main/res
+dev.vic41148.somn.feature.tracking-release-7 /home/vic/Projects/somn/somn/feature/tracking/src/release/res

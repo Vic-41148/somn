@@ -41,7 +41,7 @@ fun WelcomeScreen(onNext: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Sleep Tracker",
+            text = "Somn",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground

@@ -2,11 +2,15 @@ package dev.vic41148.somn.core.data.repository
 
 import dev.vic41148.somn.core.data.database.dao.SleepEpochDao
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
+import dev.vic41148.somn.core.data.database.dao.AudioEventDao
 import dev.vic41148.somn.core.data.database.entity.SleepEpochEntity
 import dev.vic41148.somn.core.data.database.entity.SleepSessionEntity
+import dev.vic41148.somn.core.data.database.entity.AudioEventEntity
 import dev.vic41148.somn.core.domain.model.SleepEpoch
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.SleepStage
+import dev.vic41148.somn.core.domain.model.AudioEvent
+import dev.vic41148.somn.core.domain.model.AudioEventType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -15,14 +19,15 @@ import javax.inject.Singleton
 @Singleton
 class SleepRepository @Inject constructor(
     private val sessionDao: SleepSessionDao,
-    private val epochDao: SleepEpochDao
+    private val epochDao: SleepEpochDao,
+    private val audioEventDao: AudioEventDao
 ) {
 
     // --- Sessions ---
 
-    suspend fun createSession(startTimeMillis: Long): Long {
+    suspend fun createSession(startTimeMillis: Long, timezoneId: String = java.time.ZoneId.systemDefault().id): Long {
         return sessionDao.insert(
-            SleepSessionEntity(startTimeMillis = startTimeMillis)
+            SleepSessionEntity(startTimeMillis = startTimeMillis, timezoneId = timezoneId)
         )
     }
 
@@ -35,6 +40,15 @@ class SleepRepository @Inject constructor(
     }
 
     suspend fun deleteSession(session: SleepSession) {
+        val events = getAudioEvents(session.id)
+        events.forEach { event ->
+            event.clipPath?.let { path ->
+                val file = java.io.File(path)
+                if (file.exists()) {
+                    file.delete()
+                }
+            }
+        }
         sessionDao.delete(session.toEntity())
     }
 
@@ -96,6 +110,22 @@ class SleepRepository @Inject constructor(
         return epochDao.getLatestEpoch(sessionId)?.toDomain()
     }
 
+    // --- Audio Events ---
+
+    suspend fun insertAudioEvent(event: AudioEvent) {
+        audioEventDao.insert(event.toEntity())
+    }
+
+    fun observeAudioEvents(sessionId: Long): Flow<List<AudioEvent>> {
+        return audioEventDao.observeBySession(sessionId).map { list ->
+            list.map { it.toDomain() }
+        }
+    }
+
+    suspend fun getAudioEvents(sessionId: Long): List<AudioEvent> {
+        return audioEventDao.getBySession(sessionId).map { it.toDomain() }
+    }
+
     // --- Mappers ---
 
     private fun SleepSessionEntity.toDomain() = SleepSession(
@@ -113,7 +143,12 @@ class SleepRepository @Inject constructor(
         sleepScore = sleepScore,
         moodRating = moodRating,
         notes = notes,
-        isCompleted = isCompleted
+        isCompleted = isCompleted,
+        timezoneId = timezoneId,
+        isHomeSleep = isHomeSleep,
+        alarmUsed = alarmUsed,
+        avgBreathingRateBrpm = avgBreathingRateBrpm,
+        coughEventCount = coughEventCount
     )
 
     private fun SleepSession.toEntity() = SleepSessionEntity(
@@ -131,7 +166,12 @@ class SleepRepository @Inject constructor(
         sleepScore = sleepScore,
         moodRating = moodRating,
         notes = notes,
-        isCompleted = isCompleted
+        isCompleted = isCompleted,
+        timezoneId = timezoneId,
+        isHomeSleep = isHomeSleep,
+        alarmUsed = alarmUsed,
+        avgBreathingRateBrpm = avgBreathingRateBrpm,
+        coughEventCount = coughEventCount
     )
 
     private fun SleepEpochEntity.toDomain() = SleepEpoch(
@@ -150,5 +190,25 @@ class SleepRepository @Inject constructor(
         stage = stage.name,
         movementMagnitude = movementMagnitude,
         movementVariability = movementVariability
+    )
+
+    private fun AudioEventEntity.toDomain() = AudioEvent(
+        id = id,
+        sessionId = sessionId,
+        timestampMillis = timestampMillis,
+        durationSeconds = durationSeconds,
+        type = try { AudioEventType.valueOf(type) } catch (e: Exception) { AudioEventType.ANOMALY },
+        intensityDecibels = intensityDecibels,
+        clipPath = clipPath
+    )
+
+    private fun AudioEvent.toEntity() = AudioEventEntity(
+        id = id,
+        sessionId = sessionId,
+        timestampMillis = timestampMillis,
+        durationSeconds = durationSeconds,
+        type = type.name,
+        intensityDecibels = intensityDecibels,
+        clipPath = clipPath
     )
 }

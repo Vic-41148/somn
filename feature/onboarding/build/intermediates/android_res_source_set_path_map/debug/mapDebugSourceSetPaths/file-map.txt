@@ -1,8 +1,8 @@
-dev.vic41148.somn.feature.onboarding-pngs-0 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/build/generated/res/pngs/debug
-dev.vic41148.somn.feature.onboarding-updated_navigation_xml-1 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/build/generated/updated_navigation_xml/debug
-dev.vic41148.somn.feature.onboarding-mergeDebugResources-2 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-dev.vic41148.somn.feature.onboarding-mergeDebugResources-3 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-dev.vic41148.somn.feature.onboarding-debug-4 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/build/intermediates/merged_res/debug/mergeDebugResources
-dev.vic41148.somn.feature.onboarding-debug-5 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/build/intermediates/packaged_res/debug/packageDebugResources
-dev.vic41148.somn.feature.onboarding-debug-6 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/src/debug/res
-dev.vic41148.somn.feature.onboarding-main-7 /home/vic/Projects/Sleep Tracker/SleepTracker/feature/onboarding/src/main/res
+dev.vic41148.somn.feature.onboarding-pngs-0 /home/vic/Projects/somn/somn/feature/onboarding/build/generated/res/pngs/debug
+dev.vic41148.somn.feature.onboarding-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/onboarding/build/generated/updated_navigation_xml/debug
+dev.vic41148.somn.feature.onboarding-mergeDebugResources-2 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+dev.vic41148.somn.feature.onboarding-mergeDebugResources-3 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+dev.vic41148.somn.feature.onboarding-debug-4 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/merged_res/debug/mergeDebugResources
+dev.vic41148.somn.feature.onboarding-debug-5 /home/vic/Projects/somn/somn/feature/onboarding/build/intermediates/packaged_res/debug/packageDebugResources
+dev.vic41148.somn.feature.onboarding-debug-6 /home/vic/Projects/somn/somn/feature/onboarding/src/debug/res
+dev.vic41148.somn.feature.onboarding-main-7 /home/vic/Projects/somn/somn/feature/onboarding/src/main/res

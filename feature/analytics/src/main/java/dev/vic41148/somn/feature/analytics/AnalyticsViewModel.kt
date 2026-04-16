@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.domain.model.SleepSession
+import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,8 @@ class AnalyticsViewModel @Inject constructor(
     fun clearSelection() {
         _selectedSession.value = null
     }
+
+    fun observeAudioEvents(sessionId: Long) = sleepRepository.observeAudioEvents(sessionId)
 
     fun deleteSession(session: SleepSession) {
         viewModelScope.launch {

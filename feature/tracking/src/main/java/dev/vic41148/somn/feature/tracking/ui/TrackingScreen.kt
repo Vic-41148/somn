@@ -2,6 +2,7 @@ package dev.vic41148.somn.feature.tracking.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.audio.SonarCollector
+import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 import kotlinx.coroutines.delay
@@ -38,8 +42,12 @@ fun TrackingScreen(
     viewModel: SleepTrackingViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val activeSession by viewModel.activeSession.collectAsState()
-    val epochs by viewModel.epochs.collectAsState()
+    val activeSession       by viewModel.activeSession.collectAsState()
+    val epochs              by viewModel.epochs.collectAsState()
+    val activeMode          by viewModel.activeTrackingMode.collectAsState()
+    val calibrationState    by viewModel.sonarCalibrationState.collectAsState()
+    val isSonar             = activeMode == TrackingMode.SONAR
+    val isCalibrating       = isSonar && calibrationState == SonarCollector.SonarCalibrationState.CALIBRATING
 
     // Timer
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
@@ -61,25 +69,55 @@ fun TrackingScreen(
     ) {
         // Tracking indicator
         Text(
-            text = "Tracking Your Sleep",
+            text = if (isCalibrating) "Calibrating Sonar…" else "Tracking Your Sleep",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary
+            color = if (isCalibrating) MaterialTheme.colorScheme.tertiary
+                    else MaterialTheme.colorScheme.primary
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "Place your phone on the bed and relax",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+        if (isCalibrating) {
+            Text(
+                text = "Establishing acoustic baseline (60s). Keep still…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "⚡ Sonar mode — high battery usage",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        } else if (isSonar) {
+            Text(
+                text = "🔊 Sonar active — contactless sensing",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.tertiary,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = "⚡ Sonar mode — high battery usage",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        } else {
+            Text(
+                text = "Place your phone on the bed and relax",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
 
         Spacer(modifier = Modifier.height(40.dp))
 
         // Timer display
-        val hours = elapsedSeconds / 3600
+        val hours   = elapsedSeconds / 3600
         val minutes = (elapsedSeconds % 3600) / 60
         val seconds = elapsedSeconds % 60
         Text(
@@ -100,7 +138,7 @@ fun TrackingScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Live hypnogram (last 60 epochs = ~30 min)
-        if (epochs.isNotEmpty()) {
+        if (epochs.isNotEmpty() && !isCalibrating) {
             Text(
                 text = "Live Movement",
                 style = MaterialTheme.typography.labelMedium,

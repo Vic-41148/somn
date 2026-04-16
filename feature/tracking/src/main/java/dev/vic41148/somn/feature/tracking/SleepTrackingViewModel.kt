@@ -7,6 +7,8 @@ import dev.vic41148.somn.core.domain.model.SleepEpoch
 import dev.vic41148.somn.core.domain.model.SleepScore
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.SleepStage
+import dev.vic41148.somn.core.domain.model.AudioEvent
+import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase
 import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
@@ -28,6 +30,8 @@ class SleepTrackingViewModel @Inject constructor(
 ) : ViewModel() {
 
     val trackingState: StateFlow<TrackingState> = SleepTrackingService.trackingState
+    val sonarCalibrationState = SleepTrackingService.sonarCalibrationState
+    val activeTrackingMode    = SleepTrackingService.activeTrackingMode
 
     private val _lastSession = MutableStateFlow<SleepSession?>(null)
     val lastSession: StateFlow<SleepSession?> = _lastSession.asStateFlow()
@@ -37,6 +41,9 @@ class SleepTrackingViewModel @Inject constructor(
 
     private val _epochs = MutableStateFlow<List<SleepEpoch>>(emptyList())
     val epochs: StateFlow<List<SleepEpoch>> = _epochs.asStateFlow()
+
+    private val _audioEvents = MutableStateFlow<List<AudioEvent>>(emptyList())
+    val audioEvents: StateFlow<List<AudioEvent>> = _audioEvents.asStateFlow()
 
     val activeSession = sleepRepository.observeActiveSession()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -54,14 +61,15 @@ class SleepTrackingViewModel @Inject constructor(
                 if (session.sleepScore > 0) {
                     _lastScore.value = calculateScore(session)
                 }
+                _audioEvents.value = sleepRepository.getAudioEvents(session.id)
             }
         }
     }
 
-    fun startTracking(context: android.content.Context) {
+    fun startTracking(context: android.content.Context, mode: TrackingMode = TrackingMode.ACCELEROMETER) {
         viewModelScope.launch {
             val sessionId = sleepRepository.createSession(System.currentTimeMillis())
-            SleepTrackingService.startTracking(context, sessionId)
+            SleepTrackingService.startTracking(context, sessionId, mode)
 
             // Observe epochs for real-time display
             launch {
@@ -81,6 +89,10 @@ class SleepTrackingViewModel @Inject constructor(
 
             // Calculate metrics from epoch timestamps (not epoch count)
             val now = System.currentTimeMillis()
+            // Count audio events
+            val sessionAudioEvents = sleepRepository.getAudioEvents(session.id)
+            _audioEvents.value = sessionAudioEvents
+
             val sleepEpochs = epochs.filter { it.stage != SleepStage.AWAKE }
             val deepEpochs = epochs.filter { it.stage == SleepStage.DEEP }
             val lightEpochs = epochs.filter { it.stage == SleepStage.LIGHT }
@@ -136,6 +148,8 @@ class SleepTrackingViewModel @Inject constructor(
                 deepSleepPercent = deepPercent,
                 lightSleepPercent = lightPercent,
                 remSleepPercent = remPercent,
+                avgBreathingRateBrpm = dev.vic41148.somn.feature.tracking.service.SleepTrackingService.currentAvgBrpm.value,
+                coughEventCount = _audioEvents.value.count { it.type == dev.vic41148.somn.core.domain.model.AudioEventType.COUGH },
                 isCompleted = true
             )
 

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Nightlight
+import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,14 +30,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.domain.model.DebtLevel
+import dev.vic41148.somn.core.domain.model.SleepDebt
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
+import dev.vic41148.somn.feature.habits.HabitViewModel
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 import dev.vic41148.somn.feature.tracking.service.TrackingState
 
@@ -44,12 +49,16 @@ import dev.vic41148.somn.feature.tracking.service.TrackingState
 fun HomeScreen(
     onNavigateToTracking: () -> Unit,
     onNavigateToMorningReview: (Long) -> Unit,
-    viewModel: SleepTrackingViewModel = hiltViewModel()
+    onNavigateToDebt: () -> Unit = {},
+    trackingMode: dev.vic41148.somn.core.domain.model.TrackingMode = dev.vic41148.somn.core.domain.model.TrackingMode.ACCELEROMETER,
+    viewModel: SleepTrackingViewModel = hiltViewModel(),
+    habitViewModel: HabitViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val trackingState by viewModel.trackingState.collectAsState()
     val lastSession by viewModel.lastSession.collectAsState()
     val lastScore by viewModel.lastScore.collectAsState()
+    val sleepDebt by habitViewModel.sleepDebt.collectAsState()
 
     Column(
         modifier = Modifier
@@ -60,7 +69,7 @@ fun HomeScreen(
     ) {
         // Header
         Text(
-            text = "Sleep Tracker",
+            text = "Somn",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -89,7 +98,7 @@ fun HomeScreen(
                 )
                 .clickable {
                     if (trackingState == TrackingState.IDLE) {
-                        viewModel.startTracking(context)
+                        viewModel.startTracking(context, trackingMode)
                         onNavigateToTracking()
                     }
                 }
@@ -201,5 +210,66 @@ fun HomeScreen(
                 )
             }
         }
+
+        // Sleep Debt card
+        sleepDebt?.let { debt ->
+            Spacer(modifier = Modifier.height(16.dp))
+            SleepDebtHomeCard(debt = debt, onClick = onNavigateToDebt)
+        }
+    }
+}
+
+@Composable
+private fun SleepDebtHomeCard(debt: SleepDebt, onClick: () -> Unit) {
+    val levelColor = when (debt.level) {
+        DebtLevel.NONE -> MaterialTheme.colorScheme.primary
+        DebtLevel.MILD -> Color(0xFFF9A825)
+        DebtLevel.MODERATE -> Color(0xFFE65100)
+        DebtLevel.SEVERE -> MaterialTheme.colorScheme.error
+    }
+
+    SleepCard(
+        title = "Sleep Debt",
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                val h = debt.totalDebtMinutes / 60
+                val m = debt.totalDebtMinutes % 60
+                val debtStr = when {
+                    debt.totalDebtMinutes == 0 -> "None 🎉"
+                    h > 0 -> "${h}h ${m}m"
+                    else -> "${m}m"
+                }
+                Text(
+                    text = debtStr,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = levelColor
+                )
+                Text(
+                    text = "${debt.trend.emoji} ${debt.trend.displayName}  •  ${debt.level.displayName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.TrendingDown,
+                contentDescription = "Sleep debt trend",
+                tint = levelColor,
+                modifier = Modifier.size(36.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Tap for your 14-day breakdown and recovery plan →",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

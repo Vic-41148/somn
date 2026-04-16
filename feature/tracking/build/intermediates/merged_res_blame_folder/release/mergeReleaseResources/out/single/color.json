@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "dev.vic41148.somn.feature.tracking-release-64:/color/vector_tint_color.xml",
+        "source": "dev.vic41148.somn.feature.tracking-ui-release-15:/color/vector_tint_color.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.tracking-release-64:/color/vector_tint_theme_color.xml",
+        "source": "dev.vic41148.somn.feature.tracking-ui-release-15:/color/vector_tint_theme_color.xml"
+    }
+]

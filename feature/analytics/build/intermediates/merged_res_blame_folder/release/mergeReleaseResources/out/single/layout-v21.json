@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "dev.vic41148.somn.feature.analytics-release-60:/layout-v21/notification_action_tombstone.xml",
+        "source": "dev.vic41148.somn.feature.analytics-core-1.15.0-14:/layout-v21/notification_action_tombstone.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.analytics-release-60:/layout-v21/notification_template_custom_big.xml",
+        "source": "dev.vic41148.somn.feature.analytics-core-1.15.0-14:/layout-v21/notification_template_custom_big.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.analytics-release-60:/layout-v21/notification_template_icon_group.xml",
+        "source": "dev.vic41148.somn.feature.analytics-core-1.15.0-14:/layout-v21/notification_template_icon_group.xml"
+    },
+    {
+        "merged": "dev.vic41148.somn.feature.analytics-release-60:/layout-v21/notification_action.xml",
+        "source": "dev.vic41148.somn.feature.analytics-core-1.15.0-14:/layout-v21/notification_action.xml"
+    }
+]

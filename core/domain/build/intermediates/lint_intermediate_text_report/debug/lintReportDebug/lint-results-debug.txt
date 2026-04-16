@@ -1,0 +1,40 @@
+/home/vic/Projects/somn/somn/core/domain/src/main/java/dev/vic41148/somn/core/domain/model/Alarm.kt:25: Warning: Implicitly using the default locale is a common source of bugs: Use String.format(Locale, ...) instead [DefaultLocale]
+            return String.format("%d:%02d %s", h, minute, amPm)
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/vic/Projects/somn/somn/core/domain/src/main/java/dev/vic41148/somn/core/domain/usecase/ExportCsvUseCase.kt:34: Warning: Implicitly using the default locale is a common source of bugs: Use String.format(Locale, ...) instead [DefaultLocale]
+                "${session.sleepDurationMinutes},${String.format("%.1f", session.sleepEfficiency)}," +
+                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/vic/Projects/somn/somn/core/domain/src/main/java/dev/vic41148/somn/core/domain/usecase/ExportCsvUseCase.kt:35: Warning: Implicitly using the default locale is a common source of bugs: Use String.format(Locale, ...) instead [DefaultLocale]
+                "${String.format("%.1f", session.deepSleepPercent)}," +
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/vic/Projects/somn/somn/core/domain/src/main/java/dev/vic41148/somn/core/domain/usecase/ExportCsvUseCase.kt:36: Warning: Implicitly using the default locale is a common source of bugs: Use String.format(Locale, ...) instead [DefaultLocale]
+                "${String.format("%.1f", session.lightSleepPercent)}," +
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "DefaultLocale":
+   Calling String#toLowerCase() or #toUpperCase() without specifying an
+   explicit locale is a common source of bugs. The reason for that is that
+   those methods will use the current locale on the user's device, and even
+   though the code appears to work correctly when you are developing the app,
+   it will fail in some locales. For example, in the Turkish locale, the
+   uppercase replacement for i is not I.
+
+   If you want the methods to just perform ASCII replacement, for example to
+   convert an enum name, call String#toUpperCase(Locale.ROOT) instead. If you
+   really want to use the current locale, call
+   String#toUpperCase(Locale.getDefault()) instead.
+
+   https://developer.android.com/reference/java/util/Locale.html#default_locale
+
+/home/vic/Projects/somn/somn/core/domain/build.gradle.kts:7: Warning: A newer version of compileSdk than 35 is available: 36 [GradleDependency]
+    compileSdk = 35
+    ~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "GradleDependency":
+   This detector looks for usages of libraries where the version you are using
+   is not the current stable release. Using older versions is fine, and there
+   are cases where you deliberately want to stick with an older version.
+   However, you may simply not be aware that a more recent version is
+   available, and that is what this lint check helps find.
+
+0 errors, 5 warnings

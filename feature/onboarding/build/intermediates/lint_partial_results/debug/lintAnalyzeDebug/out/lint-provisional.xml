@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 9.1.0" type="conditional_incidents">
+
+    <incident
+        id="InlinedApi"
+        severity="warning"
+        message="">
+        <fix-data minSdk="26-∞" requiresApi="29-∞"/>
+        <location
+            file="${:feature:onboarding*debug*MAIN*sourceProvider*0*javaDir*0}/dev/vic41148/somn/feature/onboarding/ui/PermissionsScreen.kt"
+            line="59"
+            column="21"
+            startOffset="2171"
+            endLine="59"
+            endColumn="61"
+            endOffset="2211"/>
+        <map>
+            <entry
+                name="message"
+                string="Field requires API level 29 (current min is %1$s): `android.Manifest.permission#ACTIVITY_RECOGNITION`"/>
+            <api-levels id="minSdk"
+                value="26-∞"/>
+            <entry
+                name="name"
+                string="ACTIVITY_RECOGNITION"/>
+            <entry
+                name="owner"
+                string="android.Manifest.permission"/>
+            <api-levels id="requiresApi"
+                value="29-∞"/>
+        </map>
+    </incident>
+
+</incidents>
