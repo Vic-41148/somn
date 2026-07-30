@@ -11,5 +11,6 @@ data class AudioEvent(
     val durationSeconds: Int,
     val type: AudioEventType,
     val intensityDecibels: Int,
-    val clipPath: String? = null
+    val clipPath: String? = null,
+    val syncedToNas: Boolean = false
 )

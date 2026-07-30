@@ -20,6 +20,18 @@ interface AudioEventDao {
     @Query("SELECT * FROM audio_events WHERE sessionId = :sessionId ORDER BY timestampMillis ASC")
     suspend fun getBySession(sessionId: Long): List<AudioEventEntity>
 
+    @Query("SELECT * FROM audio_events WHERE sessionId = :sessionId ORDER BY timestampMillis ASC")
+    fun getBySessionSync(sessionId: Long): List<AudioEventEntity>
+
     @Query("SELECT COUNT(*) FROM audio_events WHERE sessionId = :sessionId AND type = :type")
     suspend fun getCountBySessionAndType(sessionId: Long, type: String): Int
+
+    @Query("SELECT * FROM audio_events WHERE syncedToNas = 0 AND clipPath IS NOT NULL AND timestampMillis < :cutoffMillis")
+    suspend fun getUnsyncedAudioEventsOlderThan(cutoffMillis: Long): List<AudioEventEntity>
+
+    @Query("UPDATE audio_events SET syncedToNas = 1 WHERE id = :id")
+    suspend fun markSynced(id: Long)
+
+    @Query("UPDATE audio_events SET clipPath = NULL WHERE id = :id")
+    suspend fun clearClipPath(id: Long)
 }
