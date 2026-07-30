@@ -26,13 +26,30 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
+
+    sourceSets {
+        getByName("test") {
+            assets.srcDirs("$projectDir/schemas")
+        }
+    }
 }
 
 dependencies {
     implementation(project(":core:domain"))
+    implementation(project(":core:health"))
 
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
+    // api: HealthConnectRepository exposes PermissionController's ActivityResultContract type
+    // to feature/settings, which only depends on core:data (not core:health directly).
+    api(libs.health.connect)
 
     // Room
     implementation(libs.room.runtime)
@@ -42,9 +59,22 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
+    // DocumentFile
+    implementation(libs.documentfile)
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    ksp(libs.hilt.ext.compiler)
+
+    // WorkManager
+    implementation(libs.work.runtime)
+    implementation(libs.hilt.work)
 
     testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }
