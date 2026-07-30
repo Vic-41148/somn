@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":core:audio"))
     implementation(project(":feature:habits"))
     implementation(project(":feature:alarm"))
+    implementation(project(":core:notifications"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
@@ -53,4 +54,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // WorkManager for trigger sync
+    implementation(libs.work.runtime)
 }
