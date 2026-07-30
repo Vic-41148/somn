@@ -10,6 +10,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,9 +20,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -29,6 +33,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.feature.settings.SettingsViewModel
 import java.util.concurrent.Executors
@@ -43,10 +48,28 @@ fun SettingsScreen(
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
     val exportStatus by viewModel.exportStatus.collectAsState()
+    val importStatus by viewModel.importStatus.collectAsState()
 
+    // Async operation results (export/import/NAS test) used to be plain Text sitting in a long
+    // scrolling layout — easy to miss, never dismissed itself, no action. Snackbars instead.
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(exportStatus) {
+        exportStatus?.let { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(importStatus) {
+        importStatus?.let { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(settings.nasTestResult) {
+        settings.nasTestResult?.let { snackbarHostState.showSnackbar(it) }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { scaffoldPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(scaffoldPadding)
             .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
@@ -76,20 +99,29 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-        // Wake Window
-        SettingSection(title = "Default Wake Window") {
-            Text(
-                text = "${settings.wakeWindowMinutes} minutes",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+        // Wake-Up Verification (WAKE-01/02)
+        SettingSection(title = "Wake-Up Verification") {
+            SettingToggle(
+                title = "Confirm You're Awake",
+                subtitle = "After dismissing, re-rings via CAPTCHA if you don't confirm in time",
+                checked = settings.wakeVerificationEnabled,
+                onCheckedChange = { viewModel.updateWakeVerificationEnabled(it) }
             )
-            Slider(
-                value = settings.wakeWindowMinutes.toFloat(),
-                onValueChange = { viewModel.updateWakeWindow(it.toInt()) },
-                valueRange = 10f..45f,
-                steps = 6,
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (settings.wakeVerificationEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${settings.wakeVerificationWindowSeconds}s to confirm",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Slider(
+                    value = settings.wakeVerificationWindowSeconds.toFloat(),
+                    onValueChange = { viewModel.updateWakeVerificationWindowSeconds(it.toInt()) },
+                    valueRange = 5f..60f,
+                    steps = 10,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -198,6 +230,31 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
+        // Oversleep Threshold (SESS-03)
+        SettingSection(title = "Oversleep Threshold") {
+            val hours = settings.oversleepThresholdMinutes / 60
+            val mins = settings.oversleepThresholdMinutes % 60
+            Text(
+                text = if (hours > 0) "${hours}h ${mins}m past target" else "${mins}m past target",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Flag a session as oversleep once it runs this far beyond your target sleep hours",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Slider(
+                value = settings.oversleepThresholdMinutes.toFloat(),
+                onValueChange = { viewModel.updateOversleepThresholdMinutes(it.toInt()) },
+                valueRange = 30f..180f,
+                steps = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
         // Alarm CAPTCHA
         SettingSection(title = "Alarm CAPTCHA") {
             var showQrSetup by remember { mutableStateOf(false) }
@@ -277,7 +334,50 @@ fun SettingsScreen(
                 )
             }
         }
-        SettingSection(title = "Data Export") {
+        
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        SettingSection(title = "Data Export & Backup") {
+            val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+                if (uri != null) {
+                    val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    context.contentResolver.takePersistableUriPermission(uri, flags)
+                    viewModel.updateBackupUri(uri.toString())
+                }
+            }
+
+            Text(
+                text = "Backup Directory",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Button(
+                onClick = { launcher.launch(null) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null)
+                Text(if (settings.backupUri != null) "  Change Directory" else "  Select Backup Directory")
+            }
+            if (settings.backupUri != null) {
+                Text(
+                    text = "Auto-backup enabled on alarm dismiss ✅",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                Button(
+                    onClick = { viewModel.performManualBackup() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Backup Now")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Button(
                 onClick = { viewModel.exportData(context) },
                 modifier = Modifier.fillMaxWidth()
@@ -285,13 +385,231 @@ fun SettingsScreen(
                 Icon(Icons.Default.Download, contentDescription = null)
                 Text("  Export All Data (CSV)")
             }
-            exportStatus?.let {
-                Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { viewModel.exportAllDataZip(context) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null)
+                Text("  Export All Data (JSON + CSV, .zip)")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Import from Sleep as Android",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Best-effort — Sleep as Android's export format isn't officially documented, " +
+                    "so cycle/biological context, sleep stages, and audio events can't carry over.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            val importLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.GetContent()
+            ) { uri ->
+                if (uri != null) {
+                    viewModel.importSleepAsAndroidFile(context, uri)
+                }
+            }
+            Button(
+                onClick = { importLauncher.launch("text/*") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Text("Select sleep-export.csv")
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // NAS / Self-Hosted Backup
+        SettingSection(title = "NAS Sync (Self-Hosted)") {
+            SettingToggle(
+                title = "Enable NAS Sync",
+                subtitle = "Encrypt & upload clips + DB to your NAS",
+                checked = settings.nasEnabled,
+                onCheckedChange = { viewModel.updateNasEnabled(it) }
+            )
+
+            if (settings.nasEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Protocol — WebDAV-only for now (REL-05: SMB/NFS are unimplemented stubs
+                // in NasClientImpl, gated out of the picker until a real client backs them).
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
+                    text = "Protocol",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Text(
+                    text = "WebDAV",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "SMB and NFS support are planned for a future release.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Host
+                OutlinedTextField(
+                    value = settings.nasHost,
+                    onValueChange = { viewModel.updateNasHost(it) },
+                    label = { Text("Host / IP") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Port + Path row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = settings.nasPort.toString(),
+                        onValueChange = { viewModel.updateNasPort(it.toIntOrNull() ?: 80) },
+                        label = { Text("Port") },
+                        singleLine = true,
+                        modifier = Modifier.weight(0.3f)
+                    )
+                    OutlinedTextField(
+                        value = settings.nasPath,
+                        onValueChange = { viewModel.updateNasPath(it) },
+                        label = { Text("Path") },
+                        singleLine = true,
+                        modifier = Modifier.weight(0.7f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Username
+                OutlinedTextField(
+                    value = settings.nasUsername,
+                    onValueChange = { viewModel.updateNasUsername(it) },
+                    label = { Text("Username") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Password — write-only: encrypted via Android Keystore, never read back (REL-06)
+                var nasPasswordInput by remember { mutableStateOf("") }
+                OutlinedTextField(
+                    value = nasPasswordInput,
+                    onValueChange = {
+                        nasPasswordInput = it
+                        viewModel.updateNasPassword(it)
+                    },
+                    label = { Text("Password") },
+                    placeholder = { Text("Leave blank to keep existing") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Test + Sync buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.testNasConnection() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Text("Test Connection")
+                    }
+                    Button(
+                        onClick = { viewModel.triggerNasSync(context) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Sync Now")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "🔒 All uploads AES-256-GCM encrypted via Android Keystore",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Health Connect (HEALTH-01..04)
+        SettingSection(title = "Health Connect") {
+            val healthConnectContract = remember(viewModel) { viewModel.healthConnectPermissionsContract() }
+            val permissionLauncher = rememberLauncherForActivityResult(
+                contract = healthConnectContract
+            ) {
+                viewModel.refreshHealthConnectStatus()
+            }
+
+            SettingToggle(
+                title = "Sync with Health Connect",
+                subtitle = "Read HR/HRV/SpO2/skin temp from wearables, write completed sessions back",
+                checked = settings.healthConnectEnabled,
+                onCheckedChange = { viewModel.updateHealthConnectEnabled(it) }
+            )
+
+            if (settings.healthConnectEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val (statusText, statusColor) = when (settings.healthConnectStatus) {
+                    HealthConnectStatus.AUTHORIZED -> "Connected ✅" to MaterialTheme.colorScheme.primary
+                    HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
+                    HealthConnectStatus.UNAVAILABLE -> "Health Connect isn't installed on this device" to MaterialTheme.colorScheme.error
+                }
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = statusColor
+                )
+
+                if (settings.healthConnectStatus == HealthConnectStatus.NOT_AUTHORIZED) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { permissionLauncher.launch(viewModel.healthConnectRequiredPermissions) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Connect Health Connect")
+                    }
+                }
+
+                // HEALTH-04: writeSleepSession() silently skips a session whenever another source
+                // already wrote overlapping sleep data (dedup), and that skip is permanent — the
+                // session's healthConnectRecordId stays null forever, so it'd otherwise never be
+                // surfaced anywhere. This count also includes sessions simply not synced yet, so
+                // it's worded as "haven't reached" rather than claiming they were all dedup-skipped.
+                if (settings.healthConnectStatus == HealthConnectStatus.AUTHORIZED && settings.healthConnectUnsyncedCount > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${settings.healthConnectUnsyncedCount} session(s) haven't reached Health Connect yet — " +
+                            "either not synced, or another app already recorded overlapping sleep for that night.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
@@ -335,6 +653,7 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+    }
 }
 
 @Composable
@@ -360,7 +679,7 @@ private fun QRSetupDialog(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Scan the QR code you want to use for alarm dismissal (e.g., in your bathroom).",
+                    text = "Scan the QR code you want to use for alarm dismissal. Scan something far from your bed!",
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -478,9 +797,15 @@ private fun SettingToggle(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        // HapticFeedbackType only has LongPress/TextHandleMove in this Compose UI version
+        // (1.7.6, confirmed against the actual resolved jar) — no dedicated Toggle constant yet.
+        val haptics = LocalHapticFeedback.current
         Switch(
             checked = checked,
-            onCheckedChange = onCheckedChange
+            onCheckedChange = {
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                onCheckedChange(it)
+            }
         )
     }
 }
