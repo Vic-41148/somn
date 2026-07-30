@@ -10,6 +10,13 @@ build/
 docs/
 TODO.md
 .planning/
+sleep-tracker-feature-plan.md
+sleep-tracker-phases.md
+Sleep tracker — master research document*.md
+
+# Agent/tooling config — local only
+.claude/
+.antigravitycli/
 
 # IDE - IntelliJ / Android Studio
 .idea/
