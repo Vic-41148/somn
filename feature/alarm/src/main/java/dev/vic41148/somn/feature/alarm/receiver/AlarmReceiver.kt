@@ -24,8 +24,7 @@ class AlarmReceiver : BroadcastReceiver() {
         fun scheduleAlarm(
             context: Context,
             alarmId: Long,
-            hour: Int,
-            minute: Int,
+            timeInMillis: Long,
             label: String,
             soundUri: String,
             vibration: Boolean,
@@ -50,20 +49,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val calendar = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-
-                // If the time has already passed today, schedule for tomorrow
-                if (before(Calendar.getInstance())) {
-                    add(Calendar.DAY_OF_YEAR, 1)
-                }
-            }
-
             alarmManager.setAlarmClock(
-                AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
+                AlarmManager.AlarmClockInfo(timeInMillis, pendingIntent),
                 pendingIntent
             )
         }
