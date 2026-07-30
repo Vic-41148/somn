@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="dev.vic41148.somn.core.health">
+
+    <!-- HEALTH-01: read external vitals a paired wearable wrote into Health Connect -->
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY" />
+    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
+    <uses-permission android:name="android.permission.health.READ_SKIN_TEMPERATURE" />
+    <!-- HEALTH-04: read existing sleep records to detect/avoid duplicate writes -->
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <!-- HEALTH-02: write completed Somn sessions to Health Connect -->
+    <uses-permission android:name="android.permission.health.WRITE_SLEEP" />
+
+    <!-- Pre-Android 14 devices need the Health Connect provider app installed; this queries entry
+         lets the client detect its presence (androidx.health.connect.client.HealthConnectClient.getSdkStatus). -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
+</manifest>
