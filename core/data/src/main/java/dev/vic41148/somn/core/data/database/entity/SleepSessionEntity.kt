@@ -31,5 +31,13 @@ data class SleepSessionEntity(
     /** Average breathing rate in breaths per minute. Null if mic disabled/not available. */
     val avgBreathingRateBrpm: Float? = null,
     /** Number of cough events detected by audio classifier during this session. */
-    val coughEventCount: Int = 0
+    val coughEventCount: Int = 0,
+    /** True when the session was auto-finalized from a stale/abandoned tracking session (service died mid-night) rather than a normal user-initiated stop. */
+    val isPartial: Boolean = false,
+    /** SessionType enum name — only "MAIN_SLEEP" feeds nightly consistency/streak/circadian aggregates. */
+    val sessionType: String = "MAIN_SLEEP",
+    /** True when sleepDurationMinutes exceeded the user's healthy-duration threshold. */
+    val isOversleep: Boolean = false,
+    /** HEALTH-04: Health Connect record ID this session was written as, once synced — null until then. Re-sync checks this first to avoid writing a duplicate SleepSessionRecord. */
+    val healthConnectRecordId: String? = null
 )
