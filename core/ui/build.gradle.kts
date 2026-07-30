@@ -40,4 +40,5 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.core.ktx)
+    implementation(libs.coroutines.android)
 }
