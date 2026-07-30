@@ -1,1 +1,0 @@
--keep,allowobfuscation,allowshrinking class dev.vic41148.somn.feature.habits.HabitViewModel

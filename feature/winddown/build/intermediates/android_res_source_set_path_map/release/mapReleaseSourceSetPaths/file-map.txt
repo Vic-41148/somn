@@ -1,8 +1,0 @@
-dev.vic41148.somn.feature.winddown-pngs-0 /home/vic/Projects/somn/somn/feature/winddown/build/generated/res/pngs/release
-dev.vic41148.somn.feature.winddown-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/winddown/build/generated/updated_navigation_xml/release
-dev.vic41148.somn.feature.winddown-mergeReleaseResources-2 /home/vic/Projects/somn/somn/feature/winddown/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
-dev.vic41148.somn.feature.winddown-mergeReleaseResources-3 /home/vic/Projects/somn/somn/feature/winddown/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
-dev.vic41148.somn.feature.winddown-release-4 /home/vic/Projects/somn/somn/feature/winddown/build/intermediates/merged_res/release/mergeReleaseResources
-dev.vic41148.somn.feature.winddown-release-5 /home/vic/Projects/somn/somn/feature/winddown/build/intermediates/packaged_res/release/packageReleaseResources
-dev.vic41148.somn.feature.winddown-main-6 /home/vic/Projects/somn/somn/feature/winddown/src/main/res
-dev.vic41148.somn.feature.winddown-release-7 /home/vic/Projects/somn/somn/feature/winddown/src/release/res

@@ -1,8 +1,0 @@
-dev.vic41148.somn.feature.habits-pngs-0 /home/vic/Projects/somn/somn/feature/habits/build/generated/res/pngs/release
-dev.vic41148.somn.feature.habits-updated_navigation_xml-1 /home/vic/Projects/somn/somn/feature/habits/build/generated/updated_navigation_xml/release
-dev.vic41148.somn.feature.habits-mergeReleaseResources-2 /home/vic/Projects/somn/somn/feature/habits/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
-dev.vic41148.somn.feature.habits-mergeReleaseResources-3 /home/vic/Projects/somn/somn/feature/habits/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
-dev.vic41148.somn.feature.habits-release-4 /home/vic/Projects/somn/somn/feature/habits/build/intermediates/merged_res/release/mergeReleaseResources
-dev.vic41148.somn.feature.habits-release-5 /home/vic/Projects/somn/somn/feature/habits/build/intermediates/packaged_res/release/packageReleaseResources
-dev.vic41148.somn.feature.habits-main-6 /home/vic/Projects/somn/somn/feature/habits/src/main/res
-dev.vic41148.somn.feature.habits-release-7 /home/vic/Projects/somn/somn/feature/habits/src/release/res

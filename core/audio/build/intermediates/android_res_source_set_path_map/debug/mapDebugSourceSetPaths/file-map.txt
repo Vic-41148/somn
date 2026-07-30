@@ -1,8 +1,0 @@
-dev.vic41148.somn.core.audio-pngs-0 /home/vic/Projects/somn/somn/core/audio/build/generated/res/pngs/debug
-dev.vic41148.somn.core.audio-updated_navigation_xml-1 /home/vic/Projects/somn/somn/core/audio/build/generated/updated_navigation_xml/debug
-dev.vic41148.somn.core.audio-mergeDebugResources-2 /home/vic/Projects/somn/somn/core/audio/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-dev.vic41148.somn.core.audio-mergeDebugResources-3 /home/vic/Projects/somn/somn/core/audio/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-dev.vic41148.somn.core.audio-debug-4 /home/vic/Projects/somn/somn/core/audio/build/intermediates/merged_res/debug/mergeDebugResources
-dev.vic41148.somn.core.audio-debug-5 /home/vic/Projects/somn/somn/core/audio/build/intermediates/packaged_res/debug/packageDebugResources
-dev.vic41148.somn.core.audio-debug-6 /home/vic/Projects/somn/somn/core/audio/src/debug/res
-dev.vic41148.somn.core.audio-main-7 /home/vic/Projects/somn/somn/core/audio/src/main/res

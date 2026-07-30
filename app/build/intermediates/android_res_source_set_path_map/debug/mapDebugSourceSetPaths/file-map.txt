@@ -1,7 +1,0 @@
-dev.vic41148.somn.app-pngs-0 /home/vic/Projects/somn/somn/app/build/generated/res/pngs/debug
-dev.vic41148.somn.app-updated_navigation_xml-1 /home/vic/Projects/somn/somn/app/build/generated/updated_navigation_xml/debug
-dev.vic41148.somn.app-packageDebugResources-2 /home/vic/Projects/somn/somn/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-dev.vic41148.somn.app-packageDebugResources-3 /home/vic/Projects/somn/somn/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-dev.vic41148.somn.app-debug-4 /home/vic/Projects/somn/somn/app/build/intermediates/merged_res/debug/mergeDebugResources
-dev.vic41148.somn.app-debug-5 /home/vic/Projects/somn/somn/app/src/debug/res
-dev.vic41148.somn.app-main-6 /home/vic/Projects/somn/somn/app/src/main/res

@@ -1,8 +1,0 @@
-dev.vic41148.somn.core.notifications-pngs-0 /home/vic/Projects/somn/somn/core/notifications/build/generated/res/pngs/release
-dev.vic41148.somn.core.notifications-updated_navigation_xml-1 /home/vic/Projects/somn/somn/core/notifications/build/generated/updated_navigation_xml/release
-dev.vic41148.somn.core.notifications-mergeReleaseResources-2 /home/vic/Projects/somn/somn/core/notifications/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
-dev.vic41148.somn.core.notifications-mergeReleaseResources-3 /home/vic/Projects/somn/somn/core/notifications/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
-dev.vic41148.somn.core.notifications-release-4 /home/vic/Projects/somn/somn/core/notifications/build/intermediates/merged_res/release/mergeReleaseResources
-dev.vic41148.somn.core.notifications-release-5 /home/vic/Projects/somn/somn/core/notifications/build/intermediates/packaged_res/release/packageReleaseResources
-dev.vic41148.somn.core.notifications-main-6 /home/vic/Projects/somn/somn/core/notifications/src/main/res
-dev.vic41148.somn.core.notifications-release-7 /home/vic/Projects/somn/somn/core/notifications/src/release/res

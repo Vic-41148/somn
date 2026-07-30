@@ -1,1 +1,0 @@
-dev.vic41148.somn.core.domain

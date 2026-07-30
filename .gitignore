@@ -1,9 +1,15 @@
 # Built artifacts
-/build
+build/
+**/build/
 /captures
 *.apk
 *.ap_
 *.dex
+
+# Internal planning docs — never published
+docs/
+TODO.md
+.planning/
 
 # IDE - IntelliJ / Android Studio
 .idea/
