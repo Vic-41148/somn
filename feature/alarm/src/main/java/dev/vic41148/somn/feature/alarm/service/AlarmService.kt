@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -38,14 +39,34 @@ class AlarmService : Service() {
     @javax.inject.Inject
     lateinit var userProfileRepository: UserProfileRepository
 
+    @javax.inject.Inject
+    lateinit var preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
+
+    @javax.inject.Inject
+    lateinit var backupRepository: dev.vic41148.somn.core.data.repository.BackupRepository
+
+    @javax.inject.Inject
+    lateinit var alarmRepository: dev.vic41148.somn.core.data.repository.AlarmRepository
+
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var volumeJob: Job? = null
+    private var wakeConfirmJob: Job? = null
+    private var maxSnoozeCount = 3
+    private var wakeConfirmAttempts = 0
+    private var lastVibrationEnabled = true
+    private var lastGradualSeconds = 60
+
+    /** WAKE-01/02: lifecycle of one alarm-firing episode, including the post-dismiss wake check. */
+    enum class AlarmPhase { FIRING, AWAITING_WAKE_CONFIRMATION, DISMISSED }
 
     companion object {
         const val CHANNEL_ID = "alarm_channel"
         const val NOTIFICATION_ID = 2001
+
+        /** Fail-open cap — after this many missed wake confirmations, dismiss outright rather than ring forever. */
+        private const val MAX_WAKE_CONFIRM_ATTEMPTS = 3
 
         private val _isAlarmFiring = MutableStateFlow(false)
         val isAlarmFiring: StateFlow<Boolean> = _isAlarmFiring.asStateFlow()
@@ -58,12 +79,35 @@ class AlarmService : Service() {
 
         private val _canSnooze = MutableStateFlow(true)
         val canSnooze: StateFlow<Boolean> = _canSnooze.asStateFlow()
-        
+
+        private val _phase = MutableStateFlow(AlarmPhase.FIRING)
+        val phase: StateFlow<AlarmPhase> = _phase.asStateFlow()
+
+        private val _wakeConfirmDeadlineMillis = MutableStateFlow<Long?>(null)
+        val wakeConfirmDeadlineMillis: StateFlow<Long?> = _wakeConfirmDeadlineMillis.asStateFlow()
+
         private var snoozeCount = 0
 
+        /** Hard-dismiss, bypassing wake verification entirely. Kept for callers that need an immediate stop. */
         fun dismiss(context: Context) {
             val intent = Intent(context, AlarmService::class.java).apply {
                 action = "DISMISS"
+            }
+            context.startService(intent)
+        }
+
+        /** WAKE-01: normal dismiss path — stops the ring and, if wake verification is enabled, starts the confirmation window instead of stopping the service outright. */
+        fun requestDismiss(context: Context) {
+            val intent = Intent(context, AlarmService::class.java).apply {
+                action = "REQUEST_DISMISS"
+            }
+            context.startService(intent)
+        }
+
+        /** User confirmed they're awake within the window — completes the dismiss. */
+        fun confirmAwake(context: Context) {
+            val intent = Intent(context, AlarmService::class.java).apply {
+                action = "CONFIRM_AWAKE"
             }
             context.startService(intent)
         }
@@ -80,20 +124,27 @@ class AlarmService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        serviceScope.launch {
+            preferencesRepository.maxSnoozeCount.collect {
+                maxSnoozeCount = it
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "DISMISS" -> {
-                snoozeCount = 0
-                _canSnooze.value = true
-                stopAlarm()
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+                serviceScope.launch { performFullDismiss() }
+            }
+            "REQUEST_DISMISS" -> {
+                serviceScope.launch { handleRequestDismiss() }
+            }
+            "CONFIRM_AWAKE" -> {
+                handleConfirmAwake()
             }
             "SNOOZE" -> {
                 snoozeCount++
-                if (snoozeCount >= dev.vic41148.somn.core.domain.model.AlarmPreferences.maxSnoozeCount) {
+                if (snoozeCount >= maxSnoozeCount) {
                     _canSnooze.value = false
                 }
                 stopAlarm()
@@ -102,16 +153,40 @@ class AlarmService : Service() {
                 // Snooze handled by the UI/ViewModel
             }
             else -> {
+                val notificationManager = getSystemService(NotificationManager::class.java)
+                if (android.os.Build.VERSION.SDK_INT >= 34) {
+                    if (!notificationManager.canUseFullScreenIntent()) {
+                        android.util.Log.w("AlarmService", "Full-screen intent permission revoked by system!")
+                        // Optionally show a different high-priority notification or prompt user if possible
+                    }
+                }
+                
                 startForeground(NOTIFICATION_ID, createNotification())
 
                 val label = intent?.getStringExtra(AlarmReceiver.EXTRA_ALARM_LABEL) ?: "Alarm"
                 val vibrationEnabled = intent?.getBooleanExtra(AlarmReceiver.EXTRA_VIBRATION, true) ?: true
                 val gradualSeconds = intent?.getIntExtra(AlarmReceiver.EXTRA_GRADUAL_SECONDS, 60) ?: 60
                 val captchaType = intent?.getStringExtra(AlarmReceiver.EXTRA_CAPTCHA_TYPE) ?: "NONE"
+                val alarmId = intent?.getLongExtra(AlarmReceiver.EXTRA_ALARM_ID, -1L) ?: -1L
+
+                if (alarmId != -1L) {
+                    serviceScope.launch(Dispatchers.IO) {
+                        val alarm = alarmRepository.getAlarm(alarmId)
+                        if (alarm != null && alarm.repeatDays.isEmpty()) {
+                            alarmRepository.setEnabled(alarmId, false)
+                        }
+                    }
+                }
 
                 _currentAlarmLabel.value = label
                 _currentCaptchaType.value = captchaType
                 _isAlarmFiring.value = true
+                _phase.value = AlarmPhase.FIRING
+                wakeConfirmJob?.cancel()
+                wakeConfirmJob = null
+                wakeConfirmAttempts = 0
+                lastVibrationEnabled = vibrationEnabled
+                lastGradualSeconds = gradualSeconds
 
                 startAlarm(vibrationEnabled, gradualSeconds)
             }
@@ -178,6 +253,59 @@ class AlarmService : Service() {
         }
     }
 
+    /** WAKE-01: stops the ring and either starts a wake-confirmation countdown or dismisses outright. */
+    private suspend fun handleRequestDismiss() {
+        val enabled = preferencesRepository.wakeVerificationEnabled.first()
+        if (!enabled || wakeConfirmAttempts >= MAX_WAKE_CONFIRM_ATTEMPTS) {
+            performFullDismiss()
+            return
+        }
+
+        val windowSeconds = preferencesRepository.wakeVerificationWindowSeconds.first()
+        stopAlarm()
+        _phase.value = AlarmPhase.AWAITING_WAKE_CONFIRMATION
+        _wakeConfirmDeadlineMillis.value = System.currentTimeMillis() + windowSeconds * 1000L
+
+        wakeConfirmJob = serviceScope.launch {
+            delay(windowSeconds * 1000L)
+            // WAKE-02: window elapsed without confirmation — re-ring via the CAPTCHA engine,
+            // unless the fail-open cap has been hit, in which case dismiss rather than ring forever.
+            wakeConfirmAttempts++
+            _wakeConfirmDeadlineMillis.value = null
+            if (wakeConfirmAttempts >= MAX_WAKE_CONFIRM_ATTEMPTS) {
+                performFullDismiss()
+            } else {
+                reRing()
+            }
+        }
+    }
+
+    private fun handleConfirmAwake() {
+        wakeConfirmJob?.cancel()
+        wakeConfirmJob = null
+        _wakeConfirmDeadlineMillis.value = null
+        serviceScope.launch { performFullDismiss() }
+    }
+
+    private fun reRing() {
+        _phase.value = AlarmPhase.FIRING
+        _isAlarmFiring.value = true
+        startAlarm(lastVibrationEnabled, lastGradualSeconds)
+    }
+
+    private suspend fun performFullDismiss() {
+        wakeConfirmJob?.cancel()
+        wakeConfirmJob = null
+        snoozeCount = 0
+        _canSnooze.value = true
+        _phase.value = AlarmPhase.DISMISSED
+        _wakeConfirmDeadlineMillis.value = null
+        stopAlarm()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        backupRepository.performSilentBackup()
+        stopSelf()
+    }
+
     private fun stopAlarm() {
         volumeJob?.cancel()
         mediaPlayer?.apply {
@@ -201,6 +329,7 @@ class AlarmService : Service() {
         ).apply {
             description = "Alarm notifications"
             setBypassDnd(true)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(channel)
@@ -218,10 +347,22 @@ class AlarmService : Service() {
                 android.app.PendingIntent.getActivity(
                     this,
                     0,
-                    Intent(this, dev.vic41148.somn.feature.alarm.ui.AlarmActivity::class.java),
+                    Intent(this, dev.vic41148.somn.feature.alarm.ui.AlarmActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
                     android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
                 ),
                 true
+            )
+            .setContentIntent(
+                android.app.PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, dev.vic41148.somn.feature.alarm.ui.AlarmActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    },
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                )
             )
             .build()
     }
