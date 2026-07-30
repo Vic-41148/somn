@@ -30,6 +30,7 @@ import dev.vic41148.somn.feature.alarm.ui.AlarmListScreen
 import dev.vic41148.somn.feature.analytics.ui.CircadianInsightsScreen
 import dev.vic41148.somn.feature.analytics.ui.HistoryScreen
 import dev.vic41148.somn.feature.analytics.ui.SessionDetailScreen
+import dev.vic41148.somn.feature.analytics.ui.TrendsScreen
 import dev.vic41148.somn.feature.habits.ui.CorrelationInsightsScreen
 import dev.vic41148.somn.feature.habits.ui.DailyLogScreen
 import dev.vic41148.somn.feature.habits.ui.MedicationLogScreen
@@ -65,11 +66,12 @@ private val hideNavRoutes = setOf(
     "tracking",
     "morning_review/{sessionId}",
     "alarm_firing",
-    "alarm_edit",
+    "alarm_edit/{alarmId}",
     "medication_log",
     "sleep_debt",
     "correlation_insights",
     "circadian_insights",
+    "trends",
     "breathing_exercise",
     "cognitive_winddown",
     "adhd_cooldown"
@@ -154,13 +156,17 @@ fun SleepNavGraph(
                     },
                     onNavigateToCircadian = {
                         navController.navigate("circadian_insights")
+                    },
+                    onNavigateToTrends = {
+                        navController.navigate("trends")
                     }
                 )
             }
 
             composable(Screen.Alarms.route) {
                 AlarmListScreen(
-                    onAddAlarm = { navController.navigate("alarm_edit") }
+                    onAddAlarm = { navController.navigate("alarm_edit/-1") },
+                    onEditAlarm = { alarm -> navController.navigate("alarm_edit/${alarm.id}") }
                 )
             }
 
@@ -212,8 +218,13 @@ fun SleepNavGraph(
 
             // ---- Alarms ----
 
-            composable("alarm_edit") {
+            composable(
+                route = "alarm_edit/{alarmId}",
+                arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val alarmId = backStackEntry.arguments?.getLong("alarmId") ?: -1L
                 AlarmEditScreen(
+                    alarmId = if (alarmId >= 0) alarmId else 0L,
                     onSaved = { navController.popBackStack() }
                 )
             }
@@ -246,6 +257,14 @@ fun SleepNavGraph(
 
             composable("circadian_insights") {
                 CircadianInsightsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // ---- Phase 6: Trends (DATA-03/04) ----
+
+            composable("trends") {
+                TrendsScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

@@ -16,76 +16,196 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.domain.model.SessionType
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     onSessionClick: (Long) -> Unit,
     onNavigateToCircadian: () -> Unit,
+    onNavigateToTrends: () -> Unit,
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
-    val sessions by viewModel.sessions.collectAsState()
+    val allSessions by viewModel.sessions.collectAsState()
+    var selectedTypeFilter by remember { mutableStateOf<SessionType?>(null) }
+    val sessions = remember(allSessions, selectedTypeFilter) {
+        if (selectedTypeFilter == null) allSessions
+        else allSessions.filter { it.sessionType == selectedTypeFilter }
+    }
+    val selectedIds by viewModel.selectedSessionIds.collectAsState()
+    val exportProgress by viewModel.exportProgress.collectAsState()
+    val exportStatus by viewModel.exportStatus.collectAsState()
 
-    if (sessions.isEmpty()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "No sleep data yet",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Your sleep sessions will appear here",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // SAF File Picker Launcher
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let {
+            viewModel.exportSelectedSessions(context, it)
         }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(sessions, key = { it.id }) { session ->
-                SessionRow(
-                    session = session,
-                    onClick = { onSessionClick(session.id) }
+    }
+
+    // exportStatus was collected here but never rendered anywhere in this screen — export
+    // success/failure messages from exportSelectedSessions() reached nobody. Wired to a Snackbar
+    // rather than inline Text, consistent with the same fix in SettingsScreen.
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    LaunchedEffect(exportStatus) {
+        exportStatus?.let { snackbarHostState.showSnackbar(it) }
+    }
+
+    androidx.compose.material3.Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        topBar = {
+            if (selectedIds.isNotEmpty()) {
+                androidx.compose.material3.TopAppBar(
+                    title = { Text("${selectedIds.size} Selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.clearBulkSelection() }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.deleteSelectedSessions() }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete"
+                            )
+                        }
+                        IconButton(onClick = { launcher.launch(null) }) {
+                            Icon(
+                                imageVector = Icons.Default.FileDownload,
+                                contentDescription = "Export"
+                            )
+                        }
+                    }
                 )
             }
-            item {
-                androidx.compose.material3.Button(
-                    onClick = onNavigateToCircadian,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+        }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            // Session type filter chips (SESS-02) — lets users view naps/commute/shift separately.
+            if (allSessions.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("View Circadian Insights")
+                    FilterChip(
+                        selected = selectedTypeFilter == null,
+                        onClick = { selectedTypeFilter = null },
+                        label = { Text("All") }
+                    )
+                    SessionType.entries.forEach { type ->
+                        FilterChip(
+                            selected = selectedTypeFilter == type,
+                            onClick = { selectedTypeFilter = type },
+                            label = { Text(type.displayName) }
+                        )
+                    }
+                }
+            }
+
+            if (sessions.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (allSessions.isEmpty()) "No sleep data yet" else "No ${selectedTypeFilter?.displayName} sessions yet",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                if (exportProgress != null) {
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { exportProgress!! },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(sessions, key = { it.id }) { session ->
+                        val isSelected = selectedIds.contains(session.id)
+                        SessionRow(
+                            session = session,
+                            isSelected = isSelected,
+                            onLongClick = { viewModel.toggleSelection(session.id) },
+                            onClick = {
+                                if (selectedIds.isNotEmpty()) {
+                                    viewModel.toggleSelection(session.id)
+                                } else {
+                                    onSessionClick(session.id)
+                                }
+                            }
+                        )
+                    }
+                    item {
+                        androidx.compose.material3.Button(
+                            onClick = onNavigateToTrends,
+                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                        ) {
+                            Text("View Trends")
+                        }
+                    }
+                    item {
+                        androidx.compose.material3.Button(
+                            onClick = onNavigateToCircadian,
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)
+                        ) {
+                            Text("View Circadian Insights")
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SessionRow(
     session: SleepSession,
-    onClick: () -> Unit
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     val dateFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
     val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
@@ -93,10 +213,17 @@ private fun SessionRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+            containerColor = if (isSelected) 
+                MaterialTheme.colorScheme.primaryContainer 
+            else 
+                MaterialTheme.colorScheme.surfaceContainerLow
+        ),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Row(
             modifier = Modifier
@@ -105,12 +232,21 @@ private fun SessionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
-                Text(
-                    text = dateFormat.format(Date(session.startTimeMillis)),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = dateFormat.format(Date(session.startTimeMillis)),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (session.sessionType != SessionType.MAIN_SLEEP) {
+                        Text(
+                            text = session.sessionType.displayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 Text(
                     text = "${timeFormat.format(Date(session.startTimeMillis))} → ${timeFormat.format(Date(session.endTimeMillis))}",
                     style = MaterialTheme.typography.bodySmall,
@@ -125,7 +261,7 @@ private fun SessionRow(
                 )
             }
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "${session.sleepScore}",
                     style = MaterialTheme.typography.headlineSmall,

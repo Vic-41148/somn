@@ -41,6 +41,9 @@ class CircadianViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     init {
         loadData()
     }
@@ -51,7 +54,9 @@ class CircadianViewModel @Inject constructor(
             try {
                 combine(
                     userProfileRepository.observeProfile(),
-                    sleepRepository.observeCompletedSessions()
+                    // SESS-04: chronotype/social-jetlag/seasonal analysis is bedtime-based —
+                    // naps/commute/shift sessions would skew it.
+                    sleepRepository.observeMainSleepSessions()
                 ) { profile, sessions ->
                     Pair(profile, sessions)
                 }.collect { (profile, sessions) ->
@@ -60,9 +65,13 @@ class CircadianViewModel @Inject constructor(
                     _chronotypeAssessment.value = chronotypeAssessmentUseCase.assess(profile, sessions)
                     _socialJetLag.value = socialJetLagUseCase.calculate(sessions)
                     _seasonalAnalysis.value = seasonalAnalysisUseCase.analyze(sessions)
+                    _errorMessage.value = null
                 }
             } catch (e: Exception) {
-                // Ignore for now
+                // Previously silently ignored ("Ignore for now") — any exception in
+                // chronotype/social-jetlag/seasonal analysis left the screen showing stale or
+                // empty state forever with zero indication anything went wrong.
+                _errorMessage.value = "Couldn't load circadian insights: ${e.message ?: e::class.simpleName}"
             } finally {
                 _isLoading.value = false
             }
