@@ -45,6 +45,12 @@ class SomnPreferencesRepository @Inject constructor(
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
         val YAMNET_CLASSIFICATION_ENABLED = booleanPreferencesKey("yamnet_classification_enabled")
+        /**
+         * The user's backup recovery passphrase, Keystore-encrypted at rest so unattended sync can
+         * use it. Keystore protects it *on* the device; the passphrase itself is what makes backups
+         * readable *off* the device, which is why the user is also shown it once to store elsewhere.
+         */
+        val BACKUP_PASSPHRASE_ENCRYPTED = stringPreferencesKey("backup_passphrase_encrypted")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -260,6 +266,33 @@ class SomnPreferencesRepository @Inject constructor(
     /** Decrypts the stored NAS password, or null if none has been set. */
     suspend fun getNasPassword(): String? {
         val encoded = context.dataStore.data.map { it[PreferencesKeys.NAS_PASSWORD_ENCRYPTED] }
+            .catch { if (it is IOException) emit(null) else throw it }
+            .first()
+            ?: return null
+        val encrypted = android.util.Base64.decode(encoded, android.util.Base64.NO_WRAP)
+        return String(encryptionUtils.decryptBytes(encrypted), Charsets.UTF_8)
+    }
+
+    // ---- Backup recovery passphrase ----
+
+    /** True once a recovery passphrase exists — without one, backups cannot be encrypted portably. */
+    val backupPassphraseSet: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { !it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED].isNullOrBlank() }
+
+    /** Encrypts [passphrase] via [EncryptionUtils] (Keystore-backed) before persisting. */
+    suspend fun updateBackupPassphrase(passphrase: String) {
+        val encrypted = encryptionUtils.encryptBytes(passphrase.toByteArray(Charsets.UTF_8))
+        context.dataStore.edit {
+            it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED] = android.util.Base64.encodeToString(
+                encrypted, android.util.Base64.NO_WRAP
+            )
+        }
+    }
+
+    /** Decrypts the stored recovery passphrase, or null if the user has not set one yet. */
+    suspend fun getBackupPassphrase(): String? {
+        val encoded = context.dataStore.data.map { it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED] }
             .catch { if (it is IOException) emit(null) else throw it }
             .first()
             ?: return null
