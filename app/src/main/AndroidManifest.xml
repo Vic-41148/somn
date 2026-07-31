@@ -15,6 +15,14 @@
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- REL-03: package visibility for OEM-specific battery/autostart settings deep links -->
+    <queries>
+        <package android:name="com.samsung.android.lool" />
+        <package android:name="com.miui.securitycenter" />
+        <package android:name="com.huawei.systemmanager" />
+    </queries>
 
     <application
         android:name=".SomnApp"
@@ -38,6 +46,24 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Health Connect (Android 14+) hard-requires an activity/activity-alias that responds
+          to VIEW_PERMISSION_USAGE with the HEALTH_PERMISSIONS category, protected by the
+          signature-level START_VIEW_PERMISSION_USAGE permission, or PermissionsActivity
+          finishes immediately instead of showing the permission-toggle list. Points at
+          MainActivity since Somn has no dedicated rationale/privacy-policy screen.
+        -->
+        <activity-alias
+            android:name=".HealthConnectRationaleAlias"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- FileProvider for CSV export sharing -->
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -47,6 +73,25 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
+          Disable WorkManager's default eager initializer. It runs from a ContentProvider
+          before Application.onCreate() finishes, which is before Hilt has injected
+          SomnApp.workerFactory — reading Configuration.Provider that early would crash.
+          On-demand initialization (WorkManager 2.6+) instead builds the Configuration
+          lazily from Configuration.Provider the first time WorkManager.getInstance() is
+          called, by which point injection has completed.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
 
         <!-- Morning Briefing Widget -->
