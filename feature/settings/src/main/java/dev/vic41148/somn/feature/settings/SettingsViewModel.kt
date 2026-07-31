@@ -49,6 +49,11 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            preferencesRepository.yamnetClassificationEnabled.collect { enabled ->
+                _settings.value = _settings.value.copy(yamnetClassificationEnabled = enabled)
+            }
+        }
+        viewModelScope.launch {
             sleepRepository.observeUnsyncedToHealthConnectCount().collect { count ->
                 _settings.value = _settings.value.copy(healthConnectUnsyncedCount = count)
             }
@@ -150,7 +155,9 @@ class SettingsViewModel @Inject constructor(
         val healthConnectEnabled: Boolean = false,
         val healthConnectStatus: HealthConnectStatus = HealthConnectStatus.UNAVAILABLE,
         /** HEALTH-04: completed sessions never written to Health Connect — unsynced or silently dedup-skipped. Only meaningful once healthConnectEnabled is true. */
-        val healthConnectUnsyncedCount: Int = 0
+        val healthConnectUnsyncedCount: Int = 0,
+        /** Task 14 (AUDIO-01) — off by default. Experimental YAMNet audio classification, gated so it can be A/B'd against the existing ZCR heuristic. Not accuracy-validated (AUDIO-02) or battery-soak-tested (AUDIO-03). */
+        val yamnetClassificationEnabled: Boolean = false
     )
 
     private val _settings = MutableStateFlow(SettingsState())
@@ -416,6 +423,12 @@ class SettingsViewModel @Inject constructor(
 
     fun updateHealthConnectEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.updateHealthConnectEnabled(enabled) }
+    }
+
+    // ── YAMNet audio classification (Task 14, AUDIO-01) ─────────────
+
+    fun updateYamnetClassificationEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateYamnetClassificationEnabled(enabled) }
     }
 
     /** HEALTH-03: called on screen resume and right after the permission sheet returns — never cached. */

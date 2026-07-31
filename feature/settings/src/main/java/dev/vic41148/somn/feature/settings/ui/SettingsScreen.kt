@@ -615,6 +615,18 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
+        // Experimental: YAMNet audio classification (Task 14, AUDIO-01)
+        SettingSection(title = "Experimental") {
+            SettingToggle(
+                title = "ML Audio Classification (YAMNet)",
+                subtitle = "Use an on-device ML model instead of the heuristic to detect snoring/coughing/talking. Not yet validated for accuracy — takes effect next tracking session.",
+                checked = settings.yamnetClassificationEnabled,
+                onCheckedChange = { viewModel.updateYamnetClassificationEnabled(it) }
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
         // Wind-Down Toolkit
         SettingSection(title = "Wind-Down Toolkit") {
             Button(
