@@ -3,14 +3,18 @@ package dev.vic41148.somn.core.data.repository
 import dev.vic41148.somn.core.data.database.dao.SleepEpochDao
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
 import dev.vic41148.somn.core.data.database.dao.AudioEventDao
+import dev.vic41148.somn.core.data.database.dao.ExternalVitalsDao
 import dev.vic41148.somn.core.data.database.entity.SleepEpochEntity
 import dev.vic41148.somn.core.data.database.entity.SleepSessionEntity
 import dev.vic41148.somn.core.data.database.entity.AudioEventEntity
+import dev.vic41148.somn.core.data.database.entity.ExternalVitalsEntity
 import dev.vic41148.somn.core.domain.model.SleepEpoch
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.SleepStage
+import dev.vic41148.somn.core.domain.model.SessionType
 import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.model.AudioEventType
+import dev.vic41148.somn.core.domain.model.ExternalVitalsSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -20,14 +24,23 @@ import javax.inject.Singleton
 class SleepRepository @Inject constructor(
     private val sessionDao: SleepSessionDao,
     private val epochDao: SleepEpochDao,
-    private val audioEventDao: AudioEventDao
+    private val audioEventDao: AudioEventDao,
+    private val externalVitalsDao: ExternalVitalsDao
 ) {
 
     // --- Sessions ---
 
-    suspend fun createSession(startTimeMillis: Long, timezoneId: String = java.time.ZoneId.systemDefault().id): Long {
+    suspend fun createSession(
+        startTimeMillis: Long,
+        timezoneId: String = java.time.ZoneId.systemDefault().id,
+        sessionType: SessionType = SessionType.MAIN_SLEEP
+    ): Long {
         return sessionDao.insert(
-            SleepSessionEntity(startTimeMillis = startTimeMillis, timezoneId = timezoneId)
+            SleepSessionEntity(
+                startTimeMillis = startTimeMillis,
+                timezoneId = timezoneId,
+                sessionType = sessionType.name
+            )
         )
     }
 
@@ -74,8 +87,23 @@ class SleepRepository @Inject constructor(
         return sessionDao.getRecentSessions(limit).map { it.toDomain() }
     }
 
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    suspend fun getRecentMainSleepSessions(limit: Int): List<SleepSession> {
+        return sessionDao.getRecentMainSleepSessions(limit).map { it.toDomain() }
+    }
+
     suspend fun getSessionsSince(fromMillis: Long): List<SleepSession> {
         return sessionDao.getSessionsSince(fromMillis).map { it.toDomain() }
+    }
+
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    suspend fun getMainSleepSessionsSince(fromMillis: Long): List<SleepSession> {
+        return sessionDao.getMainSleepSessionsSince(fromMillis).map { it.toDomain() }
+    }
+
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    fun observeMainSleepSessions(): Flow<List<SleepSession>> {
+        return sessionDao.observeMainSleepSessions().map { list -> list.map { it.toDomain() } }
     }
 
     suspend fun getAverageScoreSince(fromMillis: Long): Float {
@@ -84,6 +112,11 @@ class SleepRepository @Inject constructor(
 
     suspend fun getAverageDurationSince(fromMillis: Long): Float {
         return sessionDao.getAverageDurationSince(fromMillis) ?: 0f
+    }
+
+    /** HEALTH-04: count of completed sessions Health Connect sync hasn't successfully written yet (unsynced or silently dedup-skipped). */
+    fun observeUnsyncedToHealthConnectCount(): Flow<Int> {
+        return sessionDao.observeUnsyncedToHealthConnectCount()
     }
 
     // --- Epochs ---
@@ -126,6 +159,20 @@ class SleepRepository @Inject constructor(
         return audioEventDao.getBySession(sessionId).map { it.toDomain() }
     }
 
+    fun getAudioEventsSynchronous(sessionId: Long): List<AudioEvent> {
+        return audioEventDao.getBySessionSync(sessionId).map { it.toDomain() }
+    }
+
+    // --- External Vitals (HEALTH-01) ---
+
+    suspend fun upsertExternalVitals(vitals: ExternalVitalsSnapshot) {
+        externalVitalsDao.upsert(vitals.toEntity())
+    }
+
+    suspend fun getExternalVitals(sessionId: Long): ExternalVitalsSnapshot? {
+        return externalVitalsDao.getForSession(sessionId)?.toDomain()
+    }
+
     // --- Mappers ---
 
     private fun SleepSessionEntity.toDomain() = SleepSession(
@@ -148,7 +195,11 @@ class SleepRepository @Inject constructor(
         isHomeSleep = isHomeSleep,
         alarmUsed = alarmUsed,
         avgBreathingRateBrpm = avgBreathingRateBrpm,
-        coughEventCount = coughEventCount
+        coughEventCount = coughEventCount,
+        isPartial = isPartial,
+        sessionType = try { SessionType.valueOf(sessionType) } catch (e: Exception) { SessionType.MAIN_SLEEP },
+        isOversleep = isOversleep,
+        healthConnectRecordId = healthConnectRecordId
     )
 
     private fun SleepSession.toEntity() = SleepSessionEntity(
@@ -171,7 +222,11 @@ class SleepRepository @Inject constructor(
         isHomeSleep = isHomeSleep,
         alarmUsed = alarmUsed,
         avgBreathingRateBrpm = avgBreathingRateBrpm,
-        coughEventCount = coughEventCount
+        coughEventCount = coughEventCount,
+        isPartial = isPartial,
+        sessionType = sessionType.name,
+        isOversleep = isOversleep,
+        healthConnectRecordId = healthConnectRecordId
     )
 
     private fun SleepEpochEntity.toDomain() = SleepEpoch(
@@ -199,7 +254,8 @@ class SleepRepository @Inject constructor(
         durationSeconds = durationSeconds,
         type = try { AudioEventType.valueOf(type) } catch (e: Exception) { AudioEventType.ANOMALY },
         intensityDecibels = intensityDecibels,
-        clipPath = clipPath
+        clipPath = clipPath,
+        syncedToNas = syncedToNas
     )
 
     private fun AudioEvent.toEntity() = AudioEventEntity(
@@ -209,6 +265,29 @@ class SleepRepository @Inject constructor(
         durationSeconds = durationSeconds,
         type = type.name,
         intensityDecibels = intensityDecibels,
-        clipPath = clipPath
+        clipPath = clipPath,
+        syncedToNas = syncedToNas
+    )
+
+    private fun ExternalVitalsEntity.toDomain() = ExternalVitalsSnapshot(
+        sessionId = sessionId,
+        avgHeartRateBpm = avgHeartRateBpm,
+        restingHeartRateBpm = restingHeartRateBpm,
+        avgHeartRateVariabilityMs = avgHeartRateVariabilityMs,
+        avgSpo2Percent = avgSpo2Percent,
+        minSpo2Percent = minSpo2Percent,
+        avgSkinTemperatureCelsius = avgSkinTemperatureCelsius,
+        sourceApp = sourceApp
+    )
+
+    private fun ExternalVitalsSnapshot.toEntity() = ExternalVitalsEntity(
+        sessionId = sessionId,
+        avgHeartRateBpm = avgHeartRateBpm,
+        restingHeartRateBpm = restingHeartRateBpm,
+        avgHeartRateVariabilityMs = avgHeartRateVariabilityMs,
+        avgSpo2Percent = avgSpo2Percent,
+        minSpo2Percent = minSpo2Percent,
+        avgSkinTemperatureCelsius = avgSkinTemperatureCelsius,
+        sourceApp = sourceApp
     )
 }

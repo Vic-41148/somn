@@ -107,7 +107,6 @@ class UserProfileRepository @Inject constructor(
         pregnancyDueDate = pregnancyDueDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
         cycleLength = cycleLength,
         lastPeriodStartDate = lastPeriodStartDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
-        shiftWorker = shiftWorker,
         timezoneId = timezoneId,
         onboardingCompleted = onboardingCompleted
     )
@@ -127,7 +126,6 @@ class UserProfileRepository @Inject constructor(
         pregnancyDueDate = pregnancyDueDate?.toString(),
         cycleLength = cycleLength,
         lastPeriodStartDate = lastPeriodStartDate?.toString(),
-        shiftWorker = shiftWorker,
         timezoneId = timezoneId,
         onboardingCompleted = onboardingCompleted
     )
