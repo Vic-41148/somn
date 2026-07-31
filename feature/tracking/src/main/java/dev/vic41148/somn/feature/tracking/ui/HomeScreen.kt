@@ -108,6 +108,13 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+                    // Some OEMs (Samsung, Xiaomi, Huawei) also enforce a separate "autostart"/
+                    // background-activity restriction on top of standard battery optimization —
+                    // this is a genuinely optional second step, not a replacement for the direct
+                    // exemption dialog "Fix" triggers below.
+                    val oemIntent = remember {
+                        dev.vic41148.somn.core.ui.battery.BatteryExemptionState.oemBackgroundRestrictionIntent(context)
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
@@ -116,6 +123,14 @@ fun HomeScreen(
                             Text("Dismiss")
                         }
                         Spacer(modifier = Modifier.width(8.dp))
+                        if (oemIntent != null) {
+                            androidx.compose.material3.TextButton(onClick = {
+                                context.startActivity(oemIntent)
+                            }) {
+                                Text("Also check device settings")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                         androidx.compose.material3.Button(onClick = {
                             context.startActivity(
                                 dev.vic41148.somn.core.ui.battery.BatteryExemptionState.buildFixIntent(context)
