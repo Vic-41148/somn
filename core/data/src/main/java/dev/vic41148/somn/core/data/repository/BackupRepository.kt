@@ -105,8 +105,8 @@ class BackupRepository @Inject constructor(
         try {
             val resolver = context.contentResolver
 
-            val magic = resolver.openInputStream(backupUri)?.use { input ->
-                ByteArray(PortableCrypto.MAGIC.size).also { buffer ->
+            val prefix = resolver.openInputStream(backupUri)?.use { input ->
+                ByteArray(SQLITE_HEADER.size).also { buffer ->
                     var offset = 0
                     while (offset < buffer.size) {
                         val read = input.read(buffer, offset, buffer.size - offset)
@@ -116,9 +116,25 @@ class BackupRepository @Inject constructor(
                 }
             } ?: return@withContext RestoreResult.Failure("Could not open the backup file")
 
-            val encrypted = portableCrypto.isPortableEnvelope(magic)
+            val encrypted = portableCrypto.isPortableEnvelope(prefix)
             if (encrypted && passphrase.isNullOrBlank()) {
                 return@withContext RestoreResult.Failure("This backup is encrypted — enter your recovery passphrase")
+            }
+
+            // Anything that is neither a portable envelope nor a raw database has to be rejected
+            // here, by name. Falling through would copy it verbatim and fail the SQLite check below
+            // with "check the recovery passphrase" — advice that can never work for a Keystore blob,
+            // leaving the user retyping a key that was never the problem.
+            if (!encrypted && !prefix.startsWithSqliteHeader()) {
+                return@withContext RestoreResult.Failure(
+                    if (looksLikeLegacyKeystoreBlob(prefix)) {
+                        "This backup was encrypted with a device-bound key from an older version of " +
+                            "Somn and can only be restored on the device that wrote it. No recovery " +
+                            "key can open it."
+                    } else {
+                        "This file is not a Somn backup"
+                    }
+                )
             }
 
             resolver.openInputStream(backupUri)?.use { input ->
@@ -180,6 +196,17 @@ class BackupRepository @Inject constructor(
         file.inputStream().use { it.read(header) }
         return header.contentEquals(SQLITE_HEADER)
     }
+
+    private fun ByteArray.startsWithSqliteHeader(): Boolean =
+        size >= SQLITE_HEADER.size && SQLITE_HEADER.indices.all { this[it] == SQLITE_HEADER[it] }
+
+    /**
+     * Recognises the shape written by [dev.vic41148.somn.core.data.backup.EncryptionUtils]: a
+     * single IV-length byte followed by that many IV bytes. Only used to explain *why* a file can't
+     * be restored — there is no way to actually decrypt one off-device.
+     */
+    private fun looksLikeLegacyKeystoreBlob(prefix: ByteArray): Boolean =
+        prefix.isNotEmpty() && prefix[0].toInt() == 12
 
     private fun writeToDocumentTree(
         tree: DocumentFile,
