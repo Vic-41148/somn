@@ -54,24 +54,17 @@ fun PermissionsScreen(
                     )
                 )
             }
-            add(
-                PermissionItem(
-                    Manifest.permission.ACTIVITY_RECOGNITION,
-                    "Activity Recognition",
-                    "Detect when you fall asleep and wake up using motion sensors",
-                    required = true
-                )
-            )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add(
-                    PermissionItem(
-                        Manifest.permission.SCHEDULE_EXACT_ALARM,
-                        "Exact Alarms",
-                        "Smart alarm that wakes you at the optimal moment",
-                        required = true
-                    )
-                )
-            }
+            // Motion sensing uses the raw TYPE_ACCELEROMETER sensor (AccelerometerCollector),
+            // which needs no runtime permission — Activity Recognition and its permission are
+            // unused. Requesting it here was also dead on arrival: it was never declared in
+            // AndroidManifest.xml, so the dialog could never actually grant it.
+            //
+            // Exact alarms are scheduled via AlarmManager.setAlarmClock() (AlarmReceiver),
+            // which is exempt from exact-alarm restrictions on every Android version without
+            // needing SCHEDULE_EXACT_ALARM at all. That permission is also a special-access
+            // grant on API 31+ that a RequestMultiplePermissions dialog cannot obtain in the
+            // first place — only a dedicated Settings deep-link can, which is why this always
+            // showed as "not granted" regardless of what was tapped.
             add(
                 PermissionItem(
                     Manifest.permission.RECORD_AUDIO,
