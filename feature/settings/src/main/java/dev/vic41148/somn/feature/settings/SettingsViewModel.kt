@@ -24,6 +24,7 @@ import javax.inject.Inject
 import dev.vic41148.somn.core.data.repository.BackupRepository
 import dev.vic41148.somn.core.data.backup.NasClient
 import dev.vic41148.somn.core.data.backup.NasSyncWorker
+import dev.vic41148.somn.core.data.backup.PortableCrypto
 import dev.vic41148.somn.core.domain.model.NasConfig
 import dev.vic41148.somn.core.domain.model.NasProtocol
 import androidx.work.OneTimeWorkRequestBuilder
@@ -39,10 +40,27 @@ class SettingsViewModel @Inject constructor(
     private val healthConnectRepository: HealthConnectRepository,
     private val exportJson: ExportJsonUseCase,
     private val importSleepAsAndroid: ImportSleepAsAndroidUseCase,
-    private val calculateScore: CalculateSleepScoreUseCase
+    private val calculateScore: CalculateSleepScoreUseCase,
+    private val portableCrypto: PortableCrypto
 ) : ViewModel() {
 
+    /**
+     * A freshly generated recovery key, held only until the user dismisses it. It is never read back
+     * out of storage for display — this is the one and only time they can write it down.
+     */
+    private val _newRecoveryKey = MutableStateFlow<String?>(null)
+    val newRecoveryKey: StateFlow<String?> = _newRecoveryKey.asStateFlow()
+
+    /** Set once a restore has replaced the database and the process needs restarting. */
+    private val _restartRequired = MutableStateFlow(false)
+    val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
+
     init {
+        viewModelScope.launch {
+            preferencesRepository.backupPassphraseSet.collect { isSet ->
+                _settings.value = _settings.value.copy(backupPassphraseSet = isSet)
+            }
+        }
         viewModelScope.launch {
             preferencesRepository.healthConnectEnabled.collect { enabled ->
                 _settings.value = _settings.value.copy(healthConnectEnabled = enabled)
@@ -143,6 +161,12 @@ class SettingsViewModel @Inject constructor(
         val selectedCaptchaTaskId: String = "math",
         val qrCodeValue: String? = null,
         val backupUri: String? = null,
+        /**
+         * Whether a recovery passphrase exists. Without one, backups can only be written in the
+         * clear locally and off-device sync is skipped entirely — an upload encrypted with the
+         * device-bound Keystore key would be unreadable exactly when it is needed.
+         */
+        val backupPassphraseSet: Boolean = false,
         // NAS
         val nasEnabled: Boolean = false,
         val nasHost: String = "",
@@ -220,6 +244,52 @@ class SettingsViewModel @Inject constructor(
     fun updateBackupUri(uri: String) {
         viewModelScope.launch {
             preferencesRepository.updateBackupUri(uri)
+        }
+    }
+
+    /**
+     * Generates a recovery key, stores it, and surfaces it once for the user to record. Replacing an
+     * existing key leaves older backups readable only by the old key, so the UI must confirm first.
+     */
+    fun generateRecoveryKey() {
+        viewModelScope.launch {
+            val key = portableCrypto.generateRecoveryKey()
+            preferencesRepository.updateBackupPassphrase(key)
+            _newRecoveryKey.value = key
+        }
+    }
+
+    /** Lets the user supply their own passphrase instead of a generated key. */
+    fun setRecoveryPassphrase(passphrase: String) {
+        viewModelScope.launch {
+            if (passphrase.isBlank()) {
+                _exportStatus.value = "Recovery passphrase cannot be empty"
+                return@launch
+            }
+            preferencesRepository.updateBackupPassphrase(passphrase)
+            _exportStatus.value = "Recovery passphrase saved"
+        }
+    }
+
+    fun dismissRecoveryKey() {
+        _newRecoveryKey.value = null
+    }
+
+    /**
+     * Restores the database from [uri]. [passphrase] is required for encrypted backups; leave null
+     * for a plaintext one. On success the caller must restart the app — Room still holds the old file.
+     */
+    fun restoreDatabase(uri: android.net.Uri, passphrase: String?) {
+        viewModelScope.launch {
+            _exportStatus.value = "Restoring..."
+            when (val result = backupRepository.restoreDatabase(uri, passphrase)) {
+                is BackupRepository.RestoreResult.SuccessRestartRequired -> {
+                    _exportStatus.value = "Restore complete — restart Somn to load it"
+                    _restartRequired.value = true
+                }
+                is BackupRepository.RestoreResult.Failure ->
+                    _exportStatus.value = "Restore failed: ${result.message}"
+            }
         }
     }
 

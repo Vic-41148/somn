@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -374,6 +375,158 @@ fun SettingsScreen(
                 ) {
                     Text("Backup Now")
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Recovery Key",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = if (settings.backupPassphraseSet) {
+                    "Backups are encrypted with your recovery key ✅"
+                } else {
+                    "No recovery key set. Backups stay on this device only — off-site sync is " +
+                        "disabled, because an upload this phone can't outlive isn't a backup."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (settings.backupPassphraseSet) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+            )
+
+            var confirmReplaceKey by remember { mutableStateOf(false) }
+            Button(
+                onClick = {
+                    // Replacing a key orphans every backup written under the old one, so make the
+                    // destructive case an explicit second step.
+                    if (settings.backupPassphraseSet) confirmReplaceKey = true
+                    else viewModel.generateRecoveryKey()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Text(if (settings.backupPassphraseSet) "Replace Recovery Key" else "Generate Recovery Key")
+            }
+
+            if (confirmReplaceKey) {
+                AlertDialog(
+                    onDismissRequest = { confirmReplaceKey = false },
+                    title = { Text("Replace recovery key?") },
+                    text = {
+                        Text(
+                            "Backups already written can only be opened with the current key. " +
+                                "Keep it somewhere safe, or you'll lose access to them."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmReplaceKey = false
+                            viewModel.generateRecoveryKey()
+                        }) { Text("Replace") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmReplaceKey = false }) { Text("Cancel") }
+                    }
+                )
+            }
+
+            val newRecoveryKey by viewModel.newRecoveryKey.collectAsState()
+            newRecoveryKey?.let { key ->
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissRecoveryKey() },
+                    title = { Text("Save your recovery key") },
+                    text = {
+                        Column {
+                            Text(
+                                "This is shown once. Without it, an encrypted backup cannot be " +
+                                    "opened — not by you, and not by us."
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            SelectionContainer {
+                                Text(
+                                    text = key,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.dismissRecoveryKey() }) {
+                            Text("I've saved it")
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            var pendingRestoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
+            val restoreLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.OpenDocument()
+            ) { uri -> if (uri != null) pendingRestoreUri = uri }
+
+            Text(
+                text = "Restore",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Button(
+                onClick = { restoreLauncher.launch(arrayOf("*/*")) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Text("Restore From Backup File")
+            }
+
+            pendingRestoreUri?.let { uri ->
+                var passphrase by remember(uri) { mutableStateOf("") }
+                AlertDialog(
+                    onDismissRequest = { pendingRestoreUri = null },
+                    title = { Text("Restore database?") },
+                    text = {
+                        Column {
+                            Text(
+                                "This replaces all sleep data on this device. Enter your recovery " +
+                                    "key if the backup is encrypted; leave it blank if not."
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = passphrase,
+                                onValueChange = { passphrase = it },
+                                label = { Text("Recovery key") },
+                                singleLine = true,
+                                visualTransformation = PasswordVisualTransformation()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.restoreDatabase(uri, passphrase.ifBlank { null })
+                            pendingRestoreUri = null
+                        }) { Text("Restore") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancel") }
+                    }
+                )
+            }
+
+            val restartRequired by viewModel.restartRequired.collectAsState()
+            if (restartRequired) {
+                Text(
+                    text = "Restore complete — fully close and reopen Somn to load the restored data.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
