@@ -27,4 +27,6 @@ dependencies {
     implementation(libs.coroutines.android)
 
     testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.org.json)
 }
