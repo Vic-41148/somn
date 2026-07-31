@@ -115,6 +115,21 @@ fun HomeScreen(
                     val oemIntent = remember {
                         dev.vic41148.somn.core.ui.battery.BatteryExemptionState.oemBackgroundRestrictionIntent(context)
                     }
+                    // Kept on its own row, right-aligned: three actions competing for one row on a
+                    // phone-width card squeezed "Fix" down to an unreadable, near-invisible sliver
+                    // when this shared a row with Dismiss and Fix (the longest label of the three).
+                    if (oemIntent != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            androidx.compose.material3.TextButton(onClick = {
+                                context.startActivity(oemIntent)
+                            }) {
+                                Text("Also check device settings")
+                            }
+                        }
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
@@ -123,14 +138,6 @@ fun HomeScreen(
                             Text("Dismiss")
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        if (oemIntent != null) {
-                            androidx.compose.material3.TextButton(onClick = {
-                                context.startActivity(oemIntent)
-                            }) {
-                                Text("Also check device settings")
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
                         androidx.compose.material3.Button(onClick = {
                             context.startActivity(
                                 dev.vic41148.somn.core.ui.battery.BatteryExemptionState.buildFixIntent(context)
