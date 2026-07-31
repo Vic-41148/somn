@@ -9,8 +9,16 @@ import kotlin.math.sqrt
 /**
  * Classifies audio buffers into AudioEvent items.
  * Uses Zero-Crossing Rate (ZCR) alongside duration for classification.
+ *
+ * @param yamnetClassify optional YAMNet-backed classifier (Task 14, AUDIO-01) — when provided,
+ * the finished event's audio is classified by YAMNet first; the ZCR heuristic below only runs
+ * as a fallback when YAMNet returns null (silence, or a class this feature doesn't map — see
+ * [YamnetLabels.classNameToAudioEventType]). Kept as a plain lambda rather than a direct
+ * [YamnetAudioClassifier] dependency so this class stays Android/TFLite-free and unit-testable.
  */
-class AudioEventClassifier {
+class AudioEventClassifier(
+    private val yamnetClassify: ((ShortArray) -> AudioEventType?)? = null
+) {
 
     private var loudBufferCount = 0
     private var eventStartTime = 0L
@@ -52,9 +60,11 @@ class AudioEventClassifier {
                 // Event finished
                 val durationSec = (loudBufferCount * buffer.size.toDouble()) / AudioCollector.SAMPLE_RATE.toDouble()
                 val avgZcr = if (loudBufferCount > 0) (sumZcr / loudBufferCount).toInt() else 0
-                
-                // Duration & ZCR heuristic classification
-                val type = when {
+                val outBuffer = currentBuffer.toShortArray()
+
+                val type = yamnetClassify?.invoke(outBuffer) ?: when {
+                    // Duration & ZCR heuristic classification (fallback when YAMNet is
+                    // disabled, or returned null for this buffer)
                     durationSec < 0.8 && maxZcr < 1500 -> AudioEventType.COUGH
                     maxZcr > 2000 || avgZcr > 1000 -> AudioEventType.TALK
                     else -> AudioEventType.SNORE
@@ -67,8 +77,6 @@ class AudioEventClassifier {
                     type = type,
                     intensityDecibels = maxIntensity
                 )
-
-                val outBuffer = currentBuffer.toShortArray()
 
                 loudBufferCount = 0
                 maxIntensity = 0

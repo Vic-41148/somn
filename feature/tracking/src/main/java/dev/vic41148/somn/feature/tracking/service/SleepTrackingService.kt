@@ -16,8 +16,10 @@ import dev.vic41148.somn.core.audio.AudioEventClassifier
 import dev.vic41148.somn.core.audio.BreathingRateEstimator
 import dev.vic41148.somn.core.audio.SnoringNudgeController
 import dev.vic41148.somn.core.audio.SonarCollector
+import dev.vic41148.somn.core.audio.YamnetAudioClassifier
 import dev.vic41148.somn.core.data.repository.AlarmRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
+import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.domain.model.SleepEpoch
 import dev.vic41148.somn.core.domain.model.SleepStage
 import dev.vic41148.somn.core.domain.model.Alarm
@@ -36,6 +38,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -55,9 +58,13 @@ class SleepTrackingService : Service() {
     @Inject lateinit var sleepRepository: SleepRepository
     @Inject lateinit var alarmRepository: AlarmRepository
     @Inject lateinit var smartAlarmUseCase: SmartAlarmUseCase
+    @Inject lateinit var preferencesRepository: SomnPreferencesRepository
 
     private val classifyStage = ClassifySleepStageUseCase()
-    private val audioEventClassifier = AudioEventClassifier()
+    // Rebuilt per-session in startTracking() once yamnetClassificationEnabled is read — starts
+    // ZCR-only so there's never a window where this is uninitialized.
+    private var audioEventClassifier = AudioEventClassifier()
+    private var yamnetClassifier: YamnetAudioClassifier? = null
     private val breathingRateEstimator = BreathingRateEstimator()
     private lateinit var accelerometerCollector: AccelerometerCollector
     private lateinit var audioCollector: AudioCollector
@@ -183,11 +190,31 @@ class SleepTrackingService : Service() {
         if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             // Only start AudioCollector if NOT in sonar mode (sonar owns the mic)
             if (mode != TrackingMode.SONAR) {
-                audioCollector.start()
-                audioJob = serviceScope.launch { audioCollector.collectLoop() }
                 serviceScope.launch {
-                    audioCollector.audioFlow.collect { buffer ->
-                        handleAudioBuffer(buffer, sessionId)
+                    // Task 14 (AUDIO-01): rebuild the classifier per-session so a mid-session
+                    // preference change doesn't need a service restart to take effect. Read
+                    // before starting collection so no buffer races the flag on session start.
+                    yamnetClassifier?.close()
+                    yamnetClassifier = null
+                    val useYamnet = try {
+                        preferencesRepository.yamnetClassificationEnabled.first()
+                    } catch (e: Exception) {
+                        false
+                    }
+                    audioEventClassifier = if (useYamnet) {
+                        val classifier = YamnetAudioClassifier(this@SleepTrackingService)
+                        yamnetClassifier = classifier
+                        AudioEventClassifier(yamnetClassify = classifier::classify)
+                    } else {
+                        AudioEventClassifier()
+                    }
+
+                    audioCollector.start()
+                    audioJob = serviceScope.launch { audioCollector.collectLoop() }
+                    serviceScope.launch {
+                        audioCollector.audioFlow.collect { buffer ->
+                            handleAudioBuffer(buffer, sessionId)
+                        }
                     }
                 }
             }
@@ -422,6 +449,8 @@ class SleepTrackingService : Service() {
 
     override fun onDestroy() {
         stopTracking()
+        yamnetClassifier?.close()
+        yamnetClassifier = null
         serviceScope.cancel()
         super.onDestroy()
     }

@@ -44,6 +44,7 @@ class SomnPreferencesRepository @Inject constructor(
         val WAKE_VERIFICATION_ENABLED = booleanPreferencesKey("wake_verification_enabled")
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
+        val YAMNET_CLASSIFICATION_ENABLED = booleanPreferencesKey("yamnet_classification_enabled")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -179,6 +180,21 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateHealthConnectEnabled(enabled: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.HEALTH_CONNECT_ENABLED] = enabled }
+    }
+
+    /**
+     * Task 14 (AUDIO-01) — off by default. Gates YAMNet-based classification as an alternative
+     * to the ZCR heuristic in [dev.vic41148.somn.core.audio.AudioEventClassifier] so it can be
+     * A/B'd rather than silently replacing the existing (already-shipped) heuristic. Not
+     * validated for accuracy (AUDIO-02) or battery impact (AUDIO-03) — those are separate,
+     * still-open follow-ups.
+     */
+    val yamnetClassificationEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.YAMNET_CLASSIFICATION_ENABLED] ?: false }
+
+    suspend fun updateYamnetClassificationEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.YAMNET_CLASSIFICATION_ENABLED] = enabled }
     }
 
     // ── NAS Preferences ──────────────────────────────────────────────
