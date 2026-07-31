@@ -24,7 +24,6 @@ data class UserProfile(
     val pregnancyDueDate: LocalDate? = null,
     val cycleLength: Int = 28,
     val lastPeriodStartDate: LocalDate? = null,
-    val shiftWorker: Boolean = false,
     val timezoneId: String = ZoneId.systemDefault().id,
     val onboardingCompleted: Boolean = false
 ) {
