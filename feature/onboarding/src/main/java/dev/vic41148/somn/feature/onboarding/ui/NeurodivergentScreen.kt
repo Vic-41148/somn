@@ -89,9 +89,9 @@ fun NeurodivergentScreen(
 
         if (adhdEnabled) {
             Text(
-                text = "✓ Consistency scored against your pattern, not societal norms\n" +
-                    "✓ Medication timing tracking enabled\n" +
-                    "✓ Wind-down support tailored for ADHD",
+                text = "- Consistency scored against your pattern, not societal norms\n" +
+                    "- Medication timing tracking enabled\n" +
+                    "- Wind-down support tailored for ADHD",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
@@ -129,9 +129,9 @@ fun NeurodivergentScreen(
 
         if (asdEnabled) {
             Text(
-                text = "✓ Vibration-only alarm option\n" +
-                    "✓ Sleep environment checklist for sensory needs\n" +
-                    "✓ Non-judgmental scoring calibrated to your patterns",
+                text = "- Vibration-only alarm option\n" +
+                    "- Sleep environment checklist for sensory needs\n" +
+                    "- Non-judgmental scoring calibrated to your patterns",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)

@@ -194,7 +194,7 @@ private fun DebtSummaryCard(
             val debtH = debtMinutes / 60
             val debtM = debtMinutes % 60
             Text(
-                text = if (debtMinutes == 0) "No debt! 🎉"
+                text = if (debtMinutes == 0) "No debt!"
                 else "${if (debtH > 0) "${debtH}h " else ""}${debtM}m",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,

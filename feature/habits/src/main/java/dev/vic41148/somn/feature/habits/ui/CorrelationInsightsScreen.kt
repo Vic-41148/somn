@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -74,7 +77,7 @@ fun CorrelationInsightsScreen(
             elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Text(
-                text = "ℹ️ These patterns are personal to you — not population averages. " +
+                text = "These patterns are personal to you — not population averages. " +
                     "Minimum ${CorrelationUseCase.MIN_DATA_POINTS} sleep sessions needed per correlation.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -289,7 +292,12 @@ private fun EmptyCorrelationsState() {
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("📊", style = MaterialTheme.typography.displayMedium)
+            Icon(
+                Icons.Default.BarChart,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Not enough data yet",

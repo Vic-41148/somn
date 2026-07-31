@@ -276,10 +276,11 @@ private fun SessionRow(
                     }
                 )
                 if (session.moodRating > 0) {
-                    val moods = listOf("", "😴", "😕", "😐", "🙂", "😄")
+                    val moods = listOf("", "Exhausted", "Tired", "Okay", "Good", "Great")
                     Text(
                         text = moods.getOrElse(session.moodRating) { "" },
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

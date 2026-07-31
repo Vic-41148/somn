@@ -324,7 +324,7 @@ private fun SleepDebtHomeCard(debt: SleepDebt, onClick: () -> Unit) {
                 val h = debt.totalDebtMinutes / 60
                 val m = debt.totalDebtMinutes % 60
                 val debtStr = when {
-                    debt.totalDebtMinutes == 0 -> "None 🎉"
+                    debt.totalDebtMinutes == 0 -> "None"
                     h > 0 -> "${h}h ${m}m"
                     else -> "${m}m"
                 }

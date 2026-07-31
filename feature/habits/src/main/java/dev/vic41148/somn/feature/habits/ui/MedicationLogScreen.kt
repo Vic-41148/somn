@@ -84,7 +84,7 @@ fun MedicationLogScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "💊 Stimulant Timing Matters",
+                        text = "Stimulant Timing Matters",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -265,7 +265,7 @@ private fun MedicationRow(log: HabitLog, timeFormatter: DateTimeFormatter) {
                 )
                 Text(
                     text = "${log.date}  at ${entry.timeOfDay.format(timeFormatter)}" +
-                        if (lateWarning) "  ⚠️ Late dose" else "",
+                        if (lateWarning) "  •  Late dose" else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (lateWarning) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurfaceVariant

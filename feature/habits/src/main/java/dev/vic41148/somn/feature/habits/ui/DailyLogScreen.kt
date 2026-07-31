@@ -394,11 +394,10 @@ private fun ExerciseLogForm(onLog: (HabitEntry.Exercise) -> Unit) {
 @Composable
 private fun StressLogForm(onLog: (HabitEntry.Stress) -> Unit) {
     var stressLevel by remember { mutableIntStateOf(3) }
-    val emojis = listOf("😌", "🙂", "😐", "😟", "😤")
     val labels = listOf("Very calm", "Calm", "Neutral", "Stressed", "Very stressed")
 
     Text(
-        text = "${emojis[stressLevel - 1]} ${labels[stressLevel - 1]}",
+        text = labels[stressLevel - 1],
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold
     )
@@ -408,9 +407,9 @@ private fun StressLogForm(onLog: (HabitEntry.Stress) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        emojis.forEachIndexed { index, emoji ->
+        labels.forEachIndexed { index, _ ->
             Text(
-                text = emoji,
+                text = "${index + 1}",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier
                     .clip(CircleShape)
@@ -495,16 +494,16 @@ private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
 }
 
 private fun HabitEntry.summary(): String = when (this) {
-    is HabitEntry.Caffeine -> "☕ ${source.displayName} — ${mg}mg at ${timeOfDay.format(timeFormatter)}"
-    is HabitEntry.Alcohol -> "🍷 ${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
-    is HabitEntry.Exercise -> "🏃 ${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Caffeine -> "${source.displayName} — ${mg}mg at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Alcohol -> "${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Exercise -> "${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Stress -> when (level) {
-        1 -> "😌 Very calm"
-        2 -> "🙂 Calm"
-        3 -> "😐 Neutral stress"
-        4 -> "😟 Stressed"
-        5 -> "😤 Very stressed"
+        1 -> "Very calm"
+        2 -> "Calm"
+        3 -> "Neutral stress"
+        4 -> "Stressed"
+        5 -> "Very stressed"
         else -> "Stress level $level"
     }
-    is HabitEntry.Medication -> "💊 $name $dose at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Medication -> "$name $dose at ${timeOfDay.format(timeFormatter)}"
 }

@@ -89,19 +89,19 @@ fun TrackingScreen(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "⚡ Sonar mode — high battery usage",
+                text = "Sonar mode — high battery usage",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )
         } else if (isSonar) {
             Text(
-                text = "🔊 Sonar active — contactless sensing",
+                text = "Sonar active — contactless sensing",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.tertiary,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "⚡ Sonar mode — high battery usage",
+                text = "Sonar mode — high battery usage",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )

@@ -67,8 +67,8 @@ class MorningBriefingWidget : AppWidgetProvider() {
                     views.setTextViewText(R.id.widget_score, "$score")
 
                     val insight = when {
-                        score >= 85 -> "Excellent sleep! ${durationHours}h ${durationMins}m 🌟"
-                        score >= 70 -> "Good night. ${durationHours}h ${durationMins}m 👍"
+                        score >= 85 -> "Excellent sleep! ${durationHours}h ${durationMins}m"
+                        score >= 70 -> "Good night. ${durationHours}h ${durationMins}m"
                         score >= 50 -> "Room to improve. ${durationHours}h ${durationMins}m"
                         else -> "Tough night. ${durationHours}h ${durationMins}m — prioritize rest tonight."
                     }

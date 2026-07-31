@@ -184,13 +184,13 @@ fun SettingsScreen(
                 )
             } else {
                 Text(
-                    text = "⚡ Sonar (Beta) — contactless, phone on nightstand. "
+                    text = "Sonar (Beta) — contactless, phone on nightstand. "
                         + "Uses speaker + mic continuously. Significantly higher battery drain.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )
                 Text(
-                    text = "⚠ Pets and partners moving may affect accuracy. "
+                    text = "Pets and partners moving may affect accuracy. "
                         + "Test on physical device only.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -317,7 +317,7 @@ fun SettingsScreen(
                 }
                 if (settings.qrCodeValue != null) {
                     Text(
-                        text = "QR Code configured ✅",
+                        text = "QR Code configured",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
@@ -364,7 +364,7 @@ fun SettingsScreen(
             }
             if (settings.backupUri != null) {
                 Text(
-                    text = "Auto-backup enabled on alarm dismiss ✅",
+                    text = "Auto-backup enabled on alarm dismiss",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 4.dp)
@@ -386,7 +386,7 @@ fun SettingsScreen(
             )
             Text(
                 text = if (settings.backupPassphraseSet) {
-                    "Backups are encrypted with your recovery key ✅"
+                    "Backups are encrypted with your recovery key"
                 } else {
                     "No recovery key set. Backups stay on this device only — off-site sync is " +
                         "disabled, because an upload this phone can't outlive isn't a backup."
@@ -700,7 +700,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "🔒 All uploads AES-256-GCM encrypted via Android Keystore",
+                    text = "All uploads AES-256-GCM encrypted via Android Keystore",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -729,7 +729,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val (statusText, statusColor) = when (settings.healthConnectStatus) {
-                    HealthConnectStatus.AUTHORIZED -> "Connected ✅" to MaterialTheme.colorScheme.primary
+                    HealthConnectStatus.AUTHORIZED -> "Connected" to MaterialTheme.colorScheme.primary
                     HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
                     HealthConnectStatus.UNAVAILABLE -> "Health Connect isn't installed on this device" to MaterialTheme.colorScheme.error
                 }
@@ -786,21 +786,21 @@ fun SettingsScreen(
                 onClick = onNavigateToBreathing,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("🫁  Breathing Exercise (4-7-8)")
+                Text("Breathing Exercise (4-7-8)")
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = onNavigateToCognitiveWindDown,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("📝  Cognitive Dump")
+                Text("Cognitive Dump")
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = onNavigateToADHDCooldown,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("🧠  ADHD Cooldown")
+                Text("ADHD Cooldown")
             }
         }
 

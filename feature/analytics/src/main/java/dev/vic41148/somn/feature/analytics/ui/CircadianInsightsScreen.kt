@@ -146,7 +146,7 @@ fun SeasonalAnalysisCard(analysis: SeasonalAnalysis) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Seasonal Trends", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Current Season: ${analysis.currentSeason.displayName} ${analysis.currentSeason.emoji}")
+            Text("Current Season: ${analysis.currentSeason.displayName}")
             Spacer(modifier = Modifier.height(8.dp))
             
             if (analysis.hasMultiSeasonData) {

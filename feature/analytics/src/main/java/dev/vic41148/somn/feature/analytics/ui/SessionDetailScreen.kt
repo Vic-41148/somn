@@ -273,7 +273,7 @@ fun SessionDetailScreen(
 
             // Mood
             if (session.moodRating > 0) {
-                val moods = listOf("", "😴 Exhausted", "😕 Tired", "😐 Okay", "🙂 Good", "😄 Great")
+                val moods = listOf("", "Exhausted", "Tired", "Okay", "Good", "Great")
                 SleepCard(title = "Morning Mood") {
                     Text(
                         text = moods.getOrElse(session.moodRating) { "" },

@@ -472,7 +472,7 @@ class SettingsViewModel @Inject constructor(
             )
             val ok = nasClient.testConnection(config)
             _settings.value = _settings.value.copy(
-                nasTestResult = if (ok) "Connected ✅" else "Connection failed ❌"
+                nasTestResult = if (ok) "Connected" else "Connection failed"
             )
         }
     }
