@@ -25,6 +25,14 @@ class SomnPreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val encryptionUtils: dev.vic41148.somn.core.data.backup.EncryptionUtils
 ) {
+    companion object {
+        /** Sleep-talk clips are pruned after a week unless the user opts out. */
+        const val DEFAULT_CLIP_RETENTION_DAYS = 7
+
+        /** Sentinel for [clipRetentionDays] meaning "never prune". */
+        const val CLIP_RETENTION_KEEP_FOREVER = 0
+    }
+
     private object PreferencesKeys {
         val SELECTED_CAPTCHA_TASK_ID = stringPreferencesKey("selected_captcha_task_id")
         val QR_CODE_VALUE = stringPreferencesKey("qr_code_value")
@@ -38,6 +46,8 @@ class SomnPreferencesRepository @Inject constructor(
         val NAS_USERNAME = stringPreferencesKey("nas_username")
         val NAS_PROTOCOL = stringPreferencesKey("nas_protocol")
         val NAS_PORT = intPreferencesKey("nas_port")
+        /** Explicit TLS choice for the NAS connection; never inferred from [NAS_PORT]. */
+        val NAS_USE_HTTPS = booleanPreferencesKey("nas_use_https")
         /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded — never the raw password. */
         val NAS_PASSWORD_ENCRYPTED = stringPreferencesKey("nas_password_encrypted")
         val OVERSLEEP_THRESHOLD_MINUTES = intPreferencesKey("oversleep_threshold_minutes")
@@ -52,6 +62,11 @@ class SomnPreferencesRepository @Inject constructor(
          */
         val BACKUP_PASSPHRASE_ENCRYPTED = stringPreferencesKey("backup_passphrase_encrypted")
         val SNORE_NUDGE_ENABLED = booleanPreferencesKey("snore_nudge_enabled")
+        /**
+         * Days to keep sleep-talk recordings on disk. [CLIP_RETENTION_KEEP_FOREVER] disables
+         * pruning entirely — an explicit opt-in, because the default has to be one that forgets.
+         */
+        val CLIP_RETENTION_DAYS = intPreferencesKey("clip_retention_days")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -213,6 +228,19 @@ class SomnPreferencesRepository @Inject constructor(
         context.dataStore.edit { it[PreferencesKeys.SNORE_NUDGE_ENABLED] = enabled }
     }
 
+    /**
+     * How long sleep-talk WAV clips survive on disk, in days. Recordings of someone talking in
+     * their sleep are about the most sensitive thing this app holds, so the default forgets them
+     * after a week rather than keeping them until the user thinks to look.
+     */
+    val clipRetentionDays: Flow<Int> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.CLIP_RETENTION_DAYS] ?: DEFAULT_CLIP_RETENTION_DAYS }
+
+    suspend fun updateClipRetentionDays(days: Int) {
+        context.dataStore.edit { it[PreferencesKeys.CLIP_RETENTION_DAYS] = days }
+    }
+
     // ── NAS Preferences ──────────────────────────────────────────────
 
     val nasEnabled: Flow<Boolean> = context.dataStore.data
@@ -237,7 +265,16 @@ class SomnPreferencesRepository @Inject constructor(
 
     val nasPort: Flow<Int> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_PORT] ?: 80 }
+        .map { it[PreferencesKeys.NAS_PORT] ?: 443 }
+
+    /** Defaults to true: an unconfigured NAS connection must not start out unencrypted. */
+    val nasUseHttps: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_USE_HTTPS] ?: true }
+
+    suspend fun updateNasUseHttps(useHttps: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_USE_HTTPS] = useHttps }
+    }
 
     suspend fun updateNasEnabled(enabled: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.NAS_ENABLED] = enabled }

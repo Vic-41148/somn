@@ -167,6 +167,25 @@ class SleepRepository @Inject constructor(
         return audioEventDao.getBySessionSync(sessionId).map { it.toDomain() }
     }
 
+    /**
+     * Deletes every sleep-talk recording on disk and forgets their paths. The audio events stay
+     * in the history — only the audio itself goes. Backs the "delete all recordings" control in
+     * Settings, so a user who wants the recordings gone doesn't have to wait for retention to
+     * catch up or delete whole sessions to get there.
+     *
+     * @return how many clip files were actually removed.
+     */
+    suspend fun deleteAllAudioClips(): Int {
+        var deleted = 0
+        audioEventDao.getEventsWithClips().forEach { entity ->
+            entity.clipPath?.let { path ->
+                if (java.io.File(path).delete()) deleted++
+            }
+            audioEventDao.clearClipPath(entity.id)
+        }
+        return deleted
+    }
+
     // --- External Vitals (HEALTH-01) ---
 
     suspend fun upsertExternalVitals(vitals: ExternalVitalsSnapshot) {

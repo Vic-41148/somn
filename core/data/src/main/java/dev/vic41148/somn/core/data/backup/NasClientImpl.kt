@@ -82,10 +82,31 @@ class NasClientImpl @Inject constructor(
     // ── WebDAV ───────────────────────────────────────────────────────────
 
     private fun buildBaseUrl(config: NasConfig): String {
-        val scheme = if (config.port == 443) "https" else "http"
-        val portSuffix = if (config.port == 80 || config.port == 443) "" else ":${config.port}"
+        // Scheme follows the user's explicit choice, not the port number. Inferring it from the
+        // port meant a NAS on, say, 8443 got plain HTTP and leaked its Basic-auth credentials.
+        val scheme = if (config.useHttps) "https" else "http"
+        val defaultPort = if (config.useHttps) 443 else 80
+        val portSuffix = if (config.port == defaultPort) "" else ":${config.port}"
         val path = config.path.trimStart('/')
         return "$scheme://${config.host}$portSuffix/$path"
+    }
+
+    /**
+     * Android blocks cleartext HTTP by default at this targetSdk, so a plain-HTTP NAS fails with a
+     * generic-looking IOException that reads like an unreachable host. Name the real cause instead
+     * of letting users chase a network problem they don't have.
+     */
+    private fun logWebDavFailure(message: String, config: NasConfig, e: Exception) {
+        if (!config.useHttps && e.message?.contains("Cleartext", ignoreCase = true) == true) {
+            Log.e(
+                TAG,
+                "$message: Android blocked a cleartext HTTP request to ${config.host}. " +
+                    "Enable HTTPS on the NAS connection — Somn does not permit unencrypted traffic.",
+                e
+            )
+        } else {
+            Log.e(TAG, message, e)
+        }
     }
 
     private suspend fun openConnection(url: String, method: String, config: NasConfig): HttpURLConnection {
@@ -115,7 +136,7 @@ class NasClientImpl @Inject constructor(
             val code = conn.responseCode
             code in 200..299
         } catch (e: Exception) {
-            Log.e(TAG, "WebDAV test failed", e)
+            logWebDavFailure("WebDAV test failed", config, e)
             false
         } finally {
             conn?.disconnect()

@@ -161,7 +161,8 @@ class NasSyncWorker @AssistedInject constructor(
                 NasProtocol.WEBDAV
             },
             port = preferencesRepository.nasPort.first(),
-            isEnabled = true
+            isEnabled = true,
+            useHttps = preferencesRepository.nasUseHttps.first()
         )
     }
 }

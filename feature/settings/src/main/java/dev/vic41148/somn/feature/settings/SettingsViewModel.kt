@@ -139,6 +139,11 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            preferencesRepository.nasUseHttps.collect { useHttps ->
+                _settings.value = _settings.value.copy(nasUseHttps = useHttps)
+            }
+        }
+        viewModelScope.launch {
             preferencesRepository.nasPort.collect { port ->
                 _settings.value = _settings.value.copy(nasPort = port)
             }
@@ -163,6 +168,11 @@ class SettingsViewModel @Inject constructor(
                 _settings.value = _settings.value.copy(snoreNudgeEnabled = enabled)
             }
         }
+        viewModelScope.launch {
+            preferencesRepository.clipRetentionDays.collect { days ->
+                _settings.value = _settings.value.copy(clipRetentionDays = days)
+            }
+        }
     }
 
     // Settings state
@@ -175,6 +185,9 @@ class SettingsViewModel @Inject constructor(
         val wakeVerificationEnabled: Boolean = true,
         val wakeVerificationWindowSeconds: Int = 15,
         val snoreNudgeEnabled: Boolean = true,
+        /** Days sleep-talk recordings are kept; 0 means keep forever. */
+        val clipRetentionDays: Int =
+            dev.vic41148.somn.core.data.repository.SomnPreferencesRepository.DEFAULT_CLIP_RETENTION_DAYS,
         val darkMode: String = "System",
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
         val selectedCaptchaTaskId: String = "math",
@@ -192,7 +205,9 @@ class SettingsViewModel @Inject constructor(
         val nasPath: String = "/somn",
         val nasUsername: String = "",
         val nasProtocol: String = "WEBDAV",
-        val nasPort: Int = 80,
+        val nasPort: Int = 443,
+        /** Explicit TLS choice for NAS uploads — on unless the user deliberately turns it off. */
+        val nasUseHttps: Boolean = true,
         val nasTestResult: String? = null,
         // Health Connect
         val healthConnectEnabled: Boolean = false,
@@ -208,6 +223,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _exportStatus = MutableStateFlow<String?>(null)
     val exportStatus: StateFlow<String?> = _exportStatus.asStateFlow()
+
+    private val _clipDeletionStatus = MutableStateFlow<String?>(null)
+    val clipDeletionStatus: StateFlow<String?> = _clipDeletionStatus.asStateFlow()
 
     init {
         // Must run after _settings above is initialized: unlike the DataStore .collect{}
@@ -248,6 +266,26 @@ class SettingsViewModel @Inject constructor(
 
     fun updateSnoreNudgeEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.updateSnoreNudgeEnabled(enabled) }
+    }
+
+    fun updateClipRetentionDays(days: Int) {
+        viewModelScope.launch { preferencesRepository.updateClipRetentionDays(days) }
+    }
+
+    /** Immediately destroys every sleep-talk recording on disk, without waiting for retention. */
+    fun deleteAllAudioClips() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                val deleted = sleepRepository.deleteAllAudioClips()
+                "Deleted $deleted recording${if (deleted == 1) "" else "s"}"
+            } catch (e: Exception) {
+                "Failed to delete recordings: ${e.message}"
+            }
+        }
+    }
+
+    fun clearClipDeletionStatus() {
+        _clipDeletionStatus.value = null
     }
 
     fun updateTrackingMode(mode: TrackingMode) {
@@ -485,6 +523,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateNasPort(port) }
     }
 
+    fun updateNasUseHttps(useHttps: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateNasUseHttps(useHttps) }
+    }
+
     fun testNasConnection() {
         viewModelScope.launch {
             _settings.value = _settings.value.copy(nasTestResult = "Testing...")
@@ -495,11 +537,19 @@ class SettingsViewModel @Inject constructor(
                 username = s.nasUsername,
                 protocol = try { NasProtocol.valueOf(s.nasProtocol) } catch (_: Exception) { NasProtocol.WEBDAV },
                 port = s.nasPort,
-                isEnabled = true
+                isEnabled = true,
+                useHttps = s.nasUseHttps
             )
             val ok = nasClient.testConnection(config)
+            // A failed plain-HTTP attempt is almost always Android's cleartext block rather than a
+            // genuinely unreachable server, so say that instead of a bare "Connection failed".
+            val failureMessage = if (s.nasUseHttps) {
+                "Connection failed"
+            } else {
+                "Connection failed — Android blocks unencrypted HTTP. Turn HTTPS on."
+            }
             _settings.value = _settings.value.copy(
-                nasTestResult = if (ok) "Connected" else "Connection failed"
+                nasTestResult = if (ok) "Connected" else failureMessage
             )
         }
     }
