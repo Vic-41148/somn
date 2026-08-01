@@ -1,4 +1,4 @@
-# 🌙 Somn
+# Somn
 
 **A privacy-first, open-source sleep tracker for Android.**
 
@@ -11,7 +11,7 @@ Somn uses your phone's accelerometer to track sleep stages overnight — no wear
 
 ---
 
-## ✨ Features
+## Features
 
 ### Built & Working
 - **Accelerometer-based sleep tracking** — phone-on-bed motion analysis with 30-second epoch classification
@@ -46,7 +46,7 @@ Somn uses your phone's accelerometer to track sleep stages overnight — no wear
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 Multi-module Android app following **clean architecture** with unidirectional data flow.
 
@@ -71,7 +71,7 @@ feature/
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Tech |
 |---|---|
@@ -88,7 +88,7 @@ feature/
 
 ---
 
-## 🚀 Build & Run
+## Build & Run
 
 ### Prerequisites
 - **Android Studio** Meerkat or later
@@ -124,13 +124,13 @@ The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 ```
 
 CI runs `assembleDebug`, `testDebugUnitTest` and `lintDebug` on every push and PR to `main`
-and `dev`, plus a set of privacy guardrails that fail the build if Google Play Services
-reappear on the release classpath, if the Auto Backup opt-out is dropped, or if `INTERNET`
-starts being contributed by a module other than `:core:data`.
+and `dev`, plus guardrails that fail the build if Google Play Services reappear on the release
+classpath, if the Auto Backup opt-out is dropped, if `INTERNET` starts being contributed by a
+module other than `:core:data`, or if emoji appear in any tracked source or docs.
 
 ---
 
-## 📦 Package Info
+## Package Info
 
 | | |
 |---|---|
@@ -140,7 +140,7 @@ starts being contributed by a module other than `:core:data`.
 
 ---
 
-## 🔒 Privacy
+## Privacy
 
 Somn is designed with privacy as a core principle:
 
@@ -166,7 +166,7 @@ Full details — every stored field, every permission, and how to delete anythin
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! This is an early-stage project — see **On the Roadmap** above for what's next.
 
@@ -183,12 +183,12 @@ Quick start:
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 ---
 
 <p align="center">
-  <sub>Built with 🌙 by <a href="https://github.com/Vic-41148">Vic-41148</a></sub>
+  <sub>Built by <a href="https://github.com/Vic-41148">Vic-41148</a></sub>
 </p>
