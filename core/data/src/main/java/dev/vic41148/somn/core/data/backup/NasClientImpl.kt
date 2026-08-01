@@ -26,6 +26,20 @@ class NasClientImpl @Inject constructor(
         private const val TAG = "NasClientImpl"
         private const val CONNECT_TIMEOUT = 10_000
         private const val READ_TIMEOUT = 30_000
+
+        /**
+         * Pure so the scheme decision can be tested directly — this is the line that used to leak
+         * WebDAV credentials. The scheme follows the user's explicit [NasConfig.useHttps] choice,
+         * never the port number: inferring it from the port meant a NAS on, say, 8443 silently got
+         * plain HTTP and sent its Basic-auth header in the clear.
+         */
+        internal fun buildBaseUrl(config: NasConfig): String {
+            val scheme = if (config.useHttps) "https" else "http"
+            val defaultPort = if (config.useHttps) 443 else 80
+            val portSuffix = if (config.port == defaultPort) "" else ":${config.port}"
+            val path = config.path.trimStart('/')
+            return "$scheme://${config.host}$portSuffix/$path"
+        }
     }
 
     override suspend fun testConnection(config: NasConfig): Boolean = withContext(Dispatchers.IO) {
@@ -81,15 +95,7 @@ class NasClientImpl @Inject constructor(
 
     // ── WebDAV ───────────────────────────────────────────────────────────
 
-    private fun buildBaseUrl(config: NasConfig): String {
-        // Scheme follows the user's explicit choice, not the port number. Inferring it from the
-        // port meant a NAS on, say, 8443 got plain HTTP and leaked its Basic-auth credentials.
-        val scheme = if (config.useHttps) "https" else "http"
-        val defaultPort = if (config.useHttps) 443 else 80
-        val portSuffix = if (config.port == defaultPort) "" else ":${config.port}"
-        val path = config.path.trimStart('/')
-        return "$scheme://${config.host}$portSuffix/$path"
-    }
+    private fun buildBaseUrl(config: NasConfig): String = Companion.buildBaseUrl(config)
 
     /**
      * Android blocks cleartext HTTP by default at this targetSdk, so a plain-HTTP NAS fails with a

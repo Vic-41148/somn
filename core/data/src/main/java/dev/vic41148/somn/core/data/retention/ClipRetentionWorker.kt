@@ -11,7 +11,6 @@ import dev.vic41148.somn.core.data.database.dao.AudioEventDao
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import kotlinx.coroutines.flow.first
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 /**
  * Deletes sleep-talk WAV clips older than the user's retention window.
@@ -39,12 +38,12 @@ class ClipRetentionWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val retentionDays = preferencesRepository.clipRetentionDays.first()
-        if (retentionDays <= SomnPreferencesRepository.CLIP_RETENTION_KEEP_FOREVER) {
+        val cutoff = ClipRetentionPolicy.cutoffMillis(System.currentTimeMillis(), retentionDays)
+        if (cutoff == null) {
             Log.d(TAG, "Retention disabled by user — keeping all clips")
             return Result.success()
         }
 
-        val cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(retentionDays.toLong())
         val expired = audioEventDao.getEventsWithClipsOlderThan(cutoff)
         if (expired.isEmpty()) return Result.success()
 
