@@ -1,0 +1,64 @@
+name: Feature request
+description: An idea for making Somn better. No idea is too small.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We love ideas! Whether it's a tiny quality-of-life tweak or a big new
+        feature, tell us about it.
+
+        New features should fit Somn's core promise: **privacy first**. Everything
+        runs on-device, no accounts, no cloud, no telemetry. If your idea depends
+        on sending data somewhere, explain why — it can still be a great idea, it
+        just needs a good reason.
+
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the existing issues and didn't find this already suggested
+          required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's the idea?
+      description: Describe the feature or change you'd like to see, in your own words.
+      placeholder: |
+        Example: It would be great to see a weekly sleep summary as a notification
+        on Monday mornings.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help?
+      description: What problem does it solve for you? Who else might benefit?
+      placeholder: |
+        Example: I forget to look at my history, but I would read a weekly summary
+        notification on my commute.
+    validations:
+      required: true
+
+  - type: textarea
+    id: privacy
+    attributes:
+      label: How should it stay privacy-first? (optional)
+      description: |
+        If your idea involves anything beyond the device itself (network, accounts,
+        sensors, new data stored), tell us how it could work without breaking
+        Somn's on-device promise.
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Mockups, links, similar features in other apps, or any other context.
+    validations:
+      required: false
