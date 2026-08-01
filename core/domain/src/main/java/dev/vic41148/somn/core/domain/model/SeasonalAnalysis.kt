@@ -59,11 +59,11 @@ data class SeasonalTrend(
  * Seasons mapped to months (Northern Hemisphere default).
  * SeasonalAnalysisUseCase accounts for Southern Hemisphere via timezone-based inversion.
  */
-enum class Season(val displayName: String, val emoji: String) {
-    SPRING("Spring", "🌸"),
-    SUMMER("Summer", "☀️"),
-    AUTUMN("Autumn", "🍂"),
-    WINTER("Winter", "❄️");
+enum class Season(val displayName: String) {
+    SPRING("Spring"),
+    SUMMER("Summer"),
+    AUTUMN("Autumn"),
+    WINTER("Winter");
 
     companion object {
         /**

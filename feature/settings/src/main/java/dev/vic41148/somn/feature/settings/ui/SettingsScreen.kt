@@ -12,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -31,8 +32,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
+import zxingcpp.BarcodeReader
 import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.feature.settings.SettingsViewModel
@@ -49,6 +49,7 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsState()
     val exportStatus by viewModel.exportStatus.collectAsState()
     val importStatus by viewModel.importStatus.collectAsState()
+    val clipDeletionStatus by viewModel.clipDeletionStatus.collectAsState()
 
     // Async operation results (export/import/NAS test) used to be plain Text sitting in a long
     // scrolling layout — easy to miss, never dismissed itself, no action. Snackbars instead.
@@ -61,6 +62,12 @@ fun SettingsScreen(
     }
     LaunchedEffect(settings.nasTestResult) {
         settings.nasTestResult?.let { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(clipDeletionStatus) {
+        clipDeletionStatus?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearClipDeletionStatus()
+        }
     }
 
     Scaffold(
@@ -126,6 +133,84 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
+        // Anti-Snore Nudge
+        SettingSection(title = "Anti-Snore Nudge") {
+            SettingToggle(
+                title = "Vibrate on Snoring",
+                subtitle = "Gently vibrates the phone when snoring is detected (at most once every 3 minutes)",
+                checked = settings.snoreNudgeEnabled,
+                onCheckedChange = { viewModel.updateSnoreNudgeEnabled(it) }
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Sleep-talk recording retention. These clips are the most sensitive thing the app
+        // stores, so the retention window is surfaced here rather than buried in a backup screen.
+        SettingSection(title = "Sleep-Talk Recordings") {
+            val retentionDays = settings.clipRetentionDays
+            Text(
+                text = if (retentionDays <= 0) {
+                    "Kept until you delete them"
+                } else {
+                    "Deleted automatically after $retentionDays day${if (retentionDays == 1) "" else "s"}"
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Somn saves a short audio clip when it detects you talking in your sleep. " +
+                    "Set this to \"keep forever\" only if you want them to stay on the device indefinitely.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Slider(
+                value = retentionDays.toFloat(),
+                onValueChange = { viewModel.updateClipRetentionDays(it.toInt()) },
+                // 0 is the "keep forever" sentinel, so the slider's floor doubles as the opt-out.
+                valueRange = 0f..30f,
+                steps = 29,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            var confirmingClipDeletion by remember { mutableStateOf(false) }
+            OutlinedButton(
+                onClick = { confirmingClipDeletion = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Delete all recordings now")
+            }
+
+            if (confirmingClipDeletion) {
+                AlertDialog(
+                    onDismissRequest = { confirmingClipDeletion = false },
+                    title = { Text("Delete all recordings?") },
+                    text = {
+                        Text(
+                            "Every sleep-talk audio clip on this device will be permanently " +
+                                "deleted. Your sleep history and the events themselves are kept — " +
+                                "only the audio goes. This cannot be undone."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmingClipDeletion = false
+                            viewModel.deleteAllAudioClips()
+                        }) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmingClipDeletion = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
         // Sensor Mode
         SettingSection(title = "Sensor Mode") {
             Text(
@@ -183,13 +268,13 @@ fun SettingsScreen(
                 )
             } else {
                 Text(
-                    text = "⚡ Sonar (Beta) — contactless, phone on nightstand. "
+                    text = "Sonar (Beta) — contactless, phone on nightstand. "
                         + "Uses speaker + mic continuously. Significantly higher battery drain.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )
                 Text(
-                    text = "⚠ Pets and partners moving may affect accuracy. "
+                    text = "Pets and partners moving may affect accuracy. "
                         + "Test on physical device only.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -316,7 +401,7 @@ fun SettingsScreen(
                 }
                 if (settings.qrCodeValue != null) {
                     Text(
-                        text = "QR Code configured ✅",
+                        text = "QR Code configured",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
@@ -363,7 +448,7 @@ fun SettingsScreen(
             }
             if (settings.backupUri != null) {
                 Text(
-                    text = "Auto-backup enabled on alarm dismiss ✅",
+                    text = "Auto-backup enabled on alarm dismiss",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 4.dp)
@@ -374,6 +459,158 @@ fun SettingsScreen(
                 ) {
                     Text("Backup Now")
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Recovery Key",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = if (settings.backupPassphraseSet) {
+                    "Backups are encrypted with your recovery key"
+                } else {
+                    "No recovery key set. Backups stay on this device only — off-site sync is " +
+                        "disabled, because an upload this phone can't outlive isn't a backup."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (settings.backupPassphraseSet) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+            )
+
+            var confirmReplaceKey by remember { mutableStateOf(false) }
+            Button(
+                onClick = {
+                    // Replacing a key orphans every backup written under the old one, so make the
+                    // destructive case an explicit second step.
+                    if (settings.backupPassphraseSet) confirmReplaceKey = true
+                    else viewModel.generateRecoveryKey()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Text(if (settings.backupPassphraseSet) "Replace Recovery Key" else "Generate Recovery Key")
+            }
+
+            if (confirmReplaceKey) {
+                AlertDialog(
+                    onDismissRequest = { confirmReplaceKey = false },
+                    title = { Text("Replace recovery key?") },
+                    text = {
+                        Text(
+                            "Backups already written can only be opened with the current key. " +
+                                "Keep it somewhere safe, or you'll lose access to them."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmReplaceKey = false
+                            viewModel.generateRecoveryKey()
+                        }) { Text("Replace") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmReplaceKey = false }) { Text("Cancel") }
+                    }
+                )
+            }
+
+            val newRecoveryKey by viewModel.newRecoveryKey.collectAsState()
+            newRecoveryKey?.let { key ->
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissRecoveryKey() },
+                    title = { Text("Save your recovery key") },
+                    text = {
+                        Column {
+                            Text(
+                                "This is shown once. Without it, an encrypted backup cannot be " +
+                                    "opened — not by you, and not by us."
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            SelectionContainer {
+                                Text(
+                                    text = key,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.dismissRecoveryKey() }) {
+                            Text("I've saved it")
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            var pendingRestoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
+            val restoreLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.OpenDocument()
+            ) { uri -> if (uri != null) pendingRestoreUri = uri }
+
+            Text(
+                text = "Restore",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Button(
+                onClick = { restoreLauncher.launch(arrayOf("*/*")) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors()
+            ) {
+                Text("Restore From Backup File")
+            }
+
+            pendingRestoreUri?.let { uri ->
+                var passphrase by remember(uri) { mutableStateOf("") }
+                AlertDialog(
+                    onDismissRequest = { pendingRestoreUri = null },
+                    title = { Text("Restore database?") },
+                    text = {
+                        Column {
+                            Text(
+                                "This replaces all sleep data on this device. Enter your recovery " +
+                                    "key if the backup is encrypted; leave it blank if not."
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = passphrase,
+                                onValueChange = { passphrase = it },
+                                label = { Text("Recovery key") },
+                                singleLine = true,
+                                visualTransformation = PasswordVisualTransformation()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.restoreDatabase(uri, passphrase.ifBlank { null })
+                            pendingRestoreUri = null
+                        }) { Text("Restore") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancel") }
+                    }
+                )
+            }
+
+            val restartRequired by viewModel.restartRequired.collectAsState()
+            if (restartRequired) {
+                Text(
+                    text = "Restore complete — fully close and reopen Somn to load the restored data.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -444,8 +681,9 @@ fun SettingsScreen(
             if (settings.nasEnabled) {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Protocol — WebDAV-only for now (REL-05: SMB/NFS are unimplemented stubs
-                // in NasClientImpl, gated out of the picker until a real client backs them).
+                // Protocol — WebDAV is the only transport NasProtocol defines (REL-05). Kept as a
+                // labelled read-only row rather than a one-option picker so adding a second
+                // transport later is a UI change, not a re-layout.
                 Text(
                     text = "Protocol",
                     style = MaterialTheme.typography.labelSmall,
@@ -481,7 +719,11 @@ fun SettingsScreen(
                 ) {
                     OutlinedTextField(
                         value = settings.nasPort.toString(),
-                        onValueChange = { viewModel.updateNasPort(it.toIntOrNull() ?: 80) },
+                        onValueChange = {
+                            viewModel.updateNasPort(
+                                it.toIntOrNull() ?: if (settings.nasUseHttps) 443 else 80
+                            )
+                        },
                         label = { Text("Port") },
                         singleLine = true,
                         modifier = Modifier.weight(0.3f)
@@ -492,6 +734,26 @@ fun SettingsScreen(
                         label = { Text("Path") },
                         singleLine = true,
                         modifier = Modifier.weight(0.7f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Transport security is an explicit switch, not something inferred from the port.
+                SettingToggle(
+                    title = "Use HTTPS",
+                    subtitle = "Encrypts the connection to your NAS. Without it your NAS username " +
+                        "and password travel over the network in the clear — and Android blocks " +
+                        "unencrypted connections anyway.",
+                    checked = settings.nasUseHttps,
+                    onCheckedChange = { viewModel.updateNasUseHttps(it) }
+                )
+                if (!settings.nasUseHttps) {
+                    Text(
+                        text = "⚠ HTTPS is off. Credentials would be sent unencrypted, and the " +
+                            "connection will be refused by Android.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
 
@@ -547,7 +809,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "🔒 All uploads AES-256-GCM encrypted via Android Keystore",
+                    text = "All uploads AES-256-GCM encrypted via Android Keystore",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -576,7 +838,66 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 val (statusText, statusColor) = when (settings.healthConnectStatus) {
-                    HealthConnectStatus.AUTHORIZED -> "Connected ✅" to MaterialTheme.colorScheme.primary
+                    HealthConnectStatus.AUTHORIZED -> "Connected" to MaterialTheme.colorScheme.primary
+                    HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
+                    HealthConnectStatus.UNAVAILABLE -> "Health Connect isn't installed on this device" to MaterialTheme.colorScheme.error
+                }
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = statusColor
+                )
+
+                if (settings.healthConnectStatus == HealthConnectStatus.NOT_AUTHORIZED) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { permissionLauncher.launch(viewModel.healthConnectRequiredPermissions) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Connect Health Connect")
+                    }
+                }
+
+                // HEALTH-04: writeSleepSession() silently skips a session whenever another source
+                // already wrote overlapping sleep data (dedup), and that skip is permanent — the
+                // session's healthConnectRecordId stays null forever, so it'd otherwise never be
+                // surfaced anywhere. This count also includes sessions simply not synced yet, so
+                // it's worded as "haven't reached" rather than claiming they were all dedup-skipped.
+                if (settings.healthConnectStatus == HealthConnectStatus.AUTHORIZED && settings.healthConnectUnsyncedCount > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${settings.healthConnectUnsyncedCount} session(s) haven't reached Health Connect yet — " +
+                            "either not synced, or another app already recorded overlapping sleep for that night.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Health Connect (HEALTH-01..04)
+        SettingSection(title = "Health Connect") {
+            val healthConnectContract = remember(viewModel) { viewModel.healthConnectPermissionsContract() }
+            val permissionLauncher = rememberLauncherForActivityResult(
+                contract = healthConnectContract
+            ) {
+                viewModel.refreshHealthConnectStatus()
+            }
+
+            SettingToggle(
+                title = "Sync with Health Connect",
+                subtitle = "Read HR/HRV/SpO2/skin temp from wearables, write completed sessions back",
+                checked = settings.healthConnectEnabled,
+                onCheckedChange = { viewModel.updateHealthConnectEnabled(it) }
+            )
+
+            if (settings.healthConnectEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val (statusText, statusColor) = when (settings.healthConnectStatus) {
+                    HealthConnectStatus.AUTHORIZED -> "Connected" to MaterialTheme.colorScheme.primary
                     HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
                     HealthConnectStatus.UNAVAILABLE -> "Health Connect isn't installed on this device" to MaterialTheme.colorScheme.error
                 }
@@ -633,21 +954,21 @@ fun SettingsScreen(
                 onClick = onNavigateToBreathing,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("🫁  Breathing Exercise (4-7-8)")
+                Text("Breathing Exercise (4-7-8)")
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = onNavigateToCognitiveWindDown,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("📝  Cognitive Dump")
+                Text("Cognitive Dump")
             }
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = onNavigateToADHDCooldown,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("🧠  ADHD Cooldown")
+                Text("ADHD Cooldown")
             }
         }
 
@@ -715,28 +1036,22 @@ private fun QRSetupDialog(
                                     surfaceProvider = previewView.surfaceProvider
                                 }
 
-                                val scanner = BarcodeScanning.getClient()
+                                val barcodeReader = BarcodeReader()
                                 val imageAnalysis = ImageAnalysis.Builder()
                                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                     .build()
 
+                                // zxing-cpp decodes synchronously on the analyzer executor.
+                                // use() closes the ImageProxy exactly once so CameraX keeps
+                                // delivering frames.
                                 imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                                    val mediaImage = imageProxy.image
-                                    if (mediaImage != null) {
-                                        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                                        scanner.process(image)
-                                            .addOnSuccessListener { barcodes ->
-                                                for (barcode in barcodes) {
-                                                    val rawValue = barcode.rawValue
-                                                    if (rawValue != null) {
-                                                        onScanSuccess(rawValue)
-                                                    }
-                                                }
-                                            }
-                                            .addOnCompleteListener { imageProxy.close() }
-                                    } else {
-                                        imageProxy.close()
+                                    val results = try {
+                                        imageProxy.use { barcodeReader.read(it) }
+                                    } catch (e: Exception) {
+                                        Log.e("QRSetup", "QR scan failed", e)
+                                        return@setAnalyzer
                                     }
+                                    results.firstOrNull { it.text != null }?.text?.let(onScanSuccess)
                                 }
 
                                 try {

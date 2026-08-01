@@ -3,6 +3,8 @@ package dev.vic41148.somn.feature.onboarding.ui
 import android.Manifest
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,24 +56,17 @@ fun PermissionsScreen(
                     )
                 )
             }
-            add(
-                PermissionItem(
-                    Manifest.permission.ACTIVITY_RECOGNITION,
-                    "Activity Recognition",
-                    "Detect when you fall asleep and wake up using motion sensors",
-                    required = true
-                )
-            )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add(
-                    PermissionItem(
-                        Manifest.permission.SCHEDULE_EXACT_ALARM,
-                        "Exact Alarms",
-                        "Smart alarm that wakes you at the optimal moment",
-                        required = true
-                    )
-                )
-            }
+            // Motion sensing uses the raw TYPE_ACCELEROMETER sensor (AccelerometerCollector),
+            // which needs no runtime permission — Activity Recognition and its permission are
+            // unused. Requesting it here was also dead on arrival: it was never declared in
+            // AndroidManifest.xml, so the dialog could never actually grant it.
+            //
+            // Exact alarms are scheduled via AlarmManager.setAlarmClock() (AlarmReceiver),
+            // which is exempt from exact-alarm restrictions on every Android version without
+            // needing SCHEDULE_EXACT_ALARM at all. That permission is also a special-access
+            // grant on API 31+ that a RequestMultiplePermissions dialog cannot obtain in the
+            // first place — only a dedicated Settings deep-link can, which is why this always
+            // showed as "not granted" regardless of what was tapped.
             add(
                 PermissionItem(
                     Manifest.permission.RECORD_AUDIO,
@@ -93,11 +88,22 @@ fun PermissionsScreen(
         }
     }
 
+    // Body scrolls, footer stays pinned. This used to be one unscrollable Column whose Continue
+    // button was held down by a weight(1f) Spacer — fine until the content above outgrew the
+    // viewport (a large system font scale, or enough permission rows on a newer SDK), at which
+    // point the spacer collapsed to zero and the button was pushed off the bottom of the screen
+    // with no way to scroll to it.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp)
+            .padding(top = 24.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
         }
@@ -132,7 +138,11 @@ fun PermissionsScreen(
             ) {
                 Icon(
                     imageVector = if (isGranted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                    contentDescription = null,
+                    // Unlike the other icons flagged in the audit, this one isn't decorative —
+                    // it's the only indicator of grant status. item.title/description never say
+                    // whether the permission was actually granted, so a screen reader user had no
+                    // way to tell which permissions still needed granting.
+                    contentDescription = if (isGranted) "${item.title} granted" else "${item.title} not granted",
                     tint = if (isGranted) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -162,10 +172,13 @@ fun PermissionsScreen(
             Text("Grant Permissions")
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.End
         ) {
             Button(onClick = onNext) {

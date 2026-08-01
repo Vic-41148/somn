@@ -28,7 +28,7 @@ class NasSyncWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val audioEventDao: AudioEventDao,
     private val nasClient: NasClient,
-    private val encryptionUtils: EncryptionUtils,
+    private val portableCrypto: PortableCrypto,
     private val backupRepository: BackupRepository,
     private val preferencesRepository: SomnPreferencesRepository
 ) : CoroutineWorker(appContext, params) {
@@ -37,6 +37,7 @@ class NasSyncWorker @AssistedInject constructor(
         const val TAG = "NasSyncWorker"
         const val WORK_NAME = "nas_sync"
         private const val CLIP_AGE_HOURS = 24L
+        private const val REMOTE_DB_PATH = "db/sleep_tracker.db.enc"
     }
 
     override suspend fun doWork(): Result {
@@ -62,6 +63,18 @@ class NasSyncWorker @AssistedInject constructor(
             return Result.success()
         }
 
+        // Everything leaving the device is encrypted with the user's recovery passphrase, never with
+        // the Keystore key — a Keystore-encrypted upload is unreadable the moment the phone is gone,
+        // which defeats the point of having an off-device copy.
+        val passphrase = preferencesRepository.getBackupPassphrase()
+        if (passphrase == null) {
+            Log.w(TAG, "No backup passphrase set — skipping NAS sync (uploads would be unrecoverable)")
+            return Result.success()
+        }
+        // Derived once per run: the KDF is deliberately expensive, and a night can produce dozens of
+        // clips. Each file still gets its own random data key wrapped under this one.
+        val kek = portableCrypto.deriveKek(passphrase.toCharArray())
+
         // 3. Sync un-synced audio clips
         val cutoff = System.currentTimeMillis() - (CLIP_AGE_HOURS * 3600 * 1000)
         val unsyncedEvents = audioEventDao.getUnsyncedAudioEventsOlderThan(cutoff)
@@ -80,7 +93,7 @@ class NasSyncWorker @AssistedInject constructor(
             try {
                 // Encrypt clip
                 val plainBytes = clipFile.readBytes()
-                val encrypted = encryptionUtils.encryptBytes(plainBytes)
+                val encrypted = portableCrypto.encrypt(plainBytes, kek)
 
                 // Upload
                 val remoteName = "clips/${event.sessionId}/${clipFile.name}.enc"
@@ -104,20 +117,31 @@ class NasSyncWorker @AssistedInject constructor(
         }
 
         // 4. Upload encrypted DB snapshot
+        val staging = File(applicationContext.cacheDir, "nas-db-snapshot.enc")
         try {
-            val dbFile = applicationContext.getDatabasePath("somn-database")
+            // Fold -wal into the main file, or the snapshot silently omits the most recent night.
+            backupRepository.checkpointWal()
+
+            val dbFile = backupRepository.databaseFile()
             if (dbFile.exists()) {
-                val dbBytes = dbFile.readBytes()
-                val encrypted = encryptionUtils.encryptBytes(dbBytes)
-                nasClient.upload(
-                    config, "db/somn-database.db.enc",
-                    ByteArrayInputStream(encrypted),
-                    encrypted.size.toLong()
-                )
-                Log.d(TAG, "DB snapshot uploaded")
+                // Encrypt to disk rather than memory: the upload API needs the ciphertext length up
+                // front, and a multi-year database is not something to hold twice on the heap.
+                dbFile.inputStream().use { input ->
+                    staging.outputStream().use { output ->
+                        portableCrypto.encrypt(input, output, kek)
+                    }
+                }
+                val uploaded = staging.inputStream().use { encryptedStream ->
+                    nasClient.upload(config, REMOTE_DB_PATH, encryptedStream, staging.length())
+                }
+                Log.d(TAG, if (uploaded) "DB snapshot uploaded" else "DB snapshot upload rejected")
+            } else {
+                Log.w(TAG, "Database missing at ${dbFile.path} — no snapshot uploaded")
             }
         } catch (e: Exception) {
             Log.e(TAG, "DB upload failed", e)
+        } finally {
+            staging.delete()
         }
 
         Log.d(TAG, "NAS sync complete. Synced $successCount clips.")
@@ -137,7 +161,8 @@ class NasSyncWorker @AssistedInject constructor(
                 NasProtocol.WEBDAV
             },
             port = preferencesRepository.nasPort.first(),
-            isEnabled = true
+            isEnabled = true,
+            useHttps = preferencesRepository.nasUseHttps.first()
         )
     }
 }

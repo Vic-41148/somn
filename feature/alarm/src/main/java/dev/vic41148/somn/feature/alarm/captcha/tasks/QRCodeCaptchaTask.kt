@@ -14,8 +14,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
+import zxingcpp.BarcodeReader
 import dev.vic41148.somn.core.domain.model.AlarmPreferences
 import dev.vic41148.somn.feature.alarm.captcha.CaptchaTask
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
@@ -34,7 +33,7 @@ class QRCodeCaptchaTask : CaptchaTask {
     interface PreferencesEntryPoint {
         fun preferencesRepository(): SomnPreferencesRepository
     }
-    
+
     private var isSolved by mutableStateOf(false)
 
     override fun isComplete(): Boolean = isSolved
@@ -47,10 +46,7 @@ class QRCodeCaptchaTask : CaptchaTask {
     override fun TaskUI(onComplete: () -> Unit) {
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
-        
-        // Actually, I'll update the TaskUI to use the value if passed or just use a placeholder for now 
-        // and fix the registry later.
-        
+
         val preferencesRepository = remember {
             val entryPoint = EntryPointAccessors.fromApplication(
                 context.applicationContext,
@@ -58,38 +54,50 @@ class QRCodeCaptchaTask : CaptchaTask {
             )
             entryPoint.preferencesRepository()
         }
-        
-        val expectedValue by preferencesRepository?.qrCodeValue?.collectAsState(initial = null) ?: remember { mutableStateOf<String?>(null) }
+
+        val expectedValue by preferencesRepository.qrCodeValue.collectAsState(initial = null)
 
         val currentExpectedValue = expectedValue
         if (currentExpectedValue == null) {
-            Text("QR not configured. Fallback to Math.")
-            LaunchedEffect(Unit) {
-                // In real app, the registry would handle the fallback before launching this
+            // AlarmActivity already verified a QR value is configured before selecting this
+            // task (falling back to math otherwise) — a null here just means this DataStore
+            // flow hasn't emitted its first value yet, not a real "not configured" state.
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
             return
+        }
+
+        val executor = remember { Executors.newSingleThreadExecutor() }
+        val barcodeReader = remember { BarcodeReader() }
+        val cameraProviderRef = remember { arrayOfNulls<ProcessCameraProvider>(1) }
+
+        DisposableEffect(Unit) {
+            onDispose {
+                cameraProviderRef[0]?.unbindAll()
+                executor.shutdown()
+            }
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { ctx ->
                     val previewView = PreviewView(ctx)
-                    val executor = Executors.newSingleThreadExecutor()
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
+                        cameraProviderRef[0] = cameraProvider
                         val preview = Preview.Builder().build().apply {
                             surfaceProvider = previewView.surfaceProvider
                         }
 
-                        val scanner = BarcodeScanning.getClient()
                         val imageAnalysis = ImageAnalysis.Builder()
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .build()
 
                         imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                            processImageProxy(scanner, imageProxy, currentExpectedValue) {
+                            processImageProxy(barcodeReader, imageProxy, currentExpectedValue) {
                                 isSolved = true
                                 onComplete()
                             }
@@ -131,32 +139,25 @@ class QRCodeCaptchaTask : CaptchaTask {
         }
     }
 
-    @OptIn(ExperimentalGetImage::class)
+    /**
+     * zxing-cpp decodes synchronously on the calling thread — this runs on the single-threaded
+     * analyzer executor, not the main thread. The ImageProxy must be closed exactly once for
+     * CameraX to deliver the next frame, hence [use].
+     */
     private fun processImageProxy(
-        scanner: com.google.mlkit.vision.barcode.BarcodeScanner,
+        barcodeReader: BarcodeReader,
         imageProxy: ImageProxy,
         expectedValue: String,
         onSuccess: () -> Unit
     ) {
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-            val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-            scanner.process(image)
-                .addOnSuccessListener { barcodes ->
-                    for (barcode in barcodes) {
-                        if (barcode.rawValue == expectedValue) {
-                            onSuccess()
-                        }
-                    }
-                }
-                .addOnFailureListener {
-                    Log.e("QRCodeCaptchaTask", "QR scan failed", it)
-                }
-                .addOnCompleteListener {
-                    imageProxy.close()
-                }
-        } else {
-            imageProxy.close()
+        val results = try {
+            imageProxy.use { barcodeReader.read(it) }
+        } catch (e: Exception) {
+            Log.e("QRCodeCaptchaTask", "QR scan failed", e)
+            return
+        }
+        if (results.any { it.text == expectedValue }) {
+            onSuccess()
         }
     }
 }

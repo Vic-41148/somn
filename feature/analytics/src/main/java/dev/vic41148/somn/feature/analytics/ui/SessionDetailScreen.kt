@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -188,6 +189,9 @@ fun SessionDetailScreen(
             if (talkEvents.isNotEmpty()) {
                 val context = LocalContext.current
                 val mediaPlayer = remember { MediaPlayer() }
+                DisposableEffect(mediaPlayer) {
+                    onDispose { mediaPlayer.release() }
+                }
 
                 SleepCard(title = "Sleep Talk Recordings") {
                     talkEvents.forEach { event ->
@@ -208,11 +212,19 @@ fun SessionDetailScreen(
                                 IconButton(onClick = {
                                     try {
                                         mediaPlayer.reset()
+                                        mediaPlayer.setOnPreparedListener { it.start() }
+                                        mediaPlayer.setOnErrorListener { _, what, extra ->
+                                            android.util.Log.e("SessionDetailScreen",
+                                                "Talk clip playback failed: what=$what extra=$extra")
+                                            true
+                                        }
                                         mediaPlayer.setDataSource(context, Uri.parse(event.clipPath!!))
-                                        mediaPlayer.prepare()
-                                        mediaPlayer.start()
+                                        // prepareAsync() instead of prepare() — the latter blocks
+                                        // synchronously on the calling thread, which here is the
+                                        // main/UI thread inside a click handler.
+                                        mediaPlayer.prepareAsync()
                                     } catch (e: Exception) {
-                                        e.printStackTrace()
+                                        android.util.Log.e("SessionDetailScreen", "Failed to play talk clip", e)
                                     }
                                 }) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "Play")
@@ -273,7 +285,7 @@ fun SessionDetailScreen(
 
             // Mood
             if (session.moodRating > 0) {
-                val moods = listOf("", "😴 Exhausted", "😕 Tired", "😐 Okay", "🙂 Good", "😄 Great")
+                val moods = listOf("", "Exhausted", "Tired", "Okay", "Good", "Great")
                 SleepCard(title = "Morning Mood") {
                     Text(
                         text = moods.getOrElse(session.moodRating) { "" },

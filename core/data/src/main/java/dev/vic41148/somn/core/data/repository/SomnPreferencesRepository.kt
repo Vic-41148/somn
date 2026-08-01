@@ -25,6 +25,14 @@ class SomnPreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val encryptionUtils: dev.vic41148.somn.core.data.backup.EncryptionUtils
 ) {
+    companion object {
+        /** Sleep-talk clips are pruned after a week unless the user opts out. */
+        const val DEFAULT_CLIP_RETENTION_DAYS = 7
+
+        /** Sentinel for [clipRetentionDays] meaning "never prune". */
+        const val CLIP_RETENTION_KEEP_FOREVER = 0
+    }
+
     private object PreferencesKeys {
         val SELECTED_CAPTCHA_TASK_ID = stringPreferencesKey("selected_captcha_task_id")
         val QR_CODE_VALUE = stringPreferencesKey("qr_code_value")
@@ -38,6 +46,8 @@ class SomnPreferencesRepository @Inject constructor(
         val NAS_USERNAME = stringPreferencesKey("nas_username")
         val NAS_PROTOCOL = stringPreferencesKey("nas_protocol")
         val NAS_PORT = intPreferencesKey("nas_port")
+        /** Explicit TLS choice for the NAS connection; never inferred from [NAS_PORT]. */
+        val NAS_USE_HTTPS = booleanPreferencesKey("nas_use_https")
         /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded — never the raw password. */
         val NAS_PASSWORD_ENCRYPTED = stringPreferencesKey("nas_password_encrypted")
         val OVERSLEEP_THRESHOLD_MINUTES = intPreferencesKey("oversleep_threshold_minutes")
@@ -45,6 +55,18 @@ class SomnPreferencesRepository @Inject constructor(
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
         val YAMNET_CLASSIFICATION_ENABLED = booleanPreferencesKey("yamnet_classification_enabled")
+        /**
+         * The user's backup recovery passphrase, Keystore-encrypted at rest so unattended sync can
+         * use it. Keystore protects it *on* the device; the passphrase itself is what makes backups
+         * readable *off* the device, which is why the user is also shown it once to store elsewhere.
+         */
+        val BACKUP_PASSPHRASE_ENCRYPTED = stringPreferencesKey("backup_passphrase_encrypted")
+        val SNORE_NUDGE_ENABLED = booleanPreferencesKey("snore_nudge_enabled")
+        /**
+         * Days to keep sleep-talk recordings on disk. [CLIP_RETENTION_KEEP_FOREVER] disables
+         * pruning entirely — an explicit opt-in, because the default has to be one that forgets.
+         */
+        val CLIP_RETENTION_DAYS = intPreferencesKey("clip_retention_days")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -197,6 +219,28 @@ class SomnPreferencesRepository @Inject constructor(
         context.dataStore.edit { it[PreferencesKeys.YAMNET_CLASSIFICATION_ENABLED] = enabled }
     }
 
+    /** Whether SleepTrackingService vibrates the phone as a gentle nudge on detected snoring. On by default (existing behavior), but with no way to turn it off before this. */
+    val snoreNudgeEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.SNORE_NUDGE_ENABLED] ?: true }
+
+    suspend fun updateSnoreNudgeEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.SNORE_NUDGE_ENABLED] = enabled }
+    }
+
+    /**
+     * How long sleep-talk WAV clips survive on disk, in days. Recordings of someone talking in
+     * their sleep are about the most sensitive thing this app holds, so the default forgets them
+     * after a week rather than keeping them until the user thinks to look.
+     */
+    val clipRetentionDays: Flow<Int> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.CLIP_RETENTION_DAYS] ?: DEFAULT_CLIP_RETENTION_DAYS }
+
+    suspend fun updateClipRetentionDays(days: Int) {
+        context.dataStore.edit { it[PreferencesKeys.CLIP_RETENTION_DAYS] = days }
+    }
+
     // ── NAS Preferences ──────────────────────────────────────────────
 
     val nasEnabled: Flow<Boolean> = context.dataStore.data
@@ -221,7 +265,16 @@ class SomnPreferencesRepository @Inject constructor(
 
     val nasPort: Flow<Int> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_PORT] ?: 80 }
+        .map { it[PreferencesKeys.NAS_PORT] ?: 443 }
+
+    /** Defaults to true: an unconfigured NAS connection must not start out unencrypted. */
+    val nasUseHttps: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_USE_HTTPS] ?: true }
+
+    suspend fun updateNasUseHttps(useHttps: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_USE_HTTPS] = useHttps }
+    }
 
     suspend fun updateNasEnabled(enabled: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.NAS_ENABLED] = enabled }
@@ -260,6 +313,33 @@ class SomnPreferencesRepository @Inject constructor(
     /** Decrypts the stored NAS password, or null if none has been set. */
     suspend fun getNasPassword(): String? {
         val encoded = context.dataStore.data.map { it[PreferencesKeys.NAS_PASSWORD_ENCRYPTED] }
+            .catch { if (it is IOException) emit(null) else throw it }
+            .first()
+            ?: return null
+        val encrypted = android.util.Base64.decode(encoded, android.util.Base64.NO_WRAP)
+        return String(encryptionUtils.decryptBytes(encrypted), Charsets.UTF_8)
+    }
+
+    // ---- Backup recovery passphrase ----
+
+    /** True once a recovery passphrase exists — without one, backups cannot be encrypted portably. */
+    val backupPassphraseSet: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { !it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED].isNullOrBlank() }
+
+    /** Encrypts [passphrase] via [EncryptionUtils] (Keystore-backed) before persisting. */
+    suspend fun updateBackupPassphrase(passphrase: String) {
+        val encrypted = encryptionUtils.encryptBytes(passphrase.toByteArray(Charsets.UTF_8))
+        context.dataStore.edit {
+            it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED] = android.util.Base64.encodeToString(
+                encrypted, android.util.Base64.NO_WRAP
+            )
+        }
+    }
+
+    /** Decrypts the stored recovery passphrase, or null if the user has not set one yet. */
+    suspend fun getBackupPassphrase(): String? {
+        val encoded = context.dataStore.data.map { it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED] }
             .catch { if (it is IOException) emit(null) else throw it }
             .first()
             ?: return null

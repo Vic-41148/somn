@@ -2,6 +2,9 @@ package dev.vic41148.somn.core.audio
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.math.sin
@@ -34,10 +37,18 @@ class YamnetAudioClassifierInstrumentedTest {
                 "YamnetSmokeTest",
                 "synthetic tone -> mapped=$result raw='${classifier.lastTopClassName}' score=${classifier.lastTopScore}"
             )
-            // No assertion on the *mapped* value (null is a valid outcome — see class doc).
-            // Reaching this line without an exception, with a non-null raw class name, is the
-            // actual acceptance criterion: the interpreter loaded the model and completed real
-            // inference on real Android, not just executing without touching the model.
+            // No assertion on the *mapped* value (null is a valid outcome — see class doc). The
+            // acceptance criterion is that the interpreter loaded the model and completed real
+            // inference, which is what the raw class name and score below actually demonstrate.
+            assertNotNull("Interpreter produced no class name — model did not run", classifier.lastTopClassName)
+            // These three inputs are unambiguous enough that YAMNet's own labels are a stable
+            // expectation. If they ever stop holding, the model asset or the input conversion is
+            // wrong — which is exactly the regression a smoke test that only logged would miss.
+            assertEquals("Sine wave", classifier.lastTopClassName)
+            assertTrue(
+                "Sine wave confidence unexpectedly low: ${classifier.lastTopScore}",
+                classifier.lastTopScore > 0.5f
+            )
 
             val silence = ShortArray(YamnetAudioClassifier.WINDOW_SAMPLE_COUNT)
             val silenceResult = classifier.classify(silence)
@@ -45,6 +56,7 @@ class YamnetAudioClassifierInstrumentedTest {
                 "YamnetSmokeTest",
                 "silence -> mapped=$silenceResult raw='${classifier.lastTopClassName}' score=${classifier.lastTopScore}"
             )
+            assertEquals("Silence", classifier.lastTopClassName)
 
             val noise = ShortArray(YamnetAudioClassifier.WINDOW_SAMPLE_COUNT) { Random.nextInt(-8000, 8000).toShort() }
             val noiseResult = classifier.classify(noise)
@@ -52,6 +64,8 @@ class YamnetAudioClassifierInstrumentedTest {
                 "YamnetSmokeTest",
                 "white noise -> mapped=$noiseResult raw='${classifier.lastTopClassName}' score=${classifier.lastTopScore}"
             )
+            // Noise labels are less stable than tone/silence, so assert only that a class came back.
+            assertNotNull(classifier.lastTopClassName)
         } finally {
             classifier.close()
         }

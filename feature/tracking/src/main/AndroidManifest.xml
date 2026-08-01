@@ -3,11 +3,22 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!--
+      foregroundServiceType="health|microphone" is not satisfied by the FOREGROUND_SERVICE_*
+      permissions alone: the platform also requires a matching sensor permission for "health"
+      and RECORD_AUDIO for "microphone". These used to be declared only in :app, so the module
+      looked self-contained while relying on its consumer to make the service startable.
+    -->
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application>
         <service
             android:name="dev.vic41148.somn.feature.tracking.service.SleepTrackingService"
-            android:foregroundServiceType="health"
+            android:foregroundServiceType="health|microphone"
             android:exported="false" />
     </application>
 

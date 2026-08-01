@@ -7,6 +7,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
+import dev.vic41148.somn.core.data.retention.ClipRetentionWorker
 import dev.vic41148.somn.core.notifications.WeeklyReportGenerator
 import java.time.DayOfWeek
 import java.time.LocalDateTime
@@ -26,6 +27,7 @@ class SomnApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         scheduleWeeklyReport()
+        scheduleClipRetention()
     }
 
     override val workManagerConfiguration: Configuration
@@ -48,6 +50,23 @@ class SomnApp : Application(), Configuration.Provider {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "weekly_sleep_report",
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
+
+    /**
+     * Prunes expired sleep-talk recordings twice a day. The worker itself re-reads the retention
+     * preference on every run, so changing the setting takes effect without rescheduling — hence
+     * KEEP rather than UPDATE.
+     */
+    private fun scheduleClipRetention() {
+        val request = PeriodicWorkRequestBuilder<ClipRetentionWorker>(
+            ClipRetentionWorker.INTERVAL_HOURS, TimeUnit.HOURS
+        ).build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            ClipRetentionWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )

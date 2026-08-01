@@ -32,7 +32,7 @@ class WeeklyReportGenerator @AssistedInject constructor(
                 notificationEngine.showNotification(
                     id = 2001,
                     channelId = NotificationEngine.CHANNEL_REPORTS,
-                    title = "📊 Weekly Sleep Report",
+                    title = "Weekly Sleep Report",
                     content = "No sleep sessions were tracked this week. Try tracking tonight to start building insights!"
                 )
                 return Result.success()
@@ -47,7 +47,7 @@ class WeeklyReportGenerator @AssistedInject constructor(
             val durationMins = (avgDuration % 60).toInt()
 
             val trend = when {
-                avgScore >= 80 -> "Excellent week! 🎉"
+                avgScore >= 80 -> "Excellent week!"
                 avgScore >= 60 -> "Solid week — room to improve."
                 else -> "Tough week. Focus on consistency."
             }
@@ -63,7 +63,7 @@ class WeeklyReportGenerator @AssistedInject constructor(
             notificationEngine.showNotification(
                 id = 2001,
                 channelId = NotificationEngine.CHANNEL_REPORTS,
-                title = "📊 Weekly Sleep Report",
+                title = "Weekly Sleep Report",
                 content = content
             )
 

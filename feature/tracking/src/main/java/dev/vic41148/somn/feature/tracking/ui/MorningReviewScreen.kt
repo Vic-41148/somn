@@ -1,6 +1,8 @@
 package dev.vic41148.somn.feature.tracking.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,15 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,6 +43,10 @@ import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
+import dev.vic41148.somn.core.ui.theme.StageAwake
+import dev.vic41148.somn.core.ui.theme.StageDeep
+import dev.vic41148.somn.core.ui.theme.StageLight
+import dev.vic41148.somn.core.ui.theme.StageRem
 import dev.vic41148.somn.core.domain.model.AudioEventType
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 
@@ -51,8 +61,8 @@ fun MorningReviewScreen(
     val epochs by viewModel.epochs.collectAsState()
     val audioEvents by viewModel.audioEvents.collectAsState()
 
-    var selectedMood by remember { mutableIntStateOf(0) }
-    var notes by remember { mutableStateOf("") }
+    var selectedMood by rememberSaveable { mutableIntStateOf(0) }
+    var notes by rememberSaveable { mutableStateOf("") }
 
     val session = lastSession ?: return
 
@@ -126,8 +136,9 @@ fun MorningReviewScreen(
         // Hypnogram
         if (epochs.isNotEmpty()) {
             SleepCard(title = "Sleep Stages") {
+                val hypnogramStages = remember(epochs) { epochs.map { it.stage } }
                 Hypnogram(
-                    stages = epochs.map { it.stage },
+                    stages = hypnogramStages,
                     modifier = Modifier.fillMaxWidth(),
                     height = 100.dp
                 )
@@ -136,9 +147,10 @@ fun MorningReviewScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Text("🔴 Awake", style = MaterialTheme.typography.labelSmall)
-                    Text("🔵 Light", style = MaterialTheme.typography.labelSmall)
-                    Text("🟣 Deep", style = MaterialTheme.typography.labelSmall)
+                    StageLegendItem(color = StageAwake, label = "Awake")
+                    StageLegendItem(color = StageRem, label = "REM")
+                    StageLegendItem(color = StageLight, label = "Light")
+                    StageLegendItem(color = StageDeep, label = "Deep")
                 }
             }
         }
@@ -155,9 +167,11 @@ fun MorningReviewScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "🌡️",
-                        style = MaterialTheme.typography.headlineSmall
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
@@ -225,15 +239,15 @@ fun MorningReviewScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                val moods = listOf("😴" to 1, "😕" to 2, "😐" to 3, "🙂" to 4, "😄" to 5)
-                moods.forEach { (emoji, value) ->
+                val moods = listOf("Exhausted" to 1, "Tired" to 2, "Okay" to 3, "Good" to 4, "Great" to 5)
+                moods.forEach { (label, value) ->
                     FilterChip(
                         selected = selectedMood == value,
                         onClick = {
                             selectedMood = value
                             viewModel.updateMood(session.id, value)
                         },
-                        label = { Text(emoji, style = MaterialTheme.typography.titleLarge) }
+                        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
                     )
                 }
             }
@@ -269,5 +283,19 @@ fun MorningReviewScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+/** A single Hypnogram legend entry — a color swatch matching [dev.vic41148.somn.core.ui.components.toColor] plus its label. */
+@Composable
+private fun StageLegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(color = color, shape = CircleShape)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }

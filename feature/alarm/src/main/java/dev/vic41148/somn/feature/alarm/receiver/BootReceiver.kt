@@ -22,10 +22,19 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            // onReceive() returning ends the receiver's process-priority window — a bare
+            // fire-and-forget coroutine here can get killed by the OS mid-reschedule right after
+            // boot, before any alarms are actually re-armed, silently losing every alarm across
+            // that reboot. goAsync() tells the OS to keep the process alive until finish() below.
+            val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                val alarms = alarmRepository.getEnabledAlarms()
-                alarms.forEach { alarm ->
-                    alarmScheduler.schedule(alarm)
+                try {
+                    val alarms = alarmRepository.getEnabledAlarms()
+                    alarms.forEach { alarm ->
+                        alarmScheduler.schedule(alarm)
+                    }
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }

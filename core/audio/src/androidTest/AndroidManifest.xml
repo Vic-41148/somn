@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Needed only by RealAudioYamnetInstrumentedTest — a manual, temporary check that records a
+         few seconds of real mic input to sanity-check YAMNet's label mapping against real speech/
+         cough/snore rather than synthetic tones (Task 14 acceptance criterion). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+</manifest>

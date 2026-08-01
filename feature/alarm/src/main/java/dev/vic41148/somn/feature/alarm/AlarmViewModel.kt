@@ -34,13 +34,24 @@ class AlarmViewModel @Inject constructor(
     private val _editingAlarm = MutableStateFlow<Alarm?>(null)
     val editingAlarm: StateFlow<Alarm?> = _editingAlarm.asStateFlow()
 
-    fun createAlarm(hour: Int, minute: Int, label: String = "", captchaType: String = "math", repeatDays: Set<Int> = emptySet()) {
+    fun createAlarm(
+        hour: Int,
+        minute: Int,
+        label: String = "",
+        captchaType: String = "math",
+        repeatDays: Set<Int> = emptySet(),
+        // Was missing entirely, so a new alarm always took Alarm's 30-minute default and silently
+        // discarded whatever the user had just set on the edit screen's wake-window slider. Only
+        // editing an existing alarm ever persisted the value.
+        wakeWindowMinutes: Int = 30
+    ) {
         viewModelScope.launch {
             val alarm = Alarm(
                 hour = hour,
                 minute = minute,
                 label = label,
                 repeatDays = repeatDays,
+                wakeWindowMinutes = wakeWindowMinutes,
                 captchaType = try {
                     CaptchaType.valueOf(captchaType.uppercase())
                 } catch (e: Exception) {

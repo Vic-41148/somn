@@ -56,8 +56,8 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
 
-    // ML Kit for QR setup
-    implementation(libs.mlkit.barcode.scanning)
+    // QR decoding for NAS/alarm setup (zxing-cpp — no Google Play Services)
+    implementation(libs.zxingcpp)
 
     // WorkManager for NAS sync triggers
     implementation(libs.work.runtime)

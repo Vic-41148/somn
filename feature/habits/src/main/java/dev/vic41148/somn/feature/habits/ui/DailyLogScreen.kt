@@ -1,7 +1,9 @@
 package dev.vic41148.somn.feature.habits.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,11 +54,13 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -74,6 +78,7 @@ private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 @Composable
 fun DailyLogScreen(
     onNavigateToMedication: () -> Unit = {},
+    onNavigateToCorrelations: () -> Unit = {},
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val todayLogs by viewModel.todayLogs.collectAsState()
@@ -157,6 +162,18 @@ fun DailyLogScreen(
             }
         }
 
+        // ---- Correlation insights ----
+        // CorrelationInsightsScreen was fully built (its own ViewModel data, UI, and nav-graph
+        // route already existed) but nothing anywhere ever navigated to it — this was the only
+        // missing piece keeping the whole feature unreachable.
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToCorrelations,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("View how habits affect your sleep →")
+        }
+
         // ---- Today's entries ----
         if (todayLogs.isNotEmpty()) {
             Spacer(modifier = Modifier.height(24.dp))
@@ -188,21 +205,30 @@ private fun HabitSection(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    // One animator owns the height change. This Card used to also carry animateContentSize(),
+    // which ran its own tween over the same expand/collapse that AnimatedVisibility below was
+    // already animating on a different spec — the two chased each other, so the card visibly
+    // rubber-banded and every section under it kept sliding long after the content had settled.
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column {
             Row(
+                // Padding goes inside the click target, not around it. It used to sit on the
+                // parent Column, which left a 16dp dead border where a tap on the card's own
+                // edge — visually part of the header — hit nothing at all.
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded },
+                    .clickable(
+                        onClickLabel = if (expanded) "Collapse $title" else "Expand $title",
+                        role = Role.Button
+                    ) { expanded = !expanded }
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -237,10 +263,28 @@ private fun HabitSection(
 
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                // Material's motion split: size is spatial, so it springs; opacity is an effect,
+                // so it uses a short linear-ish fade. The spring is deliberately non-bouncy —
+                // these sections are stacked, and overshoot on one shoves every section below it
+                // past its resting position and back, which is what made taps land on the wrong
+                // card while the list was still settling.
+                enter = expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+                exit = shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) + fadeOut(animationSpec = tween(durationMillis = 100))
             ) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
+                // Header owns its own padding now, so the body supplies the sides and bottom.
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                ) {
                     content()
                 }
             }
@@ -253,10 +297,10 @@ private fun HabitSection(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun CaffeineLogForm(onLog: (HabitEntry.Caffeine) -> Unit) {
-    var selectedSource by remember { mutableStateOf(CaffeineSource.COFFEE) }
-    var customMg by remember { mutableIntStateOf(selectedSource.defaultMg) }
-    var hour by remember { mutableIntStateOf(8) }
-    var minute by remember { mutableIntStateOf(0) }
+    var selectedSource by rememberSaveable { mutableStateOf(CaffeineSource.COFFEE) }
+    var customMg by rememberSaveable { mutableIntStateOf(selectedSource.defaultMg) }
+    var hour by rememberSaveable { mutableIntStateOf(8) }
+    var minute by rememberSaveable { mutableIntStateOf(0) }
 
     Text("Drink", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(modifier = Modifier.height(8.dp))
@@ -299,9 +343,9 @@ private fun CaffeineLogForm(onLog: (HabitEntry.Caffeine) -> Unit) {
 
 @Composable
 private fun AlcoholLogForm(onLog: (HabitEntry.Alcohol) -> Unit) {
-    var units by remember { mutableFloatStateOf(1f) }
-    var hour by remember { mutableIntStateOf(19) }
-    var minute by remember { mutableIntStateOf(0) }
+    var units by rememberSaveable { mutableFloatStateOf(1f) }
+    var hour by rememberSaveable { mutableIntStateOf(19) }
+    var minute by rememberSaveable { mutableIntStateOf(0) }
 
     Text("Units: ${"%.1f".format(units)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     Text(
@@ -336,11 +380,11 @@ private fun AlcoholLogForm(onLog: (HabitEntry.Alcohol) -> Unit) {
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ExerciseLogForm(onLog: (HabitEntry.Exercise) -> Unit) {
-    var selectedType by remember { mutableStateOf(ExerciseType.WALKING) }
-    var selectedIntensity by remember { mutableStateOf(ExerciseIntensity.MODERATE) }
-    var duration by remember { mutableFloatStateOf(30f) }
-    var hour by remember { mutableIntStateOf(7) }
-    var minute by remember { mutableIntStateOf(0) }
+    var selectedType by rememberSaveable { mutableStateOf(ExerciseType.WALKING) }
+    var selectedIntensity by rememberSaveable { mutableStateOf(ExerciseIntensity.MODERATE) }
+    var duration by rememberSaveable { mutableFloatStateOf(30f) }
+    var hour by rememberSaveable { mutableIntStateOf(7) }
+    var minute by rememberSaveable { mutableIntStateOf(0) }
 
     Text("Activity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(modifier = Modifier.height(8.dp))
@@ -393,12 +437,11 @@ private fun ExerciseLogForm(onLog: (HabitEntry.Exercise) -> Unit) {
 
 @Composable
 private fun StressLogForm(onLog: (HabitEntry.Stress) -> Unit) {
-    var stressLevel by remember { mutableIntStateOf(3) }
-    val emojis = listOf("😌", "🙂", "😐", "😟", "😤")
+    var stressLevel by rememberSaveable { mutableIntStateOf(3) }
     val labels = listOf("Very calm", "Calm", "Neutral", "Stressed", "Very stressed")
 
     Text(
-        text = "${emojis[stressLevel - 1]} ${labels[stressLevel - 1]}",
+        text = labels[stressLevel - 1],
         style = MaterialTheme.typography.headlineSmall,
         fontWeight = FontWeight.Bold
     )
@@ -408,9 +451,9 @@ private fun StressLogForm(onLog: (HabitEntry.Stress) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        emojis.forEachIndexed { index, emoji ->
+        labels.forEachIndexed { index, _ ->
             Text(
-                text = emoji,
+                text = "${index + 1}",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier
                     .clip(CircleShape)
@@ -495,16 +538,16 @@ private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
 }
 
 private fun HabitEntry.summary(): String = when (this) {
-    is HabitEntry.Caffeine -> "☕ ${source.displayName} — ${mg}mg at ${timeOfDay.format(timeFormatter)}"
-    is HabitEntry.Alcohol -> "🍷 ${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
-    is HabitEntry.Exercise -> "🏃 ${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Caffeine -> "${source.displayName} — ${mg}mg at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Alcohol -> "${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Exercise -> "${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Stress -> when (level) {
-        1 -> "😌 Very calm"
-        2 -> "🙂 Calm"
-        3 -> "😐 Neutral stress"
-        4 -> "😟 Stressed"
-        5 -> "😤 Very stressed"
+        1 -> "Very calm"
+        2 -> "Calm"
+        3 -> "Neutral stress"
+        4 -> "Stressed"
+        5 -> "Very stressed"
         else -> "Stress level $level"
     }
-    is HabitEntry.Medication -> "💊 $name $dose at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Medication -> "$name $dose at ${timeOfDay.format(timeFormatter)}"
 }

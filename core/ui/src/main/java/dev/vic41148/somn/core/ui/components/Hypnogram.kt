@@ -36,8 +36,16 @@ fun Hypnogram(
         val barWidth = size.width / stages.size
         val stageHeight = size.height / 4f  // 4 stage levels
 
-        stages.forEachIndexed { index, stage ->
-            val color = stage.toColor()
+        // A full night is ~960 30s epochs, but stages run in multi-minute streaks — merging
+        // consecutive same-stage epochs into one rect per run cuts draw calls by an order of
+        // magnitude with identical output, since adjacent same-stage bars already share the
+        // same y/height and abut at their x boundary.
+        var runStart = 0
+        while (runStart < stages.size) {
+            val stage = stages[runStart]
+            var runEnd = runStart
+            while (runEnd + 1 < stages.size && stages[runEnd + 1] == stage) runEnd++
+
             val yOffset = when (stage) {
                 SleepStage.AWAKE -> 0f
                 SleepStage.REM -> stageHeight
@@ -48,10 +56,12 @@ fun Hypnogram(
             val barHeight = size.height - yOffset
 
             drawRect(
-                color = color,
-                topLeft = Offset(x = index * barWidth, y = yOffset),
-                size = Size(width = barWidth + 1f, height = barHeight)
+                color = stage.toColor(),
+                topLeft = Offset(x = runStart * barWidth, y = yOffset),
+                size = Size(width = (runEnd - runStart + 1) * barWidth + 1f, height = barHeight)
             )
+
+            runStart = runEnd + 1
         }
     }
 }

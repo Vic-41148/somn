@@ -72,13 +72,12 @@ class OnboardingViewModel @Inject constructor(
 
     fun setDateOfBirth(date: LocalDate) {
         _state.update { it.copy(dateOfBirth = date) }
-        // Auto-set recommended sleep target based on age
-        val age = java.time.Period.between(date, LocalDate.now()).years
-        val recommended = when (age) {
-            in 13..18 -> 9.0f
-            in 19..64 -> 8.0f
-            else -> 7.5f
-        }
+        // Auto-set recommended sleep target based on age. This used to duplicate a subset of
+        // UserProfile.recommendedSleepHours's age brackets inline (only 13-18/19-64/else),
+        // collapsing every age under 13 into the 65+ "7.5h" bucket — a young child would be
+        // recommended *less* sleep than an adult instead of the 10-14h they actually need.
+        // Deferring to the canonical property keeps this in sync with the one source of truth.
+        val recommended = UserProfile(dateOfBirth = date).recommendedSleepHours
         _state.update { it.copy(targetSleepHours = recommended) }
     }
 

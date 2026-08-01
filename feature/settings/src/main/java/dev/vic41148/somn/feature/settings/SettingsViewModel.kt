@@ -24,6 +24,7 @@ import javax.inject.Inject
 import dev.vic41148.somn.core.data.repository.BackupRepository
 import dev.vic41148.somn.core.data.backup.NasClient
 import dev.vic41148.somn.core.data.backup.NasSyncWorker
+import dev.vic41148.somn.core.data.backup.PortableCrypto
 import dev.vic41148.somn.core.domain.model.NasConfig
 import dev.vic41148.somn.core.domain.model.NasProtocol
 import androidx.work.OneTimeWorkRequestBuilder
@@ -39,10 +40,40 @@ class SettingsViewModel @Inject constructor(
     private val healthConnectRepository: HealthConnectRepository,
     private val exportJson: ExportJsonUseCase,
     private val importSleepAsAndroid: ImportSleepAsAndroidUseCase,
-    private val calculateScore: CalculateSleepScoreUseCase
+    private val calculateScore: CalculateSleepScoreUseCase,
+    private val portableCrypto: PortableCrypto,
+    private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository
 ) : ViewModel() {
 
+    /**
+     * A freshly generated recovery key, held only until the user dismisses it. It is never read back
+     * out of storage for display — this is the one and only time they can write it down.
+     */
+    private val _newRecoveryKey = MutableStateFlow<String?>(null)
+    val newRecoveryKey: StateFlow<String?> = _newRecoveryKey.asStateFlow()
+
+    /** Set once a restore has replaced the database and the process needs restarting. */
+    private val _restartRequired = MutableStateFlow(false)
+    val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
+
     init {
+        // Target Sleep Hours used to be purely local ViewModel state: the slider updated
+        // _settings.value but never touched the stored UserProfile, so it always displayed the
+        // hardcoded 8.0f default regardless of the user's actual saved target, and any change
+        // the user made was silently discarded — score calculation, oversleep detection, and
+        // sleep debt targets all read profile.targetSleepHours directly and never saw the edit.
+        viewModelScope.launch {
+            userProfileRepository.observeProfile().collect { profile ->
+                _settings.value = _settings.value.copy(
+                    targetSleepHours = profile?.targetSleepHours ?: 8.0f
+                )
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.backupPassphraseSet.collect { isSet ->
+                _settings.value = _settings.value.copy(backupPassphraseSet = isSet)
+            }
+        }
         viewModelScope.launch {
             preferencesRepository.healthConnectEnabled.collect { enabled ->
                 _settings.value = _settings.value.copy(healthConnectEnabled = enabled)
@@ -100,11 +131,17 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             preferencesRepository.nasProtocol.collect { proto ->
-                // REL-05: SMB/NFS are unimplemented stubs — coerce any stray stored value
-                // from before the picker was gated back to the only protocol that works.
+                // REL-05: WebDAV is the only implemented transport. Installs that stored "SMB" or
+                // "NFS" before the picker was gated are coerced back to it rather than left
+                // pointing at a protocol NasProtocol no longer even defines.
                 _settings.value = _settings.value.copy(
                     nasProtocol = if (proto == "WEBDAV") proto else "WEBDAV"
                 )
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.nasUseHttps.collect { useHttps ->
+                _settings.value = _settings.value.copy(nasUseHttps = useHttps)
             }
         }
         viewModelScope.launch {
@@ -127,6 +164,16 @@ class SettingsViewModel @Inject constructor(
                 _settings.value = _settings.value.copy(wakeVerificationWindowSeconds = seconds)
             }
         }
+        viewModelScope.launch {
+            preferencesRepository.snoreNudgeEnabled.collect { enabled ->
+                _settings.value = _settings.value.copy(snoreNudgeEnabled = enabled)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.clipRetentionDays.collect { days ->
+                _settings.value = _settings.value.copy(clipRetentionDays = days)
+            }
+        }
     }
 
     // Settings state
@@ -138,18 +185,30 @@ class SettingsViewModel @Inject constructor(
         val oversleepThresholdMinutes: Int = 60,
         val wakeVerificationEnabled: Boolean = true,
         val wakeVerificationWindowSeconds: Int = 15,
+        val snoreNudgeEnabled: Boolean = true,
+        /** Days sleep-talk recordings are kept; 0 means keep forever. */
+        val clipRetentionDays: Int =
+            dev.vic41148.somn.core.data.repository.SomnPreferencesRepository.DEFAULT_CLIP_RETENTION_DAYS,
         val darkMode: String = "System",
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
         val selectedCaptchaTaskId: String = "math",
         val qrCodeValue: String? = null,
         val backupUri: String? = null,
+        /**
+         * Whether a recovery passphrase exists. Without one, backups can only be written in the
+         * clear locally and off-device sync is skipped entirely — an upload encrypted with the
+         * device-bound Keystore key would be unreadable exactly when it is needed.
+         */
+        val backupPassphraseSet: Boolean = false,
         // NAS
         val nasEnabled: Boolean = false,
         val nasHost: String = "",
         val nasPath: String = "/somn",
         val nasUsername: String = "",
         val nasProtocol: String = "WEBDAV",
-        val nasPort: Int = 80,
+        val nasPort: Int = 443,
+        /** Explicit TLS choice for NAS uploads — on unless the user deliberately turns it off. */
+        val nasUseHttps: Boolean = true,
         val nasTestResult: String? = null,
         // Health Connect
         val healthConnectEnabled: Boolean = false,
@@ -166,6 +225,9 @@ class SettingsViewModel @Inject constructor(
     private val _exportStatus = MutableStateFlow<String?>(null)
     val exportStatus: StateFlow<String?> = _exportStatus.asStateFlow()
 
+    private val _clipDeletionStatus = MutableStateFlow<String?>(null)
+    val clipDeletionStatus: StateFlow<String?> = _clipDeletionStatus.asStateFlow()
+
     init {
         // Must run after _settings above is initialized: unlike the DataStore .collect{}
         // launches in the first init block (which always suspend on their first emission
@@ -177,6 +239,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateSleepTarget(hours: Float) {
         _settings.value = _settings.value.copy(targetSleepHours = hours)
+        viewModelScope.launch {
+            val profile = userProfileRepository.getProfile() ?: return@launch
+            userProfileRepository.saveProfile(profile.copy(targetSleepHours = hours))
+        }
     }
 
     fun updateDndEnabled(enabled: Boolean) {
@@ -197,6 +263,30 @@ class SettingsViewModel @Inject constructor(
 
     fun updateWakeVerificationWindowSeconds(seconds: Int) {
         viewModelScope.launch { preferencesRepository.updateWakeVerificationWindowSeconds(seconds) }
+    }
+
+    fun updateSnoreNudgeEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateSnoreNudgeEnabled(enabled) }
+    }
+
+    fun updateClipRetentionDays(days: Int) {
+        viewModelScope.launch { preferencesRepository.updateClipRetentionDays(days) }
+    }
+
+    /** Immediately destroys every sleep-talk recording on disk, without waiting for retention. */
+    fun deleteAllAudioClips() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                val deleted = sleepRepository.deleteAllAudioClips()
+                "Deleted $deleted recording${if (deleted == 1) "" else "s"}"
+            } catch (e: Exception) {
+                "Failed to delete recordings: ${e.message}"
+            }
+        }
+    }
+
+    fun clearClipDeletionStatus() {
+        _clipDeletionStatus.value = null
     }
 
     fun updateTrackingMode(mode: TrackingMode) {
@@ -220,6 +310,52 @@ class SettingsViewModel @Inject constructor(
     fun updateBackupUri(uri: String) {
         viewModelScope.launch {
             preferencesRepository.updateBackupUri(uri)
+        }
+    }
+
+    /**
+     * Generates a recovery key, stores it, and surfaces it once for the user to record. Replacing an
+     * existing key leaves older backups readable only by the old key, so the UI must confirm first.
+     */
+    fun generateRecoveryKey() {
+        viewModelScope.launch {
+            val key = portableCrypto.generateRecoveryKey()
+            preferencesRepository.updateBackupPassphrase(key)
+            _newRecoveryKey.value = key
+        }
+    }
+
+    /** Lets the user supply their own passphrase instead of a generated key. */
+    fun setRecoveryPassphrase(passphrase: String) {
+        viewModelScope.launch {
+            if (passphrase.isBlank()) {
+                _exportStatus.value = "Recovery passphrase cannot be empty"
+                return@launch
+            }
+            preferencesRepository.updateBackupPassphrase(passphrase)
+            _exportStatus.value = "Recovery passphrase saved"
+        }
+    }
+
+    fun dismissRecoveryKey() {
+        _newRecoveryKey.value = null
+    }
+
+    /**
+     * Restores the database from [uri]. [passphrase] is required for encrypted backups; leave null
+     * for a plaintext one. On success the caller must restart the app — Room still holds the old file.
+     */
+    fun restoreDatabase(uri: android.net.Uri, passphrase: String?) {
+        viewModelScope.launch {
+            _exportStatus.value = "Restoring..."
+            when (val result = backupRepository.restoreDatabase(uri, passphrase)) {
+                is BackupRepository.RestoreResult.SuccessRestartRequired -> {
+                    _exportStatus.value = "Restore complete — restart Somn to load it"
+                    _restartRequired.value = true
+                }
+                is BackupRepository.RestoreResult.Failure ->
+                    _exportStatus.value = "Restore failed: ${result.message}"
+            }
         }
     }
 
@@ -388,6 +524,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateNasPort(port) }
     }
 
+    fun updateNasUseHttps(useHttps: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateNasUseHttps(useHttps) }
+    }
+
     fun testNasConnection() {
         viewModelScope.launch {
             _settings.value = _settings.value.copy(nasTestResult = "Testing...")
@@ -398,11 +538,19 @@ class SettingsViewModel @Inject constructor(
                 username = s.nasUsername,
                 protocol = try { NasProtocol.valueOf(s.nasProtocol) } catch (_: Exception) { NasProtocol.WEBDAV },
                 port = s.nasPort,
-                isEnabled = true
+                isEnabled = true,
+                useHttps = s.nasUseHttps
             )
             val ok = nasClient.testConnection(config)
+            // A failed plain-HTTP attempt is almost always Android's cleartext block rather than a
+            // genuinely unreachable server, so say that instead of a bare "Connection failed".
+            val failureMessage = if (s.nasUseHttps) {
+                "Connection failed"
+            } else {
+                "Connection failed — Android blocks unencrypted HTTP. Turn HTTPS on."
+            }
             _settings.value = _settings.value.copy(
-                nasTestResult = if (ok) "Connected ✅" else "Connection failed ❌"
+                nasTestResult = if (ok) "Connected" else failureMessage
             )
         }
     }

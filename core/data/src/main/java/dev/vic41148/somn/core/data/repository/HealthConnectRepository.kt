@@ -13,7 +13,7 @@ import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.SleepStage
 import dev.vic41148.somn.core.health.HealthConnectManager
 import java.time.Instant
-import java.time.ZoneOffset
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -111,6 +111,11 @@ class HealthConnectRepository @Inject constructor(
 
         val start = Instant.ofEpochMilli(session.startTimeMillis)
         val end = Instant.ofEpochMilli(session.endTimeMillis)
+        // The session's actual timezone, not UTC — matches every other session.timezoneId
+        // consumer in the codebase. Falls back to UTC only if the stored id is invalid.
+        val zoneId = runCatching { ZoneId.of(session.timezoneId) }.getOrDefault(ZoneId.of("UTC"))
+        val startZoneOffset = zoneId.rules.getOffset(start)
+        val endZoneOffset = zoneId.rules.getOffset(end)
         val existingRecords = healthConnectManager.readRecords(SleepSessionRecord::class, start, end)
         val hasOverlap = existingRecords.any { it.startTime < end && it.endTime > start }
         if (hasOverlap) return
@@ -126,9 +131,9 @@ class HealthConnectRepository @Inject constructor(
 
         val record = SleepSessionRecord(
             startTime = start,
-            startZoneOffset = ZoneOffset.UTC,
+            startZoneOffset = startZoneOffset,
             endTime = end,
-            endZoneOffset = ZoneOffset.UTC,
+            endZoneOffset = endZoneOffset,
             title = "Somn Sleep Session",
             stages = stages,
             metadata = Metadata()

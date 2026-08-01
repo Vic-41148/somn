@@ -59,6 +59,12 @@ fun TrendLineChart(
         progress.animateTo(1f, animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing))
     }
 
+    // Sorted once per series change rather than inside the Canvas draw scope below, which runs on
+    // every animation frame (~42 times over the 700ms entrance) — re-sorting each series that often
+    // was pure wasted UI-thread work every frame, and the visible cause of dropped frames on this
+    // screen for any real amount of trend data.
+    val sortedSeries = remember(series) { series.map { it.sortedBy { point -> point.timestampMillis } } }
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -89,10 +95,9 @@ fun TrendLineChart(
             )
         }
 
-        series.forEachIndexed { seriesIndex, points ->
-            if (points.size < 2) return@forEachIndexed
+        sortedSeries.forEachIndexed { seriesIndex, sorted ->
+            if (sorted.size < 2) return@forEachIndexed
             val color = lineColors.getOrElse(seriesIndex) { Color.Gray }
-            val sorted = points.sortedBy { it.timestampMillis }
             val segmentCount = sorted.size - 1
 
             // Position along the whole polyline, in "segments" — e.g. 2.4 means segments 0 and 1

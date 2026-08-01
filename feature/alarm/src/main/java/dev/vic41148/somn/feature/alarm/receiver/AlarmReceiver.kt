@@ -16,7 +16,6 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_LABEL = "alarm_label"
-        const val EXTRA_SOUND_URI = "sound_uri"
         const val EXTRA_VIBRATION = "vibration"
         const val EXTRA_GRADUAL_SECONDS = "gradual_seconds"
         const val EXTRA_CAPTCHA_TYPE = "captcha_type"
@@ -26,7 +25,6 @@ class AlarmReceiver : BroadcastReceiver() {
             alarmId: Long,
             timeInMillis: Long,
             label: String,
-            soundUri: String,
             vibration: Boolean,
             gradualSeconds: Int,
             captchaType: String
@@ -36,7 +34,6 @@ class AlarmReceiver : BroadcastReceiver() {
             val intent = Intent(context, AlarmReceiver::class.java).apply {
                 putExtra(EXTRA_ALARM_ID, alarmId)
                 putExtra(EXTRA_ALARM_LABEL, label)
-                putExtra(EXTRA_SOUND_URI, soundUri)
                 putExtra(EXTRA_VIBRATION, vibration)
                 putExtra(EXTRA_GRADUAL_SECONDS, gradualSeconds)
                 putExtra(EXTRA_CAPTCHA_TYPE, captchaType)
@@ -72,7 +69,6 @@ class AlarmReceiver : BroadcastReceiver() {
         val serviceIntent = Intent(context, AlarmService::class.java).apply {
             putExtra(EXTRA_ALARM_ID, intent.getLongExtra(EXTRA_ALARM_ID, -1))
             putExtra(EXTRA_ALARM_LABEL, intent.getStringExtra(EXTRA_ALARM_LABEL))
-            putExtra(EXTRA_SOUND_URI, intent.getStringExtra(EXTRA_SOUND_URI))
             putExtra(EXTRA_VIBRATION, intent.getBooleanExtra(EXTRA_VIBRATION, true))
             putExtra(EXTRA_GRADUAL_SECONDS, intent.getIntExtra(EXTRA_GRADUAL_SECONDS, 60))
             putExtra(EXTRA_CAPTCHA_TYPE, intent.getStringExtra(EXTRA_CAPTCHA_TYPE))

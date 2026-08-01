@@ -80,6 +80,16 @@ class CalculateSleepScoreUseCaseTest {
         assertThat(score.totalScore).isAtMost(100)
     }
 
+    @Test
+    fun invoke_massiveOversleep_isPenalizedNotPerfect() {
+        // 16h against an 8h target (ratio 2.0) used to fall through to the same formula as
+        // near-target sleep and get coerced to a perfect 100 — the oversleep branch was
+        // unreachable. It must now score no higher than the oversleep floor of 60.
+        val oversleptSession = session(sleepDurationMinutes = 960)
+        val score = useCase(oversleptSession, averageBedtimeVarianceMinutes = 10f)
+        assertThat(score.durationScore).isEqualTo(60)
+    }
+
     /**
      * Deliberately mediocre (not perfect) session so raw score has headroom below 100 —
      * otherwise adjustedScore's final coerceIn(0,100) silently clips the very adjustment

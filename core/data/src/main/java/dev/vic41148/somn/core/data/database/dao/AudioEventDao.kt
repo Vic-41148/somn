@@ -34,4 +34,18 @@ interface AudioEventDao {
 
     @Query("UPDATE audio_events SET clipPath = NULL WHERE id = :id")
     suspend fun clearClipPath(id: Long)
+
+    /**
+     * Clips eligible for retention pruning. Un-synced clips are included deliberately: if NAS
+     * sync has not managed to upload a recording within the retention window, the retention
+     * promise wins over the backup convenience.
+     */
+    @Query("SELECT * FROM audio_events WHERE clipPath IS NOT NULL AND timestampMillis < :cutoffMillis")
+    suspend fun getEventsWithClipsOlderThan(cutoffMillis: Long): List<AudioEventEntity>
+
+    @Query("SELECT * FROM audio_events WHERE clipPath IS NOT NULL")
+    suspend fun getEventsWithClips(): List<AudioEventEntity>
+
+    @Query("DELETE FROM audio_events WHERE sessionId = :sessionId")
+    suspend fun deleteBySession(sessionId: Long)
 }

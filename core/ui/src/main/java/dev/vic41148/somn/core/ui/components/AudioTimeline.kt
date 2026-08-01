@@ -14,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import dev.vic41148.somn.core.ui.theme.AudioEventCough
+import dev.vic41148.somn.core.ui.theme.AudioEventSnore
+import dev.vic41148.somn.core.ui.theme.AudioEventTalk
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -107,9 +110,9 @@ fun AudioTimeline(
                         // Optimized drawing: check if event is in visible range
                         if (startX + eventWidth >= scrollOffset && startX <= scrollOffset + visibleWidth * scale) {
                             val color = when (event.type) {
-                                AudioEventType.TALK -> Color(0xFF6200EE) // Premium Purple
-                                AudioEventType.SNORE -> Color(0xFFFF9800) // Orange
-                                AudioEventType.COUGH -> Color(0xFFF44336) // Red
+                                AudioEventType.TALK -> AudioEventTalk
+                                AudioEventType.SNORE -> AudioEventSnore
+                                AudioEventType.COUGH -> AudioEventCough
                                 else -> Color.Gray
                             }
                             

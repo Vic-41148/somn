@@ -41,6 +41,7 @@ Thumbs.db
 *.jks
 *.keystore
 *.p12
+keystore.properties
 
 # External Native Build
 .externalNativeBuild

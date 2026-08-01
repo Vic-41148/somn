@@ -16,11 +16,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,25 +46,38 @@ import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
 import dev.vic41148.somn.feature.habits.HabitViewModel
 import kotlin.math.abs
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CorrelationInsightsScreen(
+    onBack: () -> Unit = {},
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val report by viewModel.correlationReport.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    // This screen had no TopAppBar/back button and wasn't reachable from anywhere in the app —
+    // the route existed in the nav graph but nothing ever called navigate() to it, so this
+    // finished feature (habit-to-sleep correlation insights) was entirely dead to users.
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Your Patterns") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
     Column(
         modifier = Modifier
+            .padding(padding)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        Text(
-            text = "Your Patterns",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "How your habits connect to your sleep",
             style = MaterialTheme.typography.bodyMedium,
@@ -74,7 +95,7 @@ fun CorrelationInsightsScreen(
             elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Text(
-                text = "ℹ️ These patterns are personal to you — not population averages. " +
+                text = "These patterns are personal to you — not population averages. " +
                     "Minimum ${CorrelationUseCase.MIN_DATA_POINTS} sleep sessions needed per correlation.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -84,16 +105,21 @@ fun CorrelationInsightsScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (isLoading) {
+        // Was `if (isLoading) { ...; return }` followed by `!report?.hasAnyData!!` — if
+        // loadDebtAndCorrelations() ever hit its catch block before report was first assigned
+        // (isLoading still gets set back to false there), report stays null forever and
+        // `null!!` crashed this screen with an NPE. Guard on report == null directly instead.
+        if (isLoading || report == null) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            return
+            return@Column
         }
+        val safeReport = report!!
 
-        val correlations = report?.availableCorrelations ?: emptyList()
+        val correlations = safeReport.availableCorrelations
 
-        if (!report?.hasAnyData!!) {
+        if (!safeReport.hasAnyData) {
             EmptyCorrelationsState()
         } else {
             correlations.forEach { result ->
@@ -114,6 +140,7 @@ fun CorrelationInsightsScreen(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+    }
     }
 }
 
@@ -289,7 +316,12 @@ private fun EmptyCorrelationsState() {
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("📊", style = MaterialTheme.typography.displayMedium)
+            Icon(
+                Icons.Default.BarChart,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Not enough data yet",

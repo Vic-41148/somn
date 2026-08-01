@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      The one and only reason Somn can reach the network: optional NAS backup.
+
+      It is declared here, in the module that owns NasClientImpl and NasSyncWorker, rather than
+      in :app, so the permission stays traceable to the single feature that needs it. NAS sync is
+      opt-in (NAS_ENABLED defaults to false), refuses to run without a user-set recovery
+      passphrase, and uploads only AES-256-GCM envelopes encrypted under that passphrase.
+
+      Nothing else in the app makes network requests. If you are auditing this: the permission
+      used to arrive silently as a transitive of Google ML Kit's telemetry transport. That
+      dependency is gone — see gradle/libs.versions.toml and core/audio/build.gradle.kts.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

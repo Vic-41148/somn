@@ -62,6 +62,10 @@ class SleepRepository @Inject constructor(
                 }
             }
         }
+        // AudioEventEntity has no FK/cascade to sleep_sessions (unlike SleepEpochEntity, which
+        // does), so without this the audio_events rows for a deleted session were orphaned in
+        // the DB forever — clip files got cleaned up above, but the rows themselves never did.
+        audioEventDao.deleteBySession(session.id)
         sessionDao.delete(session.toEntity())
     }
 
@@ -161,6 +165,25 @@ class SleepRepository @Inject constructor(
 
     fun getAudioEventsSynchronous(sessionId: Long): List<AudioEvent> {
         return audioEventDao.getBySessionSync(sessionId).map { it.toDomain() }
+    }
+
+    /**
+     * Deletes every sleep-talk recording on disk and forgets their paths. The audio events stay
+     * in the history — only the audio itself goes. Backs the "delete all recordings" control in
+     * Settings, so a user who wants the recordings gone doesn't have to wait for retention to
+     * catch up or delete whole sessions to get there.
+     *
+     * @return how many clip files were actually removed.
+     */
+    suspend fun deleteAllAudioClips(): Int {
+        var deleted = 0
+        audioEventDao.getEventsWithClips().forEach { entity ->
+            entity.clipPath?.let { path ->
+                if (java.io.File(path).delete()) deleted++
+            }
+            audioEventDao.clearClipPath(entity.id)
+        }
+        return deleted
     }
 
     // --- External Vitals (HEALTH-01) ---

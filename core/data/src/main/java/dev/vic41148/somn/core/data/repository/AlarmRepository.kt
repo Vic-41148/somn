@@ -44,8 +44,21 @@ class AlarmRepository @Inject constructor(
         alarmDao.setEnabled(id, enabled)
     }
 
+    /**
+     * The enabled alarm chronologically closest to firing from now, wrapping past-due
+     * hour:minute values to tomorrow. This used to be a SQL `ORDER BY hour ASC, minute ASC
+     * LIMIT 1` query, which picked the smallest hour:minute rather than the smallest
+     * time-until-next-fire — e.g. at 22:00 with alarms enabled at 06:00 and 23:00, it always
+     * returned 06:00 (23h away) over 23:00 (1h away). This feeds SleepTrackingService's smart
+     * wake-window, so the wrong alarm here made the app watch for the wrong target time.
+     */
     suspend fun getNextAlarm(): Alarm? {
-        return alarmDao.getNextAlarm()?.toDomain()
+        val now = java.util.Calendar.getInstance()
+        val nowMinutes = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
+        return getEnabledAlarms().minByOrNull { alarm ->
+            val alarmMinutes = alarm.hour * 60 + alarm.minute
+            ((alarmMinutes - nowMinutes) + 1440) % 1440
+        }
     }
 
     // --- Mappers ---

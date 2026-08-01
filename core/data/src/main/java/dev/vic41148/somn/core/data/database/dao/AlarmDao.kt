@@ -32,7 +32,4 @@ interface AlarmDao {
 
     @Query("UPDATE alarms SET isEnabled = :enabled WHERE id = :id")
     suspend fun setEnabled(id: Long, enabled: Boolean)
-
-    @Query("SELECT * FROM alarms WHERE isEnabled = 1 ORDER BY hour ASC, minute ASC LIMIT 1")
-    suspend fun getNextAlarm(): AlarmEntity?
 }

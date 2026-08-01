@@ -58,6 +58,6 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
 
-    // ML Kit
-    implementation(libs.mlkit.barcode.scanning)
+    // QR decoding (zxing-cpp — no Google Play Services)
+    implementation(libs.zxingcpp)
 }

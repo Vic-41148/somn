@@ -1,6 +1,8 @@
 package dev.vic41148.somn.feature.onboarding.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,11 +33,21 @@ fun SleepGoalScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Body scrolls, footer stays pinned. This was one unscrollable Column whose footer was held
+    // down by a weight(1f) Spacer — fine until the content above outgrew the viewport (a large
+    // system font scale, or the optional sections below expanding), at which point the spacer
+    // collapsed to zero and the buttons were pushed off the bottom with no way to scroll to them.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp)
+            .padding(top = 24.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
         }
@@ -102,10 +114,13 @@ fun SleepGoalScreen(
             Text("12h", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.End
         ) {
             Button(onClick = onNext) {

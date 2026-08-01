@@ -20,9 +20,9 @@ data class SleepScore(
     }
 }
 
-enum class ScoreRating(val label: String, val emoji: String) {
-    GREAT("Great", "🌟"),
-    GOOD("Good", "😊"),
-    FAIR("Fair", "😐"),
-    POOR("Poor", "😴")
+enum class ScoreRating(val label: String) {
+    GREAT("Great"),
+    GOOD("Good"),
+    FAIR("Fair"),
+    POOR("Poor")
 }

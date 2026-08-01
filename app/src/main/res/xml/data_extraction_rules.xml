@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auto Backup / device-transfer opt-out (API 31+).
+
+  Somn's Room database holds menstrual cycle, pregnancy/postpartum, perimenopause and
+  neurodivergent-profile data, and files/sleep_talk/ holds raw audio of the user talking in
+  their sleep. Android's default backup set includes databases/ and files/, so leaving this
+  unconfigured shipped all of it to the user's Google Drive.
+
+  android:allowBackup="false" alone is not enough on API 31+: it disables cloud backup but
+  NOT device-to-device transfer. The <device-transfer> block below is what covers that.
+
+  Users who want an off-device copy have NAS sync, which is opt-in and encrypted with a
+  passphrase only they hold.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

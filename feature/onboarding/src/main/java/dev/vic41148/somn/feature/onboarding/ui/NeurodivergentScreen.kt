@@ -1,6 +1,8 @@
 package dev.vic41148.somn.feature.onboarding.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,11 +33,21 @@ fun NeurodivergentScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Body scrolls, footer stays pinned. This was one unscrollable Column whose footer was held
+    // down by a weight(1f) Spacer — fine until the content above outgrew the viewport (a large
+    // system font scale, or the optional sections below expanding), at which point the spacer
+    // collapsed to zero and the buttons were pushed off the bottom with no way to scroll to them.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp)
+            .padding(top = 24.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
         }
@@ -89,9 +101,9 @@ fun NeurodivergentScreen(
 
         if (adhdEnabled) {
             Text(
-                text = "✓ Consistency scored against your pattern, not societal norms\n" +
-                    "✓ Medication timing tracking enabled\n" +
-                    "✓ Wind-down support tailored for ADHD",
+                text = "- Consistency scored against your pattern, not societal norms\n" +
+                    "- Medication timing tracking enabled\n" +
+                    "- Wind-down support tailored for ADHD",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
@@ -129,19 +141,22 @@ fun NeurodivergentScreen(
 
         if (asdEnabled) {
             Text(
-                text = "✓ Vibration-only alarm option\n" +
-                    "✓ Sleep environment checklist for sensory needs\n" +
-                    "✓ Non-judgmental scoring calibrated to your patterns",
+                text = "- Vibration-only alarm option\n" +
+                    "- Sleep environment checklist for sensory needs\n" +
+                    "- Non-judgmental scoring calibrated to your patterns",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.End
         ) {
             Button(onClick = onNext) {

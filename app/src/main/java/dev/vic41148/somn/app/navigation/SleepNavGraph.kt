@@ -1,5 +1,6 @@
 package dev.vic41148.somn.app.navigation
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessAlarm
@@ -118,7 +119,15 @@ fun SleepNavGraph(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding)
+            // MainActivity calls enableEdgeToEdge(), so the window no longer resizes when the
+            // soft keyboard opens, and Scaffold's default contentWindowInsets covers only the
+            // system bars. Without imePadding here the keyboard silently draws over whatever the
+            // user is typing into — the NAS host/port/password fields, the alarm label, the
+            // morning-review notes. Applied once at the single Scaffold every screen sits inside
+            // rather than per-screen.
+            modifier = Modifier
+                .padding(innerPadding)
+                .imePadding()
         ) {
             // Onboarding
             composable("onboarding") {
@@ -145,7 +154,8 @@ fun SleepNavGraph(
 
             composable(Screen.Habits.route) {
                 DailyLogScreen(
-                    onNavigateToMedication = { navController.navigate("medication_log") }
+                    onNavigateToMedication = { navController.navigate("medication_log") },
+                    onNavigateToCorrelations = { navController.navigate("correlation_insights") }
                 )
             }
 
@@ -242,7 +252,9 @@ fun SleepNavGraph(
             // ---- Phase 2: Habits detail screens ----
 
             composable("sleep_debt") {
-                SleepDebtDetailScreen()
+                SleepDebtDetailScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable("medication_log") {
@@ -252,7 +264,9 @@ fun SleepNavGraph(
             }
 
             composable("correlation_insights") {
-                CorrelationInsightsScreen()
+                CorrelationInsightsScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable("circadian_insights") {

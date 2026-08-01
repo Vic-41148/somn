@@ -26,6 +26,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -84,7 +85,7 @@ fun MedicationLogScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "💊 Stimulant Timing Matters",
+                        text = "Stimulant Timing Matters",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -134,10 +135,10 @@ fun MedicationLogScreen(
 
 @Composable
 private fun MedicationEntryForm(onLog: (HabitEntry.Medication) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var dose by remember { mutableStateOf("") }
-    var isStimulant by remember { mutableStateOf(true) }
-    var hour by remember { mutableIntStateOf(8) }
+    var name by rememberSaveable { mutableStateOf("") }
+    var dose by rememberSaveable { mutableStateOf("") }
+    var isStimulant by rememberSaveable { mutableStateOf(true) }
+    var hour by rememberSaveable { mutableIntStateOf(8) }
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     Card(
@@ -265,7 +266,7 @@ private fun MedicationRow(log: HabitLog, timeFormatter: DateTimeFormatter) {
                 )
                 Text(
                     text = "${log.date}  at ${entry.timeOfDay.format(timeFormatter)}" +
-                        if (lateWarning) "  ⚠️ Late dose" else "",
+                        if (lateWarning) "  •  Late dose" else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (lateWarning) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurfaceVariant

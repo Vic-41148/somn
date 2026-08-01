@@ -26,21 +26,33 @@ object BatteryExemptionState {
         _isExempted.value = powerManager.isIgnoringBatteryOptimizations(context.packageName)
     }
 
-    /** Best-effort OEM-specific autostart/battery settings screen; falls back to the stock Android exemption request. */
-    fun buildFixIntent(context: Context): Intent {
-        val oemIntent = oemSettingsIntent(context)
-        if (oemIntent != null && oemIntent.resolveActivity(context.packageManager) != null) {
-            return oemIntent
-        }
-        return Intent(
-            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-            Uri.parse("package:${context.packageName}")
-        )
-    }
+    /**
+     * The standard system dialog directly asking to exempt Somn from battery optimization — the
+     * exact thing [isExempted] checks, on every OEM, in one tap, no navigation required.
+     *
+     * This used to try an OEM-specific settings *screen* first (e.g. Samsung's Device Care >
+     * Battery hub) and only fall back to this intent if the OEM one didn't resolve. That was
+     * backwards: those hub screens almost always resolve, so the OEM path won every time, and it
+     * lands on a general battery overview — not a per-app toggle — leaving the user to hunt for
+     * Somn themselves. [oemBackgroundRestrictionIntent] is kept as a separate, secondary action for
+     * the genuinely OEM-only "autostart"/background-restriction screen, which this standard
+     * intent cannot reach and which some OEMs enforce in addition to battery optimization.
+     */
+    fun buildFixIntent(context: Context): Intent = Intent(
+        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+        Uri.parse("package:${context.packageName}")
+    )
 
-    private fun oemSettingsIntent(context: Context): Intent? {
+    /**
+     * Best-effort deep link to the OEM's separate autostart/background-activity screen (Samsung,
+     * Xiaomi, Huawei). Distinct from battery optimization — some OEMs kill backgrounded apps via
+     * this mechanism even when [isExempted] is true — so this is offered as an additional, optional
+     * step, never as a substitute for [buildFixIntent]. Null if the current OEM has no such screen,
+     * or [buildFixIntent] should be treated as the only available action.
+     */
+    fun oemBackgroundRestrictionIntent(context: Context): Intent? {
         val manufacturer = Build.MANUFACTURER.lowercase()
-        return when {
+        val intent = when {
             "samsung" in manufacturer -> Intent().setComponent(
                 ComponentName(
                     "com.samsung.android.lool",
@@ -59,5 +71,6 @@ object BatteryExemptionState {
             )
             else -> null
         }
+        return intent?.takeIf { it.resolveActivity(context.packageManager) != null }
     }
 }

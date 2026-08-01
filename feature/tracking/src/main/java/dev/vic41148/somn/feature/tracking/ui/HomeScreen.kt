@@ -35,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import dev.vic41148.somn.core.ui.theme.DebtMild
+import dev.vic41148.somn.core.ui.theme.DebtModerate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -108,6 +110,28 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+                    // Some OEMs (Samsung, Xiaomi, Huawei) also enforce a separate "autostart"/
+                    // background-activity restriction on top of standard battery optimization —
+                    // this is a genuinely optional second step, not a replacement for the direct
+                    // exemption dialog "Fix" triggers below.
+                    val oemIntent = remember {
+                        dev.vic41148.somn.core.ui.battery.BatteryExemptionState.oemBackgroundRestrictionIntent(context)
+                    }
+                    // Kept on its own row, right-aligned: three actions competing for one row on a
+                    // phone-width card squeezed "Fix" down to an unreadable, near-invisible sliver
+                    // when this shared a row with Dismiss and Fix (the longest label of the three).
+                    if (oemIntent != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            androidx.compose.material3.TextButton(onClick = {
+                                context.startActivity(oemIntent)
+                            }) {
+                                Text("Also check device settings")
+                            }
+                        }
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
@@ -291,8 +315,8 @@ fun HomeScreen(
 private fun SleepDebtHomeCard(debt: SleepDebt, onClick: () -> Unit) {
     val levelColor = when (debt.level) {
         DebtLevel.NONE -> MaterialTheme.colorScheme.primary
-        DebtLevel.MILD -> Color(0xFFF9A825)
-        DebtLevel.MODERATE -> Color(0xFFE65100)
+        DebtLevel.MILD -> DebtMild
+        DebtLevel.MODERATE -> DebtModerate
         DebtLevel.SEVERE -> MaterialTheme.colorScheme.error
     }
 
@@ -309,7 +333,7 @@ private fun SleepDebtHomeCard(debt: SleepDebt, onClick: () -> Unit) {
                 val h = debt.totalDebtMinutes / 60
                 val m = debt.totalDebtMinutes % 60
                 val debtStr = when {
-                    debt.totalDebtMinutes == 0 -> "None 🎉"
+                    debt.totalDebtMinutes == 0 -> "None"
                     h > 0 -> "${h}h ${m}m"
                     else -> "${m}m"
                 }
