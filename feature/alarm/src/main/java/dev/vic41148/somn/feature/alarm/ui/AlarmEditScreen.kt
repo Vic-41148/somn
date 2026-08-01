@@ -1,6 +1,8 @@
 package dev.vic41148.somn.feature.alarm.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,12 +58,24 @@ fun AlarmEditScreen(
             initialMinute = editingAlarm?.minute ?: 0
         )
 
+        // The save button used to be the last child of an unscrollable Column. A Material3
+        // TimePicker dial alone is ~300dp, and with the day chips, label field and wake-window
+        // slider above it the button sat past the bottom of the screen on a normal phone — laid
+        // out, clipped, and completely unreachable, so an alarm could never actually be saved.
+        // The scrollable region now holds the form and the button is pinned outside it.
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             Text(
                 text = if (alarmId > 0) "Edit Alarm" else "New Alarm",
                 style = MaterialTheme.typography.headlineMedium,
@@ -145,11 +159,13 @@ fun AlarmEditScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(vertical = 16.dp)
                     .navigationBarsPadding(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -170,15 +186,16 @@ fun AlarmEditScreen(
                                 hour = timePickerState.hour,
                                 minute = timePickerState.minute,
                                 label = label,
-                                repeatDays = repeatDays
+                                repeatDays = repeatDays,
+                                wakeWindowMinutes = wakeWindow.toInt()
                             )
                         }
                         onSaved()
                     },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(if (alarmId > 0) "Update Alarm" else "Save Alarm")
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(if (alarmId > 0) "Update Alarm" else "Save Alarm")
+                }
             }
         }
-    }
 }
