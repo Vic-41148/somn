@@ -4,8 +4,7 @@ import dev.vic41148.somn.core.domain.model.NasConfig
 import java.io.InputStream
 
 /**
- * Abstraction over NAS protocol specifics.
- * Implementations handle WebDAV/SMB/NFS transport.
+ * Abstraction over NAS protocol specifics, so backup code never has to know the transport.
  */
 interface NasClient {
 

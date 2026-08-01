@@ -13,10 +13,7 @@ import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * WebDAV-first NasClient implementation.
- * SMB/NFS stubs return false — expand with jcifs-ng / libnfs when needed.
- */
+/** WebDAV NasClient implementation — the only transport [NasProtocol] currently offers. */
 @Singleton
 class NasClientImpl @Inject constructor(
     private val preferencesRepository: SomnPreferencesRepository
@@ -45,14 +42,6 @@ class NasClientImpl @Inject constructor(
     override suspend fun testConnection(config: NasConfig): Boolean = withContext(Dispatchers.IO) {
         when (config.protocol) {
             NasProtocol.WEBDAV -> testWebDav(config)
-            NasProtocol.SMB -> {
-                Log.w(TAG, "SMB not yet implemented")
-                false
-            }
-            NasProtocol.NFS -> {
-                Log.w(TAG, "NFS not yet implemented")
-                false
-            }
         }
     }
 
@@ -64,10 +53,6 @@ class NasClientImpl @Inject constructor(
     ): Boolean = withContext(Dispatchers.IO) {
         when (config.protocol) {
             NasProtocol.WEBDAV -> uploadWebDav(config, remotePath, data, length)
-            else -> {
-                Log.w(TAG, "${config.protocol} upload not yet implemented")
-                false
-            }
         }
     }
 
@@ -75,10 +60,6 @@ class NasClientImpl @Inject constructor(
         withContext(Dispatchers.IO) {
             when (config.protocol) {
                 NasProtocol.WEBDAV -> listWebDav(config, remotePath)
-                else -> {
-                    Log.w(TAG, "${config.protocol} list not yet implemented")
-                    emptyList()
-                }
             }
         }
 
@@ -86,10 +67,6 @@ class NasClientImpl @Inject constructor(
         withContext(Dispatchers.IO) {
             when (config.protocol) {
                 NasProtocol.WEBDAV -> deleteWebDav(config, remotePath)
-                else -> {
-                    Log.w(TAG, "${config.protocol} delete not yet implemented")
-                    false
-                }
             }
         }
 

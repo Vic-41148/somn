@@ -681,8 +681,9 @@ fun SettingsScreen(
             if (settings.nasEnabled) {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Protocol — WebDAV-only for now (REL-05: SMB/NFS are unimplemented stubs
-                // in NasClientImpl, gated out of the picker until a real client backs them).
+                // Protocol — WebDAV is the only transport NasProtocol defines (REL-05). Kept as a
+                // labelled read-only row rather than a one-option picker so adding a second
+                // transport later is a UI change, not a re-layout.
                 Text(
                     text = "Protocol",
                     style = MaterialTheme.typography.labelSmall,

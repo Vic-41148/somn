@@ -131,8 +131,9 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             preferencesRepository.nasProtocol.collect { proto ->
-                // REL-05: SMB/NFS are unimplemented stubs — coerce any stray stored value
-                // from before the picker was gated back to the only protocol that works.
+                // REL-05: WebDAV is the only implemented transport. Installs that stored "SMB" or
+                // "NFS" before the picker was gated are coerced back to it rather than left
+                // pointing at a protocol NasProtocol no longer even defines.
                 _settings.value = _settings.value.copy(
                     nasProtocol = if (proto == "WEBDAV") proto else "WEBDAV"
                 )
