@@ -3,6 +3,8 @@ package dev.vic41148.somn.feature.onboarding.ui
 import android.Manifest
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -86,11 +88,22 @@ fun PermissionsScreen(
         }
     }
 
+    // Body scrolls, footer stays pinned. This used to be one unscrollable Column whose Continue
+    // button was held down by a weight(1f) Spacer — fine until the content above outgrew the
+    // viewport (a large system font scale, or enough permission rows on a newer SDK), at which
+    // point the spacer collapsed to zero and the button was pushed off the bottom of the screen
+    // with no way to scroll to it.
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp)
+            .padding(top = 24.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
         IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
         }
@@ -155,10 +168,13 @@ fun PermissionsScreen(
             Text("Grant Permissions")
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
             horizontalArrangement = Arrangement.End
         ) {
             Button(onClick = onNext) {

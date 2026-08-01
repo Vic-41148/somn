@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -22,8 +23,8 @@ fun AlarmEditScreen(
     val editingAlarm by viewModel.editingAlarm.collectAsState()
     
     // UI state
-    var label by remember { mutableStateOf("") }
-    var wakeWindow by remember { mutableStateOf(30f) }
+    var label by rememberSaveable { mutableStateOf("") }
+    var wakeWindow by rememberSaveable { mutableStateOf(30f) }
     var isInitialized by remember { mutableStateOf(false) }
 
     LaunchedEffect(alarmId) {

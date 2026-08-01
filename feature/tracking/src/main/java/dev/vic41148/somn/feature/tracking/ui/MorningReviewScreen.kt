@@ -24,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,8 +61,8 @@ fun MorningReviewScreen(
     val epochs by viewModel.epochs.collectAsState()
     val audioEvents by viewModel.audioEvents.collectAsState()
 
-    var selectedMood by remember { mutableIntStateOf(0) }
-    var notes by remember { mutableStateOf("") }
+    var selectedMood by rememberSaveable { mutableIntStateOf(0) }
+    var notes by rememberSaveable { mutableStateOf("") }
 
     val session = lastSession ?: return
 
