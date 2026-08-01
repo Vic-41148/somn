@@ -21,7 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Nightlight
-import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -344,13 +344,13 @@ private fun SleepDebtHomeCard(debt: SleepDebt, onClick: () -> Unit) {
                     color = levelColor
                 )
                 Text(
-                    text = "${debt.trend.emoji} ${debt.trend.displayName}  •  ${debt.level.displayName}",
+                    text = "${debt.trend.glyph} ${debt.trend.displayName}  •  ${debt.level.displayName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(
-                imageVector = Icons.Default.TrendingDown,
+                imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                 contentDescription = "Sleep debt trend",
                 tint = levelColor,
                 modifier = Modifier.size(36.dp)
