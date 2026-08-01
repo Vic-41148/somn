@@ -54,6 +54,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -296,10 +297,10 @@ private fun HabitSection(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun CaffeineLogForm(onLog: (HabitEntry.Caffeine) -> Unit) {
-    var selectedSource by remember { mutableStateOf(CaffeineSource.COFFEE) }
-    var customMg by remember { mutableIntStateOf(selectedSource.defaultMg) }
-    var hour by remember { mutableIntStateOf(8) }
-    var minute by remember { mutableIntStateOf(0) }
+    var selectedSource by rememberSaveable { mutableStateOf(CaffeineSource.COFFEE) }
+    var customMg by rememberSaveable { mutableIntStateOf(selectedSource.defaultMg) }
+    var hour by rememberSaveable { mutableIntStateOf(8) }
+    var minute by rememberSaveable { mutableIntStateOf(0) }
 
     Text("Drink", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(modifier = Modifier.height(8.dp))
@@ -342,9 +343,9 @@ private fun CaffeineLogForm(onLog: (HabitEntry.Caffeine) -> Unit) {
 
 @Composable
 private fun AlcoholLogForm(onLog: (HabitEntry.Alcohol) -> Unit) {
-    var units by remember { mutableFloatStateOf(1f) }
-    var hour by remember { mutableIntStateOf(19) }
-    var minute by remember { mutableIntStateOf(0) }
+    var units by rememberSaveable { mutableFloatStateOf(1f) }
+    var hour by rememberSaveable { mutableIntStateOf(19) }
+    var minute by rememberSaveable { mutableIntStateOf(0) }
 
     Text("Units: ${"%.1f".format(units)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     Text(
@@ -379,11 +380,11 @@ private fun AlcoholLogForm(onLog: (HabitEntry.Alcohol) -> Unit) {
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ExerciseLogForm(onLog: (HabitEntry.Exercise) -> Unit) {
-    var selectedType by remember { mutableStateOf(ExerciseType.WALKING) }
-    var selectedIntensity by remember { mutableStateOf(ExerciseIntensity.MODERATE) }
-    var duration by remember { mutableFloatStateOf(30f) }
-    var hour by remember { mutableIntStateOf(7) }
-    var minute by remember { mutableIntStateOf(0) }
+    var selectedType by rememberSaveable { mutableStateOf(ExerciseType.WALKING) }
+    var selectedIntensity by rememberSaveable { mutableStateOf(ExerciseIntensity.MODERATE) }
+    var duration by rememberSaveable { mutableFloatStateOf(30f) }
+    var hour by rememberSaveable { mutableIntStateOf(7) }
+    var minute by rememberSaveable { mutableIntStateOf(0) }
 
     Text("Activity", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(modifier = Modifier.height(8.dp))
@@ -436,7 +437,7 @@ private fun ExerciseLogForm(onLog: (HabitEntry.Exercise) -> Unit) {
 
 @Composable
 private fun StressLogForm(onLog: (HabitEntry.Stress) -> Unit) {
-    var stressLevel by remember { mutableIntStateOf(3) }
+    var stressLevel by rememberSaveable { mutableIntStateOf(3) }
     val labels = listOf("Very calm", "Calm", "Neutral", "Stressed", "Very stressed")
 
     Text(
