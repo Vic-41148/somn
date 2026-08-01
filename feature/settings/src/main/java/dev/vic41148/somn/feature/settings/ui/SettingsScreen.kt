@@ -750,7 +750,7 @@ fun SettingsScreen(
                 )
                 if (!settings.nasUseHttps) {
                     Text(
-                        text = "⚠ HTTPS is off. Credentials would be sent unencrypted, and the " +
+                        text = "HTTPS is off. Credentials would be sent unencrypted, and the " +
                             "connection will be refused by Android.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
@@ -813,65 +813,6 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-        // Health Connect (HEALTH-01..04)
-        SettingSection(title = "Health Connect") {
-            val healthConnectContract = remember(viewModel) { viewModel.healthConnectPermissionsContract() }
-            val permissionLauncher = rememberLauncherForActivityResult(
-                contract = healthConnectContract
-            ) {
-                viewModel.refreshHealthConnectStatus()
-            }
-
-            SettingToggle(
-                title = "Sync with Health Connect",
-                subtitle = "Read HR/HRV/SpO2/skin temp from wearables, write completed sessions back",
-                checked = settings.healthConnectEnabled,
-                onCheckedChange = { viewModel.updateHealthConnectEnabled(it) }
-            )
-
-            if (settings.healthConnectEnabled) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val (statusText, statusColor) = when (settings.healthConnectStatus) {
-                    HealthConnectStatus.AUTHORIZED -> "Connected" to MaterialTheme.colorScheme.primary
-                    HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
-                    HealthConnectStatus.UNAVAILABLE -> "Health Connect isn't installed on this device" to MaterialTheme.colorScheme.error
-                }
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = statusColor
-                )
-
-                if (settings.healthConnectStatus == HealthConnectStatus.NOT_AUTHORIZED) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = { permissionLauncher.launch(viewModel.healthConnectRequiredPermissions) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Connect Health Connect")
-                    }
-                }
-
-                // HEALTH-04: writeSleepSession() silently skips a session whenever another source
-                // already wrote overlapping sleep data (dedup), and that skip is permanent — the
-                // session's healthConnectRecordId stays null forever, so it'd otherwise never be
-                // surfaced anywhere. This count also includes sessions simply not synced yet, so
-                // it's worded as "haven't reached" rather than claiming they were all dedup-skipped.
-                if (settings.healthConnectStatus == HealthConnectStatus.AUTHORIZED && settings.healthConnectUnsyncedCount > 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "${settings.healthConnectUnsyncedCount} session(s) haven't reached Health Connect yet — " +
-                            "either not synced, or another app already recorded overlapping sleep for that night.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
 
