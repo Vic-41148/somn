@@ -1,8 +1,22 @@
+// Explicit import: inside a Kotlin build script `java` resolves to Gradle's java extension, so the
+// fully-qualified java.util.Properties does not.
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+}
+
+// Release signing credentials live in keystore.properties (gitignored) so the keystore password
+// never enters git history. Absent that file the release build still assembles — it just falls
+// back to being unsigned, rather than failing the whole configuration phase for debug builds too.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -19,13 +33,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (keystoreProperties.isNotEmpty()) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
@@ -46,7 +73,10 @@ android {
 
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            // Must stay false for 16KB-page devices: legacy packaging compresses the .so files and
+            // the loader extracts them at install time, which defeats the page-aligned mmap the
+            // 16KB ABI requires. False keeps them uncompressed and aligned inside the APK.
+            useLegacyPackaging = false
         }
     }
 }

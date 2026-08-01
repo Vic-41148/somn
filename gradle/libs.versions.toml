@@ -95,8 +95,14 @@ org-json = { group = "org.json", name = "json", version = "20240303" }
 # FFT / Signal Processing
 jtransforms = { group = "com.github.wendykierp", name = "JTransforms", version = "3.1" }
 
-# TFLite (Task 14 — AUDIO-01 YAMNet audio classification)
-tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version = "2.16.1" }
+# LiteRT — the TFLite runtime's current name (Task 14 — AUDIO-01 YAMNet audio classification).
+# org.tensorflow:tensorflow-lite is stuck at 2.16.1 on Maven Central and ships a
+# libtensorflowlite_jni.so with 4KB (0x1000) ELF segment alignment, which Android 15+ flags as
+# incompatible with 16KB-page devices. LiteRT is the same runtime, still exposing
+# org.tensorflow.lite.Interpreter, built with 16KB (0x4000) alignment.
+# Pinned to 2.1.5: 2.1.6 splits out a litert-api artifact that declares the same
+# com.google.ai.edge.litert namespace as litert itself, which AGP's manifest merger rejects.
+tensorflow-lite = { group = "com.google.ai.edge.litert", name = "litert", version = "2.1.5" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
