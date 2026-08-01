@@ -5,6 +5,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Handler
+import android.os.HandlerThread
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -37,6 +39,12 @@ class AccelerometerCollector(context: Context) : SensorEventListener {
     private val liftEventChannel = Channel<LiftEvent>(Channel.BUFFERED)
     val liftEvents: Flow<LiftEvent> = liftEventChannel.receiveAsFlow()
 
+    // registerListener() with no Handler dispatches onSensorChanged on the calling thread's
+    // Looper — for a foreground service that's the main thread, so a whole night of 10Hz
+    // accelerometer callbacks would otherwise contend with the UI thread whenever the app is
+    // in the foreground. A dedicated background thread keeps sensor processing off it.
+    private var handlerThread: HandlerThread? = null
+
     companion object {
         private const val EPOCH_DURATION_MS = 30_000L  // 30-second epoch window (wall-clock)
         private const val SENSOR_DELAY_US = 100_000    // 100ms = 10Hz sampling rate
@@ -50,12 +58,17 @@ class AccelerometerCollector(context: Context) : SensorEventListener {
         epochStartTime = System.currentTimeMillis()
         lastZ = GRAVITY  // Assume phone flat initially
         liftDetected = false
+
+        val thread = HandlerThread("AccelerometerCollector").apply { start() }
+        handlerThread = thread
+
         accelerometer?.let {
             sensorManager.registerListener(
                 this,
                 it,
                 SENSOR_DELAY_US,  // Explicit 10Hz (100ms between samples)
-                100_000  // 100ms max reporting latency for battery
+                100_000,  // 100ms max reporting latency for battery
+                Handler(thread.looper)
             )
         }
     }
@@ -63,6 +76,8 @@ class AccelerometerCollector(context: Context) : SensorEventListener {
     fun stop() {
         sensorManager.unregisterListener(this)
         samples.clear()
+        handlerThread?.quitSafely()
+        handlerThread = null
     }
 
     override fun onSensorChanged(event: SensorEvent?) {

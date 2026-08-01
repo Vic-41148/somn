@@ -100,10 +100,20 @@ class SonarCollector(private val context: Context) {
         recordThread?.interrupt()
         try { audioTrack?.stop() } catch (_: Exception) {}
         try { audioRecord?.stop() } catch (_: Exception) {}
+        // AudioTrack/AudioRecord.stop() unblocks a pending write()/read() on the emitter/recorder
+        // thread, but doesn't wait for that thread to actually exit its loop — calling release()
+        // immediately after, while that thread may still be mid-call on the same object, is a
+        // documented crash risk. This fires on every SNR-triggered sonar→accelerometer fallback,
+        // not just on session stop, so it's a real recurring risk, not a rare shutdown-only edge
+        // case. Bounded join so release() only runs once the thread has actually returned.
+        try { emitterThread?.join(500) } catch (_: InterruptedException) {}
+        try { recordThread?.join(500) } catch (_: InterruptedException) {}
         audioTrack?.release()
         audioRecord?.release()
-        audioTrack  = null
-        audioRecord = null
+        audioTrack    = null
+        audioRecord   = null
+        emitterThread = null
+        recordThread  = null
         _calibrationChannel.trySend(SonarCalibrationState.IDLE)
     }
 

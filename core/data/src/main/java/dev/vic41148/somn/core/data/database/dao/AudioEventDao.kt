@@ -34,4 +34,7 @@ interface AudioEventDao {
 
     @Query("UPDATE audio_events SET clipPath = NULL WHERE id = :id")
     suspend fun clearClipPath(id: Long)
+
+    @Query("DELETE FROM audio_events WHERE sessionId = :sessionId")
+    suspend fun deleteBySession(sessionId: Long)
 }

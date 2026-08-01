@@ -23,7 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -58,41 +58,50 @@ class AlarmActivity : ComponentActivity() {
             }
         })
 
-        // We use runBlocking here because we need the taskId immediately for setContent
-        // and these are small local preferences.
-        val taskId: String = kotlinx.coroutines.runBlocking {
-            preferencesRepository.selectedCaptchaTaskId.first()
-        }
-        val qrValue: String? = kotlinx.coroutines.runBlocking {
-            preferencesRepository.qrCodeValue.first()
-        }
-
-        currentTask = CaptchaTaskRegistry.getTask(taskId)
-        if (taskId == "qrcode" && qrValue == null) {
-            currentTask = CaptchaTaskRegistry.getTask("math")
-        }
-        currentTask?.reset()
-
         setContent {
             MaterialTheme {
-                val phase by AlarmService.phase.collectAsState()
-                LaunchedEffect(phase) {
-                    if (phase == AlarmService.AlarmPhase.DISMISSED) finish()
+                // Reading DataStore synchronously (runBlocking) here would block onCreate on the
+                // highest-stakes screen in the app. Load it asynchronously instead — this class's
+                // `currentTask` field (needed synchronously by onNewIntent's NFC routing) is set
+                // as a side effect of the same LaunchedEffect once it resolves.
+                var loadedTask by remember { mutableStateOf<dev.vic41148.somn.feature.alarm.captcha.CaptchaTask?>(null) }
+                var taskReady by remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                    val taskId = preferencesRepository.selectedCaptchaTaskId.first()
+                    val qrValue = preferencesRepository.qrCodeValue.first()
+                    var task = CaptchaTaskRegistry.getTask(taskId)
+                    if (taskId == "qrcode" && qrValue == null) {
+                        task = CaptchaTaskRegistry.getTask("math")
+                    }
+                    task?.reset()
+                    currentTask = task
+                    loadedTask = task
+                    taskReady = true
                 }
 
-                AlarmScreen(
-                    currentTask = currentTask,
-                    onDismiss = {
-                        AlarmService.requestDismiss(this)
-                    },
-                    onSnooze = {
-                        AlarmService.snooze(this)
-                        finish()
-                    },
-                    onConfirmAwake = {
-                        AlarmService.confirmAwake(this)
+                if (!taskReady) {
+                    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {}
+                } else {
+                    val phase by AlarmService.phase.collectAsState()
+                    LaunchedEffect(phase) {
+                        if (phase == AlarmService.AlarmPhase.DISMISSED) finish()
                     }
-                )
+
+                    AlarmScreen(
+                        currentTask = loadedTask,
+                        onDismiss = {
+                            AlarmService.requestDismiss(this)
+                        },
+                        onSnooze = {
+                            AlarmService.snooze(this)
+                            finish()
+                        },
+                        onConfirmAwake = {
+                            AlarmService.confirmAwake(this)
+                        }
+                    )
+                }
             }
         }
     }
@@ -221,16 +230,18 @@ private fun AlarmFiringContent(
             label = "alarm_ringing_pulse_alpha"
         )
 
+        val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(currentTimeMillis)),
+                text = timeFormatter.format(Date(currentTimeMillis)),
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.alpha(pulseAlpha)
+                modifier = Modifier.graphicsLayer { alpha = pulseAlpha }
             )
 
             Spacer(modifier = Modifier.height(8.dp))

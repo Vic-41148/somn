@@ -127,6 +127,33 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
+        // Anti-Snore Nudge
+        SettingSection(title = "Anti-Snore Nudge") {
+            SettingToggle(
+                title = "Vibrate on Snoring",
+                subtitle = "Gently vibrates the phone when snoring is detected (at most once every 3 minutes)",
+                checked = settings.snoreNudgeEnabled,
+                onCheckedChange = { viewModel.updateSnoreNudgeEnabled(it) }
+            )
+            if (settings.wakeVerificationEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${settings.wakeVerificationWindowSeconds}s to confirm",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Slider(
+                    value = settings.wakeVerificationWindowSeconds.toFloat(),
+                    onValueChange = { viewModel.updateWakeVerificationWindowSeconds(it.toInt()) },
+                    valueRange = 5f..60f,
+                    steps = 10,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
         // Sensor Mode
         SettingSection(title = "Sensor Mode") {
             Text(
@@ -704,6 +731,65 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Health Connect (HEALTH-01..04)
+        SettingSection(title = "Health Connect") {
+            val healthConnectContract = remember(viewModel) { viewModel.healthConnectPermissionsContract() }
+            val permissionLauncher = rememberLauncherForActivityResult(
+                contract = healthConnectContract
+            ) {
+                viewModel.refreshHealthConnectStatus()
+            }
+
+            SettingToggle(
+                title = "Sync with Health Connect",
+                subtitle = "Read HR/HRV/SpO2/skin temp from wearables, write completed sessions back",
+                checked = settings.healthConnectEnabled,
+                onCheckedChange = { viewModel.updateHealthConnectEnabled(it) }
+            )
+
+            if (settings.healthConnectEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val (statusText, statusColor) = when (settings.healthConnectStatus) {
+                    HealthConnectStatus.AUTHORIZED -> "Connected" to MaterialTheme.colorScheme.primary
+                    HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
+                    HealthConnectStatus.UNAVAILABLE -> "Health Connect isn't installed on this device" to MaterialTheme.colorScheme.error
+                }
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = statusColor
+                )
+
+                if (settings.healthConnectStatus == HealthConnectStatus.NOT_AUTHORIZED) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = { permissionLauncher.launch(viewModel.healthConnectRequiredPermissions) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Connect Health Connect")
+                    }
+                }
+
+                // HEALTH-04: writeSleepSession() silently skips a session whenever another source
+                // already wrote overlapping sleep data (dedup), and that skip is permanent — the
+                // session's healthConnectRecordId stays null forever, so it'd otherwise never be
+                // surfaced anywhere. This count also includes sessions simply not synced yet, so
+                // it's worded as "haven't reached" rather than claiming they were all dedup-skipped.
+                if (settings.healthConnectStatus == HealthConnectStatus.AUTHORIZED && settings.healthConnectUnsyncedCount > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${settings.healthConnectUnsyncedCount} session(s) haven't reached Health Connect yet — " +
+                            "either not synced, or another app already recorded overlapping sleep for that night.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

@@ -149,12 +149,14 @@ class CorrelationUseCase {
     ): CorrelationResult? {
         val pairs = sessionByDate.keys.mapNotNull { date ->
             val session = sessionByDate[date] ?: return@mapNotNull null
-            // Count exercise on the same day as sleep start OR the day before
-            val exerciseMinutes = habitsByDate[date.minusDays(1)]
-                ?.sumOf { log ->
+            // Count exercise on the same day as sleep start OR the day before — an evening
+            // workout logged the same calendar day (before bed) was previously dropped entirely,
+            // since only date.minusDays(1) was queried despite this doc comment's stated intent.
+            val exerciseMinutes = (habitsByDate[date].orEmpty() + habitsByDate[date.minusDays(1)].orEmpty())
+                .sumOf { log ->
                     if (log.entry is HabitEntry.Exercise) log.entry.durationMinutes.toDouble() else 0.0
                 }
-                ?.toFloat() ?: 0f
+                .toFloat()
             Pair(exerciseMinutes, session.sleepScore.toFloat())
         }
 

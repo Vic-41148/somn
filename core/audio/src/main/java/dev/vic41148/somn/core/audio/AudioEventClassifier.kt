@@ -20,13 +20,23 @@ class AudioEventClassifier(
     private val yamnetClassify: ((ShortArray) -> AudioEventType?)? = null
 ) {
 
+    companion object {
+        // Sustained noise above the "loud" threshold (fan, traffic, a snoring bout that never
+        // drops below 45dB) would otherwise keep boxing samples into `currentBuffer` for as long
+        // as it lasts, unbounded, for the rest of the night. Cap raw-sample retention once an
+        // event has accumulated this much audio; duration/dB/ZCR stats keep accumulating past
+        // this point for classification, only the raw clip itself is capped.
+        private const val MAX_BUFFERED_SECONDS = 30
+    }
+
     private var loudBufferCount = 0
     private var eventStartTime = 0L
     private var maxIntensity = 0
-    
+
     private var sumZcr = 0L
     private var maxZcr = 0
     private val currentBuffer = mutableListOf<Short>()
+    private val maxBufferedSamples = MAX_BUFFERED_SECONDS * AudioCollector.SAMPLE_RATE
 
     /**
      * Processes an audio buffer and returns an AudioEvent if an event just finished.
@@ -47,7 +57,9 @@ class AudioEventClassifier(
                 currentBuffer.clear()
             }
             loudBufferCount++
-            currentBuffer.addAll(buffer.toList())
+            if (currentBuffer.size < maxBufferedSamples) {
+                currentBuffer.addAll(buffer.toList())
+            }
             if (db > maxIntensity) {
                 maxIntensity = db
             }

@@ -106,14 +106,19 @@ class NasClientImpl @Inject constructor(
     }
 
     private suspend fun testWebDav(config: NasConfig): Boolean {
+        // disconnect() used to only run on the success path — an exception from
+        // conn.responseCode (network failure, the exact scenario a NAS sync worker frequently
+        // hits) left the underlying socket connection leaked instead of released.
+        var conn: HttpURLConnection? = null
         return try {
-            val conn = openConnection(buildBaseUrl(config), "OPTIONS", config)
+            conn = openConnection(buildBaseUrl(config), "OPTIONS", config)
             val code = conn.responseCode
-            conn.disconnect()
             code in 200..299
         } catch (e: Exception) {
             Log.e(TAG, "WebDAV test failed", e)
             false
+        } finally {
+            conn?.disconnect()
         }
     }
 
@@ -123,9 +128,10 @@ class NasClientImpl @Inject constructor(
         data: InputStream,
         length: Long
     ): Boolean {
+        var conn: HttpURLConnection? = null
         return try {
             val url = "${buildBaseUrl(config)}/${remotePath.trimStart('/')}"
-            val conn = openConnection(url, "PUT", config)
+            conn = openConnection(url, "PUT", config)
             conn.doOutput = true
             if (length > 0) conn.setFixedLengthStreamingMode(length)
             conn.setRequestProperty("Content-Type", "application/octet-stream")
@@ -136,30 +142,30 @@ class NasClientImpl @Inject constructor(
             }
 
             val code = conn.responseCode
-            conn.disconnect()
             code in 200..299
         } catch (e: Exception) {
             Log.e(TAG, "WebDAV upload failed: $remotePath", e)
             false
+        } finally {
+            conn?.disconnect()
         }
     }
 
     private suspend fun listWebDav(config: NasConfig, remotePath: String): List<String> {
+        var conn: HttpURLConnection? = null
         return try {
             val url = "${buildBaseUrl(config)}/${remotePath.trimStart('/')}"
-            val conn = openConnection(url, "PROPFIND", config)
+            conn = openConnection(url, "PROPFIND", config)
             conn.setRequestProperty("Depth", "1")
             conn.setRequestProperty("Content-Type", "application/xml")
 
             val code = conn.responseCode
             if (code !in 200..299) {
-                conn.disconnect()
                 return emptyList()
             }
 
             // Simple href extraction — good enough for file listing
             val body = conn.inputStream.bufferedReader().readText()
-            conn.disconnect()
 
             val hrefRegex = Regex("<D:href>(.*?)</D:href>", RegexOption.IGNORE_CASE)
             hrefRegex.findAll(body)
@@ -169,19 +175,23 @@ class NasClientImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "WebDAV list failed: $remotePath", e)
             emptyList()
+        } finally {
+            conn?.disconnect()
         }
     }
 
     private suspend fun deleteWebDav(config: NasConfig, remotePath: String): Boolean {
+        var conn: HttpURLConnection? = null
         return try {
             val url = "${buildBaseUrl(config)}/${remotePath.trimStart('/')}"
-            val conn = openConnection(url, "DELETE", config)
+            conn = openConnection(url, "DELETE", config)
             val code = conn.responseCode
-            conn.disconnect()
             code in 200..299
         } catch (e: Exception) {
             Log.e(TAG, "WebDAV delete failed: $remotePath", e)
             false
+        } finally {
+            conn?.disconnect()
         }
     }
 }

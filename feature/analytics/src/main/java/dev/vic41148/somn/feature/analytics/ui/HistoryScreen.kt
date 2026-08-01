@@ -43,6 +43,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// Shared across all SessionRow instances (LazyColumn runs single-threaded on the main thread) —
+// these used to be constructed fresh on every row recomposition, allocating a locale-symbol
+// table lookup per row per scroll frame.
+private val historyDateFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
+private val historyTimeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
@@ -210,9 +216,6 @@ private fun SessionRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
-    val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -238,7 +241,7 @@ private fun SessionRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = dateFormat.format(Date(session.startTimeMillis)),
+                        text = historyDateFormat.format(Date(session.startTimeMillis)),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -251,7 +254,7 @@ private fun SessionRow(
                     }
                 }
                 Text(
-                    text = "${timeFormat.format(Date(session.startTimeMillis))} → ${timeFormat.format(Date(session.endTimeMillis))}",
+                    text = "${historyTimeFormat.format(Date(session.startTimeMillis))} → ${historyTimeFormat.format(Date(session.endTimeMillis))}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

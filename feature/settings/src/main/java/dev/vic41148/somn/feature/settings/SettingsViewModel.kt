@@ -41,7 +41,8 @@ class SettingsViewModel @Inject constructor(
     private val exportJson: ExportJsonUseCase,
     private val importSleepAsAndroid: ImportSleepAsAndroidUseCase,
     private val calculateScore: CalculateSleepScoreUseCase,
-    private val portableCrypto: PortableCrypto
+    private val portableCrypto: PortableCrypto,
+    private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository
 ) : ViewModel() {
 
     /**
@@ -56,6 +57,18 @@ class SettingsViewModel @Inject constructor(
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
 
     init {
+        // Target Sleep Hours used to be purely local ViewModel state: the slider updated
+        // _settings.value but never touched the stored UserProfile, so it always displayed the
+        // hardcoded 8.0f default regardless of the user's actual saved target, and any change
+        // the user made was silently discarded — score calculation, oversleep detection, and
+        // sleep debt targets all read profile.targetSleepHours directly and never saw the edit.
+        viewModelScope.launch {
+            userProfileRepository.observeProfile().collect { profile ->
+                _settings.value = _settings.value.copy(
+                    targetSleepHours = profile?.targetSleepHours ?: 8.0f
+                )
+            }
+        }
         viewModelScope.launch {
             preferencesRepository.backupPassphraseSet.collect { isSet ->
                 _settings.value = _settings.value.copy(backupPassphraseSet = isSet)
@@ -145,6 +158,11 @@ class SettingsViewModel @Inject constructor(
                 _settings.value = _settings.value.copy(wakeVerificationWindowSeconds = seconds)
             }
         }
+        viewModelScope.launch {
+            preferencesRepository.snoreNudgeEnabled.collect { enabled ->
+                _settings.value = _settings.value.copy(snoreNudgeEnabled = enabled)
+            }
+        }
     }
 
     // Settings state
@@ -156,6 +174,7 @@ class SettingsViewModel @Inject constructor(
         val oversleepThresholdMinutes: Int = 60,
         val wakeVerificationEnabled: Boolean = true,
         val wakeVerificationWindowSeconds: Int = 15,
+        val snoreNudgeEnabled: Boolean = true,
         val darkMode: String = "System",
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
         val selectedCaptchaTaskId: String = "math",
@@ -201,6 +220,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateSleepTarget(hours: Float) {
         _settings.value = _settings.value.copy(targetSleepHours = hours)
+        viewModelScope.launch {
+            val profile = userProfileRepository.getProfile() ?: return@launch
+            userProfileRepository.saveProfile(profile.copy(targetSleepHours = hours))
+        }
     }
 
     fun updateDndEnabled(enabled: Boolean) {
@@ -221,6 +244,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateWakeVerificationWindowSeconds(seconds: Int) {
         viewModelScope.launch { preferencesRepository.updateWakeVerificationWindowSeconds(seconds) }
+    }
+
+    fun updateSnoreNudgeEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateSnoreNudgeEnabled(enabled) }
     }
 
     fun updateTrackingMode(mode: TrackingMode) {

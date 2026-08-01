@@ -145,7 +145,8 @@ fun SleepNavGraph(
 
             composable(Screen.Habits.route) {
                 DailyLogScreen(
-                    onNavigateToMedication = { navController.navigate("medication_log") }
+                    onNavigateToMedication = { navController.navigate("medication_log") },
+                    onNavigateToCorrelations = { navController.navigate("correlation_insights") }
                 )
             }
 
@@ -242,7 +243,9 @@ fun SleepNavGraph(
             // ---- Phase 2: Habits detail screens ----
 
             composable("sleep_debt") {
-                SleepDebtDetailScreen()
+                SleepDebtDetailScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable("medication_log") {
@@ -252,7 +255,9 @@ fun SleepNavGraph(
             }
 
             composable("correlation_insights") {
-                CorrelationInsightsScreen()
+                CorrelationInsightsScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable("circadian_insights") {

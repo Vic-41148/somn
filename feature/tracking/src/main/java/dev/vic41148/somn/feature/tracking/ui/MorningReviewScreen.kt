@@ -135,8 +135,9 @@ fun MorningReviewScreen(
         // Hypnogram
         if (epochs.isNotEmpty()) {
             SleepCard(title = "Sleep Stages") {
+                val hypnogramStages = remember(epochs) { epochs.map { it.stage } }
                 Hypnogram(
-                    stages = epochs.map { it.stage },
+                    stages = hypnogramStages,
                     modifier = Modifier.fillMaxWidth(),
                     height = 100.dp
                 )

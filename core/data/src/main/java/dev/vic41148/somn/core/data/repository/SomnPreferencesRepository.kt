@@ -51,6 +51,7 @@ class SomnPreferencesRepository @Inject constructor(
          * readable *off* the device, which is why the user is also shown it once to store elsewhere.
          */
         val BACKUP_PASSPHRASE_ENCRYPTED = stringPreferencesKey("backup_passphrase_encrypted")
+        val SNORE_NUDGE_ENABLED = booleanPreferencesKey("snore_nudge_enabled")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -201,6 +202,15 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateYamnetClassificationEnabled(enabled: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.YAMNET_CLASSIFICATION_ENABLED] = enabled }
+    }
+
+    /** Whether SleepTrackingService vibrates the phone as a gentle nudge on detected snoring. On by default (existing behavior), but with no way to turn it off before this. */
+    val snoreNudgeEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.SNORE_NUDGE_ENABLED] ?: true }
+
+    suspend fun updateSnoreNudgeEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.SNORE_NUDGE_ENABLED] = enabled }
     }
 
     // ── NAS Preferences ──────────────────────────────────────────────
