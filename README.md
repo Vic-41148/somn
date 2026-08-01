@@ -170,10 +170,16 @@ Full details — every stored field, every permission, and how to delete anythin
 
 Contributions welcome! This is an early-stage project — see **On the Roadmap** above for what's next.
 
+Please read [**CONTRIBUTING.md**](CONTRIBUTING.md) first — it covers how to get
+the project building, how to open a pull request against `dev`, what CI checks
+must pass, and the project's coding and privacy conventions.
+
+Quick start:
+
 1. Fork the repo
 2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Commit your changes
-4. Push and open a PR
+4. Push and open a PR against `dev`
 
 ---
 

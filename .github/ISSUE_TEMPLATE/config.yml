@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read the contributing guide
+    url: https://github.com/Vic-41148/somn/blob/dev/CONTRIBUTING.md
+    about: How to get started, build the app, and open your first pull request.
+  - name: Read the privacy policy
+    url: https://github.com/Vic-41148/somn/blob/dev/PRIVACY.md
+    about: Exactly what Somn stores, what can leave the device, and how to delete it.
+  - name: Project documentation and roadmap
+    url: https://github.com/Vic-41148/somn/blob/dev/README.md
+    about: Feature overview, architecture, and what's on the roadmap.

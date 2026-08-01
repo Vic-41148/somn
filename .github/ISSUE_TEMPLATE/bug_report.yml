@@ -1,0 +1,83 @@
+name: Bug report
+description: Something is broken or not working as expected. Help us fix it.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! You're helping make Somn better
+        for everyone.
+
+        Before you start, a quick heads-up: please don't include any personal sleep
+        data or other sensitive info in this issue — describe the problem, not your
+        sleep history.
+
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the existing issues and didn't find this already reported
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What went wrong?
+      description: Describe the problem in your own words. What did you expect to happen, and what actually happened instead?
+      placeholder: |
+        Example: I set an alarm for 7:00, but the app never rang. The alarm screen
+        showed the time but no sound played.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Tell us how to make it happen, step by step. Don't worry if you can't reproduce it every time — describe what you did.
+      placeholder: |
+        1. Go to the alarm tab
+        2. Create an alarm for tomorrow at 7:00
+        3. Wait for the alarm time
+        4. Nothing happens
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      description: Which phone/tablet and which Android version are you on?
+      placeholder: "Example: Google Pixel 8, Android 15"
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Which version of Somn are you using? (Settings -> About, or check your installed apps list.)
+      placeholder: "Example: 1.0.0 or 2026.08.01"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots, or screen recordings (optional)
+      description: |
+        Anything that helps us see the problem: a screenshot, a screen recording, or
+        a logcat snippet. Just drag and drop files here.
+      placeholder: "Screenshots or logcat output"
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Other context that might matter — when it started, whether it's consistent, workarounds you found.
+    validations:
+      required: false
