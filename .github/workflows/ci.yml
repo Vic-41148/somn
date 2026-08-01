@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test & lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # gradle.properties pins org.gradle.java.home to a local Arch path so the maintainer's
+      # machine picks the right JDK. That path does not exist on a runner, so every Gradle
+      # invocation here overrides it with the JDK actions/setup-java just installed.
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      - name: Android Lint
+        run: ./gradlew lintDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/build/reports/tests/**'
+          if-no-files-found: ignore
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: '**/build/reports/lint-results-*.html'
+          if-no-files-found: ignore
+
+  privacy-guardrails:
+    name: Privacy guardrails
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # These are the claims PRIVACY.md and the README make to users. They are cheap to assert
+      # and expensive to notice breaking, because a transitive dependency can reintroduce any of
+      # them without a single line of our own code changing.
+      - name: No Google Play Services on the release classpath
+        run: |
+          ./gradlew :app:dependencies --configuration releaseRuntimeClasspath \
+            -Dorg.gradle.java.home="$JAVA_HOME" -q > deps.txt
+          if grep -qE 'play-services|com\.google\.android\.play|com\.google\.mlkit' deps.txt; then
+            echo "::error::Google Play Services artifacts are back on the release classpath:"
+            grep -E 'play-services|com\.google\.android\.play|com\.google\.mlkit' deps.txt
+            exit 1
+          fi
+          echo "OK: no GMS artifacts."
+
+      - name: Auto Backup stays disabled and INTERNET stays scoped to core:data
+        run: |
+          # --rerun-tasks because the merger report is only rewritten when the task actually
+          # runs. An UP-TO-DATE or cache-restored manifest task leaves a stale report on disk,
+          # and a stale report would let this check pass against yesterday's dependency graph.
+          ./gradlew :app:processReleaseMainManifest --rerun-tasks \
+            -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+          MANIFEST=app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+          REPORT=app/build/outputs/logs/manifest-merger-release-report.txt
+
+          grep -q 'android.permission.INTERNET' core/data/src/main/AndroidManifest.xml \
+            || { echo "::error::core/data no longer declares INTERNET — NAS sync would fail"; exit 1; }
+
+          grep -q 'android:allowBackup="false"' "$MANIFEST" \
+            || { echo "::error::allowBackup is not false in the merged manifest"; exit 1; }
+          grep -q 'android:dataExtractionRules=' "$MANIFEST" \
+            || { echo "::error::dataExtractionRules is missing (API 31+ backup opt-out)"; exit 1; }
+          grep -q 'android:fullBackupContent=' "$MANIFEST" \
+            || { echo "::error::fullBackupContent is missing (API 26-30 backup opt-out)"; exit 1; }
+
+          # INTERNET is allowed, but only when it comes from the module that owns NAS sync.
+          if grep -q 'android.permission.INTERNET' "$MANIFEST"; then
+            grep -A1 'uses-permission#android.permission.INTERNET' "$REPORT" | grep -q '\[:core:data\]' \
+              || { echo "::error::INTERNET is being contributed by something other than :core:data"; \
+                   grep -A1 'uses-permission#android.permission.INTERNET' "$REPORT"; exit 1; }
+          fi
+          echo "OK: backup opt-out intact, INTERNET scoped to :core:data."
