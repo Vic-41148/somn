@@ -161,6 +161,8 @@ Both `main` and `dev` are protected on GitHub:
   - `Build, test & lint` — `assembleDebug`, unit tests, and Android Lint
   - `Privacy guardrails` — automated checks that protect the privacy promises
     (details below)
+  - `Style guardrails` — fails the build if emoji appear anywhere in tracked
+    source or docs (see the no-emoji rule under code style below)
 - **Branches must be up to date** before merging, and **force pushes** are
   blocked on protected branches.
 
@@ -176,7 +178,9 @@ again. The check names appear directly on the PR page.
   Don't introduce new architectural patterns or new charting/DI/DB libraries
   without discussing it first.
 - **No emoji in source or user-facing text.** We deliberately removed them; keep
-  it that way.
+  it that way. This is enforced by CI — the `Style guardrails` check fails the
+  build if any emoji (including symbols from the Miscellaneous Symbols block and
+  emoji variation selectors) appears in a tracked file.
 - **Kotlin-first APIs.** Prefer idiomatic Kotlin (immutability, `Flow`, coroutines)
   over Java-style patterns.
 - **Accessibility matters.** New UI should have content descriptions and support
