@@ -31,6 +31,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import dev.vic41148.somn.core.ui.theme.CycleFollicular
+import dev.vic41148.somn.core.ui.theme.CycleLuteal
+import dev.vic41148.somn.core.ui.theme.CycleMenstrual
+import dev.vic41148.somn.core.ui.theme.CycleOvulation
+import dev.vic41148.somn.core.ui.theme.CyclePremenstrual
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -127,11 +132,11 @@ fun TrendsScreen(
 
 /** DATA-04: low-alpha so the band reads as context behind the line, not a competing focal color. */
 private fun MenstrualCyclePhase.toBandColor(): Color = when (this) {
-    MenstrualCyclePhase.MENSTRUAL -> Color(0xFFE57373).copy(alpha = 0.18f)
-    MenstrualCyclePhase.FOLLICULAR -> Color(0xFF81C784).copy(alpha = 0.18f)
-    MenstrualCyclePhase.OVULATION -> Color(0xFFFFD54F).copy(alpha = 0.18f)
-    MenstrualCyclePhase.LUTEAL -> Color(0xFF64B5F6).copy(alpha = 0.18f)
-    MenstrualCyclePhase.PREMENSTRUAL -> Color(0xFFBA68C8).copy(alpha = 0.18f)
+    MenstrualCyclePhase.MENSTRUAL -> CycleMenstrual.copy(alpha = 0.18f)
+    MenstrualCyclePhase.FOLLICULAR -> CycleFollicular.copy(alpha = 0.18f)
+    MenstrualCyclePhase.OVULATION -> CycleOvulation.copy(alpha = 0.18f)
+    MenstrualCyclePhase.LUTEAL -> CycleLuteal.copy(alpha = 0.18f)
+    MenstrualCyclePhase.PREMENSTRUAL -> CyclePremenstrual.copy(alpha = 0.18f)
 }
 
 @Composable

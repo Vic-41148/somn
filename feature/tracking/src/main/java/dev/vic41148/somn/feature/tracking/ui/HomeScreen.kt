@@ -35,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import dev.vic41148.somn.core.ui.theme.DebtMild
+import dev.vic41148.somn.core.ui.theme.DebtModerate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -313,8 +315,8 @@ fun HomeScreen(
 private fun SleepDebtHomeCard(debt: SleepDebt, onClick: () -> Unit) {
     val levelColor = when (debt.level) {
         DebtLevel.NONE -> MaterialTheme.colorScheme.primary
-        DebtLevel.MILD -> Color(0xFFF9A825)
-        DebtLevel.MODERATE -> Color(0xFFE65100)
+        DebtLevel.MILD -> DebtMild
+        DebtLevel.MODERATE -> DebtModerate
         DebtLevel.SEVERE -> MaterialTheme.colorScheme.error
     }
 

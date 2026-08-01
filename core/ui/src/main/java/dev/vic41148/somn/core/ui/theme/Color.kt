@@ -57,3 +57,21 @@ val StageAwake = Color(0xFFEF5350)
 val StageLight = Color(0xFF64B5F6)
 val StageDeep = Color(0xFF1A237E)
 val StageRem = Color(0xFFAB47BC)
+
+// Sleep debt severity — was duplicated inline as raw hex in both HomeScreen and
+// SleepDebtDetailScreen; named here so the two can't drift out of sync with each other.
+val DebtMild = Color(0xFFF9A825)
+val DebtModerate = Color(0xFFE65100)
+
+// Menstrual cycle phase bands (DATA-04, TrendsScreen) — kept at full alpha here; callers apply
+// their own alpha since the same hue is used at different opacities depending on context.
+val CycleMenstrual = Color(0xFFE57373)
+val CycleFollicular = Color(0xFF81C784)
+val CycleOvulation = Color(0xFFFFD54F)
+val CycleLuteal = Color(0xFF64B5F6)
+val CyclePremenstrual = Color(0xFFBA68C8)
+
+// Audio event type colors (AudioTimeline)
+val AudioEventTalk = Color(0xFF6200EE)
+val AudioEventSnore = Color(0xFFFF9800)
+val AudioEventCough = Color(0xFFF44336)

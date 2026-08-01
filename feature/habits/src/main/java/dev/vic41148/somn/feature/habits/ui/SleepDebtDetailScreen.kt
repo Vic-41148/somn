@@ -39,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import dev.vic41148.somn.core.ui.theme.DebtMild
+import dev.vic41148.somn.core.ui.theme.DebtModerate
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -195,8 +197,8 @@ private fun DebtSummaryCard(
 ) {
     val levelColor = when (level) {
         DebtLevel.NONE -> MaterialTheme.colorScheme.primary
-        DebtLevel.MILD -> Color(0xFFF9A825)    // amber
-        DebtLevel.MODERATE -> Color(0xFFE65100) // deep orange
+        DebtLevel.MILD -> DebtMild
+        DebtLevel.MODERATE -> DebtModerate
         DebtLevel.SEVERE -> MaterialTheme.colorScheme.error
     }
 
