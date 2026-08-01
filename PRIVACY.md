@@ -85,7 +85,7 @@ classpath.
 
 ### Prebuilt binaries
 
-For transparency, the app ships two things it does not build from source:
+For transparency, the app ships three things it does not build from source:
 
 - `core/audio/src/main/assets/yamnet.tflite` — Google's YAMNet audio-event classifier, Apache-2.0,
   used on-device for optional snoring/coughing/talking classification. It never sends anything
@@ -93,6 +93,12 @@ For transparency, the app ships two things it does not build from source:
   SHA-256: `10c95ea3eb9a7bb4cb8bddf6feb023250381008177ac162ce169694d05c317de`
 - `com.google.ai.edge.litert:litert` — the LiteRT/TensorFlow Lite runtime, Apache-2.0, from Maven
   Central, that executes the model above.
+- `io.github.zxing-cpp:android` — zxing-cpp's Android port, Apache-2.0, from Maven Central. Used
+  for QR decoding in the alarm-dismiss captcha and NAS setup; it replaced Google's ML Kit when
+  that was dropped. It ships as a prebuilt AAR containing a native `.so` — a binary we do not
+  build from source. IzzyOnDroid accepts prebuilt binaries as-is with no reproducibility
+  requirement, but official F-Droid either builds it from source via NDK in their own
+  infrastructure or records it as a known limitation.
 
 ### Health Connect
 
