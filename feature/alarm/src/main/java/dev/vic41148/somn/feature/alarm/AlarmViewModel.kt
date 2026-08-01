@@ -15,9 +15,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import dev.vic41148.somn.core.domain.repository.AlarmScheduler
+
 @HiltViewModel
 class AlarmViewModel @Inject constructor(
-    private val alarmRepository: AlarmRepository
+    private val alarmRepository: AlarmRepository,
+    private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
 
     val alarms = alarmRepository.observeAlarms()
@@ -31,37 +34,60 @@ class AlarmViewModel @Inject constructor(
     private val _editingAlarm = MutableStateFlow<Alarm?>(null)
     val editingAlarm: StateFlow<Alarm?> = _editingAlarm.asStateFlow()
 
-    fun createAlarm(hour: Int, minute: Int, label: String = "") {
+    fun createAlarm(hour: Int, minute: Int, label: String = "", captchaType: String = "math", repeatDays: Set<Int> = emptySet()) {
         viewModelScope.launch {
             val alarm = Alarm(
                 hour = hour,
                 minute = minute,
-                label = label
+                label = label,
+                repeatDays = repeatDays,
+                captchaType = try {
+                    CaptchaType.valueOf(captchaType.uppercase())
+                } catch (e: Exception) {
+                    CaptchaType.NONE
+                }
             )
-            alarmRepository.createAlarm(alarm)
+            val id = alarmRepository.createAlarm(alarm)
+            val newAlarm = alarm.copy(id = id)
+            alarmScheduler.schedule(newAlarm)
         }
     }
 
     fun updateAlarm(alarm: Alarm) {
         viewModelScope.launch {
             alarmRepository.updateAlarm(alarm)
+            alarmScheduler.schedule(alarm)
         }
     }
 
     fun deleteAlarm(alarm: Alarm) {
         viewModelScope.launch {
+            alarmScheduler.cancel(alarm.id)
             alarmRepository.deleteAlarm(alarm)
         }
     }
 
     fun toggleAlarm(alarm: Alarm) {
         viewModelScope.launch {
-            alarmRepository.setEnabled(alarm.id, !alarm.isEnabled)
+            val nextState = !alarm.isEnabled
+            alarmRepository.setEnabled(alarm.id, nextState)
+            if (nextState) {
+                alarmScheduler.schedule(alarm.copy(isEnabled = true))
+            } else {
+                alarmScheduler.cancel(alarm.id)
+            }
         }
     }
 
     fun setEditingAlarm(alarm: Alarm?) {
         _editingAlarm.value = alarm
+    }
+
+    fun loadAlarmForEditing(id: Long) {
+        viewModelScope.launch {
+            val alarm = alarmRepository.getAlarm(id)
+            _editingAlarm.value = alarm
+        }
     }
 
     fun dismissAlarm(context: android.content.Context) {

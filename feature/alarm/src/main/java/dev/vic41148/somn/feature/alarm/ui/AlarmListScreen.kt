@@ -1,5 +1,6 @@
 package dev.vic41148.somn.feature.alarm.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,11 +31,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.domain.model.Alarm
 import dev.vic41148.somn.feature.alarm.AlarmViewModel
 
 @Composable
 fun AlarmListScreen(
     onAddAlarm: () -> Unit,
+    onEditAlarm: (Alarm) -> Unit,
     viewModel: AlarmViewModel = hiltViewModel()
 ) {
     val alarms by viewModel.alarms.collectAsState()
@@ -80,7 +83,9 @@ fun AlarmListScreen(
             ) {
                 items(alarms, key = { it.id }) { alarm ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onEditAlarm(alarm) },
                         colors = CardDefaults.cardColors(
                             containerColor = if (alarm.isEnabled)
                                 MaterialTheme.colorScheme.surfaceContainerLow

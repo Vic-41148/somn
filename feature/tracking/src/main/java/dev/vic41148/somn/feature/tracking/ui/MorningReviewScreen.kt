@@ -71,6 +71,37 @@ fun MorningReviewScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Incomplete-night banner (REL-02): tracking stopped early, e.g. app/service was killed
+        if (session.isPartial) {
+            SleepCard(
+                title = "Incomplete Night",
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            ) {
+                Text(
+                    text = "Tracking stopped early — this session may be missing data from later in the night.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Oversleep banner (SESS-03)
+        if (session.isOversleep) {
+            SleepCard(
+                title = "Oversleep Detected",
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            ) {
+                Text(
+                    text = "This session ran well beyond your target sleep duration. Oversleeping can " +
+                        "leave you groggy — consider a consistent wake time even on rest days.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Sleep Score
         SleepScoreRing(
             score = session.sleepScore,
@@ -95,8 +126,9 @@ fun MorningReviewScreen(
         // Hypnogram
         if (epochs.isNotEmpty()) {
             SleepCard(title = "Sleep Stages") {
+                val hypnogramStages = remember(epochs) { epochs.map { it.stage } }
                 Hypnogram(
-                    stages = epochs.map { it.stage },
+                    stages = hypnogramStages,
                     modifier = Modifier.fillMaxWidth(),
                     height = 100.dp
                 )

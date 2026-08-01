@@ -1,0 +1,263 @@
+package dev.vic41148.somn.core.data.repository
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import java.io.IOException
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "somn_prefs")
+
+@Singleton
+class SomnPreferencesRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val encryptionUtils: dev.vic41148.somn.core.data.backup.EncryptionUtils
+) {
+    private object PreferencesKeys {
+        val SELECTED_CAPTCHA_TASK_ID = stringPreferencesKey("selected_captcha_task_id")
+        val QR_CODE_VALUE = stringPreferencesKey("qr_code_value")
+        val MAX_SNOOZE_COUNT = intPreferencesKey("max_snooze_count")
+        val BACKUP_URI = stringPreferencesKey("backup_uri")
+        val TRACKING_MODE = stringPreferencesKey("tracking_mode")
+        // NAS config
+        val NAS_ENABLED = booleanPreferencesKey("nas_enabled")
+        val NAS_HOST = stringPreferencesKey("nas_host")
+        val NAS_PATH = stringPreferencesKey("nas_path")
+        val NAS_USERNAME = stringPreferencesKey("nas_username")
+        val NAS_PROTOCOL = stringPreferencesKey("nas_protocol")
+        val NAS_PORT = intPreferencesKey("nas_port")
+        /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded — never the raw password. */
+        val NAS_PASSWORD_ENCRYPTED = stringPreferencesKey("nas_password_encrypted")
+        val OVERSLEEP_THRESHOLD_MINUTES = intPreferencesKey("oversleep_threshold_minutes")
+        val WAKE_VERIFICATION_ENABLED = booleanPreferencesKey("wake_verification_enabled")
+        val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
+        val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
+        val SNORE_NUDGE_ENABLED = booleanPreferencesKey("snore_nudge_enabled")
+    }
+
+    val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            try {
+                dev.vic41148.somn.core.domain.model.TrackingMode.valueOf(
+                    preferences[PreferencesKeys.TRACKING_MODE] ?: "ACCELEROMETER"
+                )
+            } catch (e: Exception) {
+                dev.vic41148.somn.core.domain.model.TrackingMode.ACCELEROMETER
+            }
+        }
+
+    val backupUri: Flow<String?> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.BACKUP_URI]
+        }
+
+    val selectedCaptchaTaskId: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.SELECTED_CAPTCHA_TASK_ID] ?: "math"
+        }
+
+    val qrCodeValue: Flow<String?> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.QR_CODE_VALUE]
+        }
+
+    val maxSnoozeCount: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }.map { preferences ->
+            preferences[PreferencesKeys.MAX_SNOOZE_COUNT] ?: 3
+        }
+
+    suspend fun updateTrackingMode(mode: dev.vic41148.somn.core.domain.model.TrackingMode) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.TRACKING_MODE] = mode.name
+        }
+    }
+
+    suspend fun updateBackupUri(uri: String?) {
+        context.dataStore.edit { preferences ->
+            if (uri == null) {
+                preferences.remove(PreferencesKeys.BACKUP_URI)
+            } else {
+                preferences[PreferencesKeys.BACKUP_URI] = uri
+            }
+        }
+    }
+
+    suspend fun updateSelectedCaptchaTask(taskId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SELECTED_CAPTCHA_TASK_ID] = taskId
+        }
+    }
+
+    suspend fun updateQrCodeValue(value: String?) {
+        context.dataStore.edit { preferences ->
+            if (value == null) {
+                preferences.remove(PreferencesKeys.QR_CODE_VALUE)
+            } else {
+                preferences[PreferencesKeys.QR_CODE_VALUE] = value
+            }
+        }
+    }
+
+    suspend fun updateMaxSnoozeCount(count: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.MAX_SNOOZE_COUNT] = count
+        }
+    }
+
+    /** SESS-03: minutes beyond the user's target sleep duration before a session is flagged oversleep. */
+    val oversleepThresholdMinutes: Flow<Int> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.OVERSLEEP_THRESHOLD_MINUTES] ?: 60 }
+
+    suspend fun updateOversleepThresholdMinutes(minutes: Int) {
+        context.dataStore.edit { it[PreferencesKeys.OVERSLEEP_THRESHOLD_MINUTES] = minutes }
+    }
+
+    /** WAKE-01: whether to require a post-dismiss wake confirmation before fully silencing the alarm. */
+    val wakeVerificationEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.WAKE_VERIFICATION_ENABLED] ?: true }
+
+    suspend fun updateWakeVerificationEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.WAKE_VERIFICATION_ENABLED] = enabled }
+    }
+
+    /** WAKE-01: seconds the user has to confirm they're awake before WAKE-02's re-ring fires. */
+    val wakeVerificationWindowSeconds: Flow<Int> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.WAKE_VERIFICATION_WINDOW_SECONDS] ?: 15 }
+
+    suspend fun updateWakeVerificationWindowSeconds(seconds: Int) {
+        context.dataStore.edit { it[PreferencesKeys.WAKE_VERIFICATION_WINDOW_SECONDS] = seconds }
+    }
+
+    /** HEALTH-01/02: user opt-in — off by default, syncing external health data is not implied by installing the app. */
+    val healthConnectEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.HEALTH_CONNECT_ENABLED] ?: false }
+
+    suspend fun updateHealthConnectEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.HEALTH_CONNECT_ENABLED] = enabled }
+    }
+
+    /** Whether SleepTrackingService vibrates the phone as a gentle nudge on detected snoring. On by default (existing behavior), but with no way to turn it off before this. */
+    val snoreNudgeEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.SNORE_NUDGE_ENABLED] ?: true }
+
+    suspend fun updateSnoreNudgeEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.SNORE_NUDGE_ENABLED] = enabled }
+    }
+
+    // ── NAS Preferences ──────────────────────────────────────────────
+
+    val nasEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_ENABLED] ?: false }
+
+    val nasHost: Flow<String> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_HOST] ?: "" }
+
+    val nasPath: Flow<String> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_PATH] ?: "/somn" }
+
+    val nasUsername: Flow<String> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_USERNAME] ?: "" }
+
+    val nasProtocol: Flow<String> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_PROTOCOL] ?: "WEBDAV" }
+
+    val nasPort: Flow<Int> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.NAS_PORT] ?: 80 }
+
+    suspend fun updateNasEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_ENABLED] = enabled }
+    }
+
+    suspend fun updateNasHost(host: String) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_HOST] = host }
+    }
+
+    suspend fun updateNasPath(path: String) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_PATH] = path }
+    }
+
+    suspend fun updateNasUsername(username: String) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_USERNAME] = username }
+    }
+
+    suspend fun updateNasProtocol(protocol: String) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_PROTOCOL] = protocol }
+    }
+
+    suspend fun updateNasPort(port: Int) {
+        context.dataStore.edit { it[PreferencesKeys.NAS_PORT] = port }
+    }
+
+    /** Encrypts [password] via [EncryptionUtils] (Android Keystore-backed AES-256-GCM) before persisting. */
+    suspend fun updateNasPassword(password: String) {
+        val encrypted = encryptionUtils.encryptBytes(password.toByteArray(Charsets.UTF_8))
+        context.dataStore.edit {
+            it[PreferencesKeys.NAS_PASSWORD_ENCRYPTED] = android.util.Base64.encodeToString(
+                encrypted, android.util.Base64.NO_WRAP
+            )
+        }
+    }
+
+    /** Decrypts the stored NAS password, or null if none has been set. */
+    suspend fun getNasPassword(): String? {
+        val encoded = context.dataStore.data.map { it[PreferencesKeys.NAS_PASSWORD_ENCRYPTED] }
+            .catch { if (it is IOException) emit(null) else throw it }
+            .first()
+            ?: return null
+        val encrypted = android.util.Base64.decode(encoded, android.util.Base64.NO_WRAP)
+        return String(encryptionUtils.decryptBytes(encrypted), Charsets.UTF_8)
+    }
+}

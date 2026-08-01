@@ -228,11 +228,16 @@ class CalculateSleepScoreUseCase {
     private fun calculateDurationScore(actualMinutes: Int, targetHours: Float): Int {
         val targetMinutes = targetHours * 60
         val ratio = actualMinutes / targetMinutes
+        // The oversleep branch (ratio > 1.1f) used to be unreachable — `ratio >= 0.8f` is checked
+        // first and matches everything oversleeping too, so a session slept way past its target
+        // (e.g. ratio 2.0) hit `80 + (ratio - 0.8) * 200`, coerced straight to a perfect 100
+        // instead of the intended oversleep penalty. Oversleep must be checked before the >= 0.8f
+        // catch-all.
         return when {
             ratio >= 0.9f && ratio <= 1.1f -> 100
+            ratio > 1.1f -> max(60, (100 - (ratio - 1.1f) * 100).toInt())
             ratio >= 0.8f -> (80 + (ratio - 0.8f) * 200).toInt()
             ratio >= 0.6f -> (40 + (ratio - 0.6f) * 200).toInt()
-            ratio > 1.1f -> max(60, (100 - (ratio - 1.1f) * 100).toInt())
             else -> (ratio * 66).toInt()
         }.coerceIn(0, 100)
     }

@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.vic41148.somn.app.navigation.SleepNavGraph
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
+import dev.vic41148.somn.core.ui.battery.BatteryExemptionState
 import dev.vic41148.somn.core.ui.theme.SomnTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -23,6 +24,13 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var profileRepository: UserProfileRepository
+
+    override fun onResume() {
+        super.onResume()
+        // REL-03: OEM power-management layers can silently revoke this exemption after an
+        // OTA update, so re-check on every resume rather than only once at onboarding.
+        BatteryExemptionState.recheck(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

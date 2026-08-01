@@ -58,4 +58,7 @@ dependencies {
 
     // ML Kit for QR setup
     implementation(libs.mlkit.barcode.scanning)
+
+    // WorkManager for NAS sync triggers
+    implementation(libs.work.runtime)
 }

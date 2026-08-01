@@ -18,12 +18,23 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import dev.vic41148.somn.core.domain.model.AlarmPreferences
 import dev.vic41148.somn.feature.alarm.captcha.CaptchaTask
+import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.Executors
 
 class QRCodeCaptchaTask : CaptchaTask {
     override val id: String = "qrcode"
     override val displayName: String = "QR Code Scan"
-    
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface PreferencesEntryPoint {
+        fun preferencesRepository(): SomnPreferencesRepository
+    }
+
     private var isSolved by mutableStateOf(false)
 
     override fun isComplete(): Boolean = isSolved
@@ -36,36 +47,59 @@ class QRCodeCaptchaTask : CaptchaTask {
     override fun TaskUI(onComplete: () -> Unit) {
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
-        val expectedValue = AlarmPreferences.qrCodeValue
 
-        if (expectedValue == null) {
-            Text("QR not configured. Fallback to Math.")
-            LaunchedEffect(Unit) {
-                // In real app, the registry would handle the fallback before launching this
+        val preferencesRepository = remember {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                PreferencesEntryPoint::class.java
+            )
+            entryPoint.preferencesRepository()
+        }
+
+        val expectedValue by preferencesRepository.qrCodeValue.collectAsState(initial = null)
+
+        val currentExpectedValue = expectedValue
+        if (currentExpectedValue == null) {
+            // AlarmActivity already verified a QR value is configured before selecting this
+            // task (falling back to math otherwise) — a null here just means this DataStore
+            // flow hasn't emitted its first value yet, not a real "not configured" state.
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
             return
+        }
+
+        val executor = remember { Executors.newSingleThreadExecutor() }
+        val scanner = remember { BarcodeScanning.getClient() }
+        val cameraProviderRef = remember { arrayOfNulls<ProcessCameraProvider>(1) }
+
+        DisposableEffect(Unit) {
+            onDispose {
+                cameraProviderRef[0]?.unbindAll()
+                scanner.close()
+                executor.shutdown()
+            }
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { ctx ->
                     val previewView = PreviewView(ctx)
-                    val executor = Executors.newSingleThreadExecutor()
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
+                        cameraProviderRef[0] = cameraProvider
                         val preview = Preview.Builder().build().apply {
                             surfaceProvider = previewView.surfaceProvider
                         }
 
-                        val scanner = BarcodeScanning.getClient()
                         val imageAnalysis = ImageAnalysis.Builder()
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .build()
 
                         imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                            processImageProxy(scanner, imageProxy, expectedValue) {
+                            processImageProxy(scanner, imageProxy, currentExpectedValue) {
                                 isSolved = true
                                 onComplete()
                             }

@@ -23,8 +23,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,8 @@ import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.content.Context
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
 import android.net.Uri
 
@@ -56,6 +60,12 @@ fun SessionDetailScreen(
     val session = sessions.find { it.id == sessionId } ?: return
     
     val audioEvents by viewModel.observeAudioEvents(sessionId).collectAsState(initial = emptyList())
+    val externalVitals by produceState<dev.vic41148.somn.core.domain.model.ExternalVitalsSnapshot?>(
+        initialValue = null,
+        key1 = sessionId
+    ) {
+        value = viewModel.getExternalVitals(sessionId)
+    }
 
     val dateFormat = SimpleDateFormat("EEEE, MMM d, yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
@@ -145,6 +155,17 @@ fun SessionDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            // Audio Timeline (Phase 3)
+            dev.vic41148.somn.core.ui.components.AudioTimeline(
+                events = audioEvents,
+                sessionStartTime = session.startTimeMillis,
+                sessionDurationMillis = (session.endTimeMillis - session.startTimeMillis).coerceAtLeast(1000),
+                modifier = Modifier.padding(vertical = 16.dp),
+                onSeekTo = { timestamp ->
+                    // Handle seeking/playback if implements
+                }
+            )
+
             // Audio Events Summary
             if (audioEvents.isNotEmpty()) {
                 SleepCard(title = "Audio Events") {
@@ -168,6 +189,9 @@ fun SessionDetailScreen(
             if (talkEvents.isNotEmpty()) {
                 val context = LocalContext.current
                 val mediaPlayer = remember { MediaPlayer() }
+                DisposableEffect(mediaPlayer) {
+                    onDispose { mediaPlayer.release() }
+                }
 
                 SleepCard(title = "Sleep Talk Recordings") {
                     talkEvents.forEach { event ->
@@ -188,11 +212,19 @@ fun SessionDetailScreen(
                                 IconButton(onClick = {
                                     try {
                                         mediaPlayer.reset()
+                                        mediaPlayer.setOnPreparedListener { it.start() }
+                                        mediaPlayer.setOnErrorListener { _, what, extra ->
+                                            android.util.Log.e("SessionDetailScreen",
+                                                "Talk clip playback failed: what=$what extra=$extra")
+                                            true
+                                        }
                                         mediaPlayer.setDataSource(context, Uri.parse(event.clipPath!!))
-                                        mediaPlayer.prepare()
-                                        mediaPlayer.start()
+                                        // prepareAsync() instead of prepare() — the latter blocks
+                                        // synchronously on the calling thread, which here is the
+                                        // main/UI thread inside a click handler.
+                                        mediaPlayer.prepareAsync()
                                     } catch (e: Exception) {
-                                        e.printStackTrace()
+                                        android.util.Log.e("SessionDetailScreen", "Failed to play talk clip", e)
                                     }
                                 }) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "Play")
@@ -202,6 +234,53 @@ fun SessionDetailScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // External Vitals (HEALTH-01) — HR/HRV/SpO2/skin temp a paired wearable wrote to Health Connect
+            val context = LocalContext.current
+            externalVitals?.let { vitals ->
+                if (vitals.hasAnyData) {
+                    // sourceApp is stored as a package name (e.g. "com.fitbit.FitbitMobile"), not
+                    // a display name — resolve it here at the UI layer rather than in the data
+                    // layer, so the stable package name stays what's actually persisted.
+                    val sourceLabel = remember(vitals.sourceApp) {
+                        vitals.sourceApp?.let { resolveAppLabel(context, it) }
+                    }
+                    SleepCard(title = "Vitals" + (sourceLabel?.let { " · $it" } ?: "")) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            vitals.avgHeartRateBpm?.let {
+                                MetricChip(label = "Avg HR", value = "${it.toInt()} bpm")
+                            }
+                            vitals.restingHeartRateBpm?.let {
+                                MetricChip(label = "Resting HR", value = "${it.toInt()} bpm")
+                            }
+                            vitals.avgHeartRateVariabilityMs?.let {
+                                MetricChip(label = "HRV", value = "${it.toInt()} ms")
+                            }
+                        }
+                        if (vitals.avgSpo2Percent != null || vitals.avgSkinTemperatureCelsius != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                vitals.avgSpo2Percent?.let {
+                                    MetricChip(label = "SpO2", value = "${it.toInt()}%")
+                                }
+                                vitals.minSpo2Percent?.let {
+                                    MetricChip(label = "Min SpO2", value = "${it.toInt()}%")
+                                }
+                                vitals.avgSkinTemperatureCelsius?.let {
+                                    MetricChip(label = "Skin Temp", value = "${"%.1f".format(it)}°C")
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
             // Mood
@@ -217,5 +296,24 @@ fun SessionDetailScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * Resolves a Health Connect data-origin package name (e.g. "com.fitbit.FitbitMobile") to the
+ * app's display label (e.g. "Fitbit"), falling back to the raw package name if it isn't
+ * installed/resolvable — never crashes on an unresolvable package.
+ *
+ * Uses the plain `getApplicationInfo(String, Int)` overload rather than the API 33+
+ * `ApplicationInfoFlags` variant — this module's minSdk is 26.
+ */
+@Suppress("DEPRECATION")
+private fun resolveAppLabel(context: Context, packageName: String): String {
+    val packageManager = context.packageManager
+    return try {
+        val appInfo = packageManager.getApplicationInfo(packageName, 0)
+        packageManager.getApplicationLabel(appInfo).toString()
+    } catch (e: PackageManager.NameNotFoundException) {
+        packageName
     }
 }

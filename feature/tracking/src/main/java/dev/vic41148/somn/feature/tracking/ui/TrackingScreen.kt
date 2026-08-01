@@ -49,17 +49,6 @@ fun TrackingScreen(
     val isSonar             = activeMode == TrackingMode.SONAR
     val isCalibrating       = isSonar && calibrationState == SonarCollector.SonarCalibrationState.CALIBRATING
 
-    // Timer
-    var elapsedSeconds by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(activeSession) {
-        activeSession?.let { session ->
-            while (true) {
-                elapsedSeconds = (System.currentTimeMillis() - session.startTimeMillis) / 1000
-                delay(1000L)
-            }
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -116,16 +105,10 @@ fun TrackingScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Timer display
-        val hours   = elapsedSeconds / 3600
-        val minutes = (elapsedSeconds % 3600) / 60
-        val seconds = elapsedSeconds % 60
-        Text(
-            text = String.format("%02d:%02d:%02d", hours, minutes, seconds),
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        // Isolated in its own composable with its own 1Hz-ticking state, so the per-second
+        // recomposition this timer requires doesn't cascade into the rest of the screen
+        // (hypnogram, epoch count) below it.
+        ElapsedTimeText(startTimeMillis = activeSession?.startTimeMillis)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -145,8 +128,9 @@ fun TrackingScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
+            val liveStages = remember(epochs) { epochs.takeLast(60).map { it.stage } }
             Hypnogram(
-                stages = epochs.takeLast(60).map { it.stage },
+                stages = liveStages,
                 modifier = Modifier.fillMaxWidth(),
                 height = 80.dp
             )
@@ -176,4 +160,26 @@ fun TrackingScreen(
             )
         }
     }
+}
+
+@Composable
+private fun ElapsedTimeText(startTimeMillis: Long?) {
+    var elapsedSeconds by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(startTimeMillis) {
+        if (startTimeMillis == null) return@LaunchedEffect
+        while (true) {
+            elapsedSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000
+            delay(1000L)
+        }
+    }
+
+    val hours   = elapsedSeconds / 3600
+    val minutes = (elapsedSeconds % 3600) / 60
+    val seconds = elapsedSeconds % 60
+    Text(
+        text = String.format("%02d:%02d:%02d", hours, minutes, seconds),
+        style = MaterialTheme.typography.displayLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground
+    )
 }

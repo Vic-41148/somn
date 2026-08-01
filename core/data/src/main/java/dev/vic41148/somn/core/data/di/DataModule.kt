@@ -2,6 +2,10 @@ package dev.vic41148.somn.core.data.di
 
 import android.content.Context
 import androidx.room.Room
+import dev.vic41148.somn.core.data.backup.EncryptionUtils
+import dev.vic41148.somn.core.data.backup.NasClient
+import dev.vic41148.somn.core.data.backup.NasClientImpl
+import dev.vic41148.somn.core.data.database.ALL_MIGRATIONS
 import dev.vic41148.somn.core.data.database.SleepDatabase
 import dev.vic41148.somn.core.data.database.dao.AlarmDao
 import dev.vic41148.somn.core.data.database.dao.HabitLogDao
@@ -10,6 +14,7 @@ import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
 import dev.vic41148.somn.core.data.database.dao.TagDao
 import dev.vic41148.somn.core.data.database.dao.UserProfileDao
 import dev.vic41148.somn.core.data.database.dao.AudioEventDao
+import dev.vic41148.somn.core.data.database.dao.ExternalVitalsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +34,9 @@ object DataModule {
             SleepDatabase::class.java,
             SleepDatabase.DATABASE_NAME
         )
-            .fallbackToDestructiveMigration() // Dev-only: replace with proper migrations before release
+            .addMigrations(*ALL_MIGRATIONS)
+            // v1 predates exportSchema and never shipped; every later version migrates properly.
+            .fallbackToDestructiveMigrationFrom(1)
             .build()
     }
 
@@ -53,4 +60,17 @@ object DataModule {
 
     @Provides
     fun provideAudioEventDao(db: SleepDatabase): AudioEventDao = db.audioEventDao()
+
+    @Provides
+    fun provideExternalVitalsDao(db: SleepDatabase): ExternalVitalsDao = db.externalVitalsDao()
+
+    @Provides
+    @Singleton
+    fun provideNasClient(
+        preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
+    ): NasClient = NasClientImpl(preferencesRepository)
+
+    @Provides
+    @Singleton
+    fun provideEncryptionUtils(): EncryptionUtils = EncryptionUtils()
 }

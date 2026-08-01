@@ -39,8 +39,26 @@ interface SleepSessionDao {
     @Query("SELECT * FROM sleep_sessions WHERE isCompleted = 1 ORDER BY startTimeMillis DESC LIMIT :limit")
     suspend fun getRecentSessions(limit: Int): List<SleepSessionEntity>
 
+    @Query(
+        "SELECT * FROM sleep_sessions WHERE isCompleted = 1 AND sessionType = 'MAIN_SLEEP' " +
+            "ORDER BY startTimeMillis DESC LIMIT :limit"
+    )
+    suspend fun getRecentMainSleepSessions(limit: Int): List<SleepSessionEntity>
+
     @Query("SELECT * FROM sleep_sessions WHERE isCompleted = 1 AND startTimeMillis >= :fromMillis ORDER BY startTimeMillis DESC")
     suspend fun getSessionsSince(fromMillis: Long): List<SleepSessionEntity>
+
+    @Query(
+        "SELECT * FROM sleep_sessions WHERE isCompleted = 1 AND sessionType = 'MAIN_SLEEP' " +
+            "AND startTimeMillis >= :fromMillis ORDER BY startTimeMillis DESC"
+    )
+    suspend fun getMainSleepSessionsSince(fromMillis: Long): List<SleepSessionEntity>
+
+    @Query(
+        "SELECT * FROM sleep_sessions WHERE isCompleted = 1 AND sessionType = 'MAIN_SLEEP' " +
+            "ORDER BY startTimeMillis DESC"
+    )
+    fun observeMainSleepSessions(): Flow<List<SleepSessionEntity>>
 
     @Query("SELECT AVG(sleepScore) FROM sleep_sessions WHERE isCompleted = 1 AND startTimeMillis >= :fromMillis")
     suspend fun getAverageScoreSince(fromMillis: Long): Float?
@@ -50,4 +68,8 @@ interface SleepSessionDao {
 
     @Query("SELECT COUNT(*) FROM sleep_sessions WHERE isCompleted = 1")
     suspend fun getTotalCompletedCount(): Int
+
+    /** HEALTH-04: completed sessions that never reached Health Connect — either not yet synced, or silently skipped by the cross-source dedup check in HealthConnectRepository.writeSleepSession. */
+    @Query("SELECT COUNT(*) FROM sleep_sessions WHERE isCompleted = 1 AND healthConnectRecordId IS NULL")
+    fun observeUnsyncedToHealthConnectCount(): Flow<Int>
 }

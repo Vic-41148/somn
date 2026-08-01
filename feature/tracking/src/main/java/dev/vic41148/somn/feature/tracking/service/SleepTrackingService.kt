@@ -18,6 +18,7 @@ import dev.vic41148.somn.core.audio.SnoringNudgeController
 import dev.vic41148.somn.core.audio.SonarCollector
 import dev.vic41148.somn.core.data.repository.AlarmRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
+import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.domain.model.SleepEpoch
 import dev.vic41148.somn.core.domain.model.SleepStage
 import dev.vic41148.somn.core.domain.model.Alarm
@@ -55,6 +56,9 @@ class SleepTrackingService : Service() {
     @Inject lateinit var sleepRepository: SleepRepository
     @Inject lateinit var alarmRepository: AlarmRepository
     @Inject lateinit var smartAlarmUseCase: SmartAlarmUseCase
+    @Inject lateinit var preferencesRepository: SomnPreferencesRepository
+
+    private var snoreNudgeEnabled = true
 
     private val classifyStage = ClassifySleepStageUseCase()
     private val audioEventClassifier = AudioEventClassifier()
@@ -101,6 +105,10 @@ class SleepTrackingService : Service() {
         val sonarCalibrationState: StateFlow<SonarCollector.SonarCalibrationState> =
             _sonarCalibrationState.asStateFlow()
 
+        /** True if the microphone failed to initialize this session — audio events/BRPM/snoring nudge won't fire. */
+        private val _audioRecordingFailed = MutableStateFlow(false)
+        val audioRecordingFailed: StateFlow<Boolean> = _audioRecordingFailed.asStateFlow()
+
         fun startTracking(
             context: Context,
             sessionId: Long,
@@ -129,6 +137,9 @@ class SleepTrackingService : Service() {
         snoringNudgeController = SnoringNudgeController(this)
         sonarCollector         = SonarCollector(this)
         createNotificationChannel()
+        serviceScope.launch {
+            preferencesRepository.snoreNudgeEnabled.collect { snoreNudgeEnabled = it }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -156,6 +167,7 @@ class SleepTrackingService : Service() {
         _trackingState.value    = TrackingState.TRACKING
         _currentAvgBrpm.value   = null
         _activeTrackingMode.value = mode
+        _audioRecordingFailed.value = false
         brpmSum       = 0
         brpmCount     = 0
         skipNextEpoch = false
@@ -188,6 +200,13 @@ class SleepTrackingService : Service() {
                 serviceScope.launch {
                     audioCollector.audioFlow.collect { buffer ->
                         handleAudioBuffer(buffer, sessionId)
+                    }
+                }
+                serviceScope.launch {
+                    audioCollector.recordingFailed.collect {
+                        android.util.Log.w("SleepTrackingService",
+                            "Microphone failed to initialize — session $sessionId will have no audio events/BRPM")
+                        _audioRecordingFailed.value = true
                     }
                 }
             }
@@ -308,7 +327,7 @@ class SleepTrackingService : Service() {
                 }
             } else {
                 sleepRepository.insertAudioEvent(event)
-                if (event.type == dev.vic41148.somn.core.domain.model.AudioEventType.SNORE) {
+                if (event.type == dev.vic41148.somn.core.domain.model.AudioEventType.SNORE && snoreNudgeEnabled) {
                     snoringNudgeController.nudge()
                 }
             }
@@ -334,7 +353,6 @@ class SleepTrackingService : Service() {
         val si = Intent(this, AlarmService::class.java).apply {
             putExtra(AlarmReceiver.EXTRA_ALARM_ID,       alarm.id)
             putExtra(AlarmReceiver.EXTRA_ALARM_LABEL,    "Smart Wake (Early)")
-            putExtra(AlarmReceiver.EXTRA_SOUND_URI,      alarm.soundUri)
             putExtra(AlarmReceiver.EXTRA_VIBRATION,      alarm.vibrationEnabled)
             putExtra(AlarmReceiver.EXTRA_GRADUAL_SECONDS, alarm.gradualVolumeSeconds)
             putExtra(AlarmReceiver.EXTRA_CAPTCHA_TYPE,   alarm.captchaType.name)

@@ -27,7 +27,11 @@ class ExportCsvUseCase {
             val date = dateFormat.format(Date(session.startTimeMillis))
             val bedtime = timeFormat.format(Date(session.startTimeMillis))
             val wakeTime = timeFormat.format(Date(session.endTimeMillis))
-            val notes = session.notes.replace(",", ";").replace("\n", " ")
+            // The notes field is wrapped in quotes below, so commas/newlines are already safe —
+            // but a literal `"` in the user's note (unescaped) would prematurely close that
+            // quoted field and corrupt every column after it for the rest of the row. RFC4180
+            // escapes an embedded quote as a doubled `""`.
+            val notes = session.notes.replace("\n", " ").replace("\"", "\"\"")
 
             sb.appendLine(
                 "$date,$bedtime,$wakeTime," +

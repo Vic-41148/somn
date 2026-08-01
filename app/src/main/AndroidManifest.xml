@@ -15,6 +15,14 @@
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- REL-03: package visibility for OEM-specific battery/autostart settings deep links -->
+    <queries>
+        <package android:name="com.samsung.android.lool" />
+        <package android:name="com.miui.securitycenter" />
+        <package android:name="com.huawei.systemmanager" />
+    </queries>
 
     <application
         android:name=".SomnApp"
@@ -47,6 +55,25 @@
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
+          Disable WorkManager's default eager initializer. It runs from a ContentProvider
+          before Application.onCreate() finishes, which is before Hilt has injected
+          SomnApp.workerFactory — reading Configuration.Provider that early would crash.
+          On-demand initialization (WorkManager 2.6+) instead builds the Configuration
+          lazily from Configuration.Provider the first time WorkManager.getInstance() is
+          called, by which point injection has completed.
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
 
         <!-- Morning Briefing Widget -->

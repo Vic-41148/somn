@@ -86,7 +86,8 @@ class HabitViewModel @Inject constructor(
                 }.collect { result ->
                     val habitLogs = result.first
                     val profile = result.second
-                    val sessions = sleepRepository.getRecentSessions(14)
+                    // SESS-04: naps/commute/shift sessions would dilute nightly debt/correlation aggregates.
+                    val sessions = sleepRepository.getRecentMainSleepSessions(14)
                     val targetMinutes = ((profile?.targetSleepHours ?: 8f) * 60).toInt()
 
                     val debtAndPlan = sleepDebtUseCase.calculate(sessions, targetMinutes)

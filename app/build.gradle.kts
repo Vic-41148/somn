@@ -43,6 +43,12 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
@@ -59,8 +65,10 @@ dependencies {
     implementation(project(":core:notifications"))
     implementation(project(":feature:winddown"))
 
-    // Room — needed for widget DB access
-    implementation(libs.room.runtime)
+    // WorkManager — HiltWorkerFactory wiring for @HiltWorker workers (NasSyncWorker, WeeklyReportGenerator)
+    implementation(libs.work.runtime)
+    implementation(libs.hilt.work)
+    ksp(libs.hilt.ext.compiler)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

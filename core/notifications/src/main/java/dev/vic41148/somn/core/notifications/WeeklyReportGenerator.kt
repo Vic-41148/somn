@@ -1,19 +1,22 @@
 package dev.vic41148.somn.core.notifications
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import dev.vic41148.somn.core.data.repository.SleepRepository
-import javax.inject.Inject
 
 /**
  * WorkManager worker that generates a weekly sleep summary notification
  * every Sunday morning. Queries the last 7 days of sessions and computes
  * averages for score, duration, and efficiency.
  */
-class WeeklyReportGenerator(
-    private val context: Context,
-    workerParams: WorkerParameters,
+@HiltWorker
+class WeeklyReportGenerator @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted workerParams: WorkerParameters,
     private val sleepRepository: SleepRepository,
     private val notificationEngine: NotificationEngine
 ) : CoroutineWorker(context, workerParams) {
@@ -21,7 +24,8 @@ class WeeklyReportGenerator(
     override suspend fun doWork(): Result {
         return try {
             val sevenDaysAgoMillis = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
-            val sessions = sleepRepository.getSessionsSince(sevenDaysAgoMillis)
+            // SESS-04: naps/commute/shift sessions would dilute the nightly score/duration/efficiency averages.
+            val sessions = sleepRepository.getMainSleepSessionsSince(sevenDaysAgoMillis)
 
             if (sessions.isEmpty()) {
                 // No sessions this week — send encouragement
@@ -66,20 +70,6 @@ class WeeklyReportGenerator(
             Result.success()
         } catch (e: Exception) {
             Result.retry()
-        }
-    }
-
-    /**
-     * Factory for manual construction (WorkManager doesn't natively support Hilt
-     * without the hilt-work artefact). In production, wire this through a
-     * custom WorkerFactory provided via Hilt.
-     */
-    class Factory @Inject constructor(
-        private val sleepRepository: SleepRepository,
-        private val notificationEngine: NotificationEngine
-    ) {
-        fun create(context: Context, workerParams: WorkerParameters): WeeklyReportGenerator {
-            return WeeklyReportGenerator(context, workerParams, sleepRepository, notificationEngine)
         }
     }
 }

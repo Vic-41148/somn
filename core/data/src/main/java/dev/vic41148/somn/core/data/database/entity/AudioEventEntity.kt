@@ -13,5 +13,6 @@ data class AudioEventEntity(
     val durationSeconds: Int,
     val type: String, // String representation of AudioEventType
     val intensityDecibels: Int,
-    val clipPath: String? = null
+    val clipPath: String? = null,
+    val syncedToNas: Boolean = false
 )

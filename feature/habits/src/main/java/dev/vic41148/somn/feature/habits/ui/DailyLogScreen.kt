@@ -74,6 +74,7 @@ private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 @Composable
 fun DailyLogScreen(
     onNavigateToMedication: () -> Unit = {},
+    onNavigateToCorrelations: () -> Unit = {},
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val todayLogs by viewModel.todayLogs.collectAsState()
@@ -155,6 +156,18 @@ fun DailyLogScreen(
                     Text("Open medication log →")
                 }
             }
+        }
+
+        // ---- Correlation insights ----
+        // CorrelationInsightsScreen was fully built (its own ViewModel data, UI, and nav-graph
+        // route already existed) but nothing anywhere ever navigated to it — this was the only
+        // missing piece keeping the whole feature unreachable.
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = onNavigateToCorrelations,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("View how habits affect your sleep →")
         }
 
         // ---- Today's entries ----

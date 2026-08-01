@@ -4,11 +4,14 @@ import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase
 import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
+import dev.vic41148.somn.core.domain.usecase.ExportJsonUseCase
+import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
 import dev.vic41148.somn.core.domain.usecase.SleepDebtUseCase
 import dev.vic41148.somn.core.domain.usecase.ChronotypeAssessmentUseCase
 import dev.vic41148.somn.core.domain.usecase.SocialJetLagUseCase
 import dev.vic41148.somn.core.domain.usecase.SeasonalAnalysisUseCase
 import dev.vic41148.somn.core.domain.usecase.SmartAlarmUseCase
+import dev.vic41148.somn.core.domain.usecase.PostpartumFragmentationUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -71,5 +74,23 @@ object AppModule {
     @Singleton
     fun provideSmartAlarmUseCase(): SmartAlarmUseCase {
         return SmartAlarmUseCase()
+    }
+
+    @Provides
+    @Singleton
+    fun providePostpartumFragmentationUseCase(): PostpartumFragmentationUseCase {
+        return PostpartumFragmentationUseCase()
+    }
+
+    @Provides
+    @Singleton
+    fun provideExportJsonUseCase(): ExportJsonUseCase {
+        return ExportJsonUseCase()
+    }
+
+    @Provides
+    @Singleton
+    fun provideImportSleepAsAndroidUseCase(): ImportSleepAsAndroidUseCase {
+        return ImportSleepAsAndroidUseCase()
     }
 }

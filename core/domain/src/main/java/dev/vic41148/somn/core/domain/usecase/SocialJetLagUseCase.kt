@@ -50,6 +50,7 @@ class SocialJetLagUseCase {
 
         val jetLagMinutes = circularDifferenceMinutes(weekendMidpointMinutes, weekdayMidpointMinutes)
         val riskLevel     = JetLagRisk.from(jetLagMinutes)
+        val weekendIsLater = isWeekendLater(weekdayMidpointMinutes, weekendMidpointMinutes)
 
         val weekdayTime = toLocalTime(weekdayMidpointMinutes)
         val weekendTime  = toLocalTime(weekendMidpointMinutes)
@@ -61,7 +62,7 @@ class SocialJetLagUseCase {
             riskLevel         = riskLevel,
             weekdaySessions   = weekdaySessions.size,
             weekendSessions    = weekendSessions.size,
-            insight           = buildInsight(jetLagMinutes, riskLevel, weekdayTime, weekendTime)
+            insight           = buildInsight(jetLagMinutes, riskLevel, weekdayTime, weekendTime, weekendIsLater)
         )
     }
 
@@ -116,13 +117,26 @@ class SocialJetLagUseCase {
         return minOf(diff, totalMinutesInDay - diff)
     }
 
+    /**
+     * True if, on the shorter circular arc, the weekend midpoint falls after the weekday one —
+     * the typical direction (relaxed weekend schedule sleeps/wakes later). Shift workers and
+     * other atypical schedules can reverse this, so the insight text must check rather than
+     * assume it: [circularDifferenceMinutes] alone only gives an unsigned magnitude.
+     */
+    private fun isWeekendLater(weekdayMinutes: Int, weekendMinutes: Int): Boolean {
+        val totalMinutesInDay = 24 * 60
+        val forward = ((weekendMinutes - weekdayMinutes) % totalMinutesInDay + totalMinutesInDay) % totalMinutesInDay
+        return forward <= totalMinutesInDay / 2
+    }
+
     // ---- Insight builder ----
 
     private fun buildInsight(
         jetLagMinutes: Int,
         risk: JetLagRisk,
         weekdayTime: LocalTime,
-        weekendTime: LocalTime
+        weekendTime: LocalTime,
+        weekendIsLater: Boolean
     ): String {
         val h = jetLagMinutes / 60
         val m = jetLagMinutes % 60
@@ -134,20 +148,23 @@ class SocialJetLagUseCase {
 
         val wdStr = weekdayTime.toString().substring(0, 5)
         val weStr = weekendTime.toString().substring(0, 5)
+        val direction = if (weekendIsLater) "later on weekends ($weStr) than weekdays ($wdStr)"
+                        else "earlier on weekends ($weStr) than weekdays ($wdStr)"
 
         return when (risk) {
             JetLagRisk.NONE ->
                 "Your weekday ($wdStr) and weekend ($weStr) sleep midpoints are closely aligned. " +
                 "Great schedule consistency."
             JetLagRisk.MILD ->
-                "Your sleep midpoint is $lagStr later on weekends ($weStr) than weekdays ($wdStr). " +
+                "Your sleep midpoint is $lagStr $direction. " +
                 "Mild social jet lag — worth watching."
             JetLagRisk.MODERATE ->
-                "Your sleep midpoint shifts $lagStr from weekdays ($wdStr) to weekends ($weStr). " +
+                "Your sleep midpoint shifts $lagStr $direction. " +
                 "This level of social jet lag is associated with increased metabolic and mood risk. " +
-                "Try keeping your weekend morning no more than 1 hour later than usual."
+                (if (weekendIsLater) "Try keeping your weekend morning no more than 1 hour later than usual."
+                 else "Try keeping your weekday morning no more than 1 hour earlier than your weekend pattern.")
             JetLagRisk.HIGH ->
-                "Your sleep midpoint shifts $lagStr from weekdays ($wdStr) to weekends ($weStr). " +
+                "Your sleep midpoint shifts $lagStr $direction. " +
                 "Social jet lag of this magnitude is an independent cardiovascular risk factor " +
                 "(Frontiers in Sleep, 2025). This is equivalent to flying across multiple time zones " +
                 "every week. Gradually aligning your schedule could significantly improve your health."

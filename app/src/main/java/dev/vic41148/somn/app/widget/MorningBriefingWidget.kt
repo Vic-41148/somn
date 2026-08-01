@@ -4,9 +4,12 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.widget.RemoteViews
-import androidx.room.Room
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import dev.vic41148.somn.app.R
-import dev.vic41148.somn.core.data.database.SleepDatabase
+import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,6 +21,12 @@ import kotlinx.coroutines.launch
  * and on each onUpdate callback.
  */
 class MorningBriefingWidget : AppWidgetProvider() {
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface SleepSessionDaoEntryPoint {
+        fun sleepSessionDao(): SleepSessionDao
+    }
 
     private val widgetScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -38,15 +47,14 @@ class MorningBriefingWidget : AppWidgetProvider() {
     ) {
         widgetScope.launch {
             try {
-                val db = Room.databaseBuilder(
+                val entryPoint = EntryPointAccessors.fromApplication(
                     context.applicationContext,
-                    SleepDatabase::class.java,
-                    SleepDatabase.DATABASE_NAME
+                    SleepSessionDaoEntryPoint::class.java
                 )
-                    .fallbackToDestructiveMigration()
-                    .build()
+                val sleepSessionDao = entryPoint.sleepSessionDao()
 
-                val recentSessions = db.sleepSessionDao().getRecentSessions(1)
+                // SESS-04: morning briefing should reflect last night's main sleep, not a stray nap.
+                val recentSessions = sleepSessionDao.getRecentMainSleepSessions(1)
                 val session = recentSessions.firstOrNull()
 
                 val views = RemoteViews(context.packageName, R.layout.widget_morning_briefing)
@@ -71,7 +79,6 @@ class MorningBriefingWidget : AppWidgetProvider() {
                 }
 
                 appWidgetManager.updateAppWidget(appWidgetId, views)
-                db.close()
             } catch (e: Exception) {
                 // Fallback if DB not available
                 val views = RemoteViews(context.packageName, R.layout.widget_morning_briefing)

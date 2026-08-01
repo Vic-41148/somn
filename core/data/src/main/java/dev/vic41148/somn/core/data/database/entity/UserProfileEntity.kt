@@ -25,7 +25,6 @@ data class UserProfileEntity(
     val pregnancyDueDate: String? = null,   // ISO-8601
     val cycleLength: Int = 28,
     val lastPeriodStartDate: String? = null, // ISO-8601
-    val shiftWorker: Boolean = false,
     val timezoneId: String = "UTC",
     val onboardingCompleted: Boolean = false
 )

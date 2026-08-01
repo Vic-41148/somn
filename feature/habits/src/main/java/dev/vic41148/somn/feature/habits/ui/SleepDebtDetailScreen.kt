@@ -16,11 +16,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,26 +51,39 @@ import dev.vic41148.somn.core.domain.model.DebtTrend
 import dev.vic41148.somn.feature.habits.HabitViewModel
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SleepDebtDetailScreen(
+    onBack: () -> Unit = {},
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val debt by viewModel.sleepDebt.collectAsState()
     val plan by viewModel.recoveryPlan.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    // This screen (reached by tapping the Sleep Debt card on Home) had no TopAppBar/back button
+    // at all and its route hides the bottom nav bar — a dead end with no visible way back short
+    // of the system back gesture.
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Sleep Debt") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
     Column(
         modifier = Modifier
+            .padding(padding)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        Text(
-            text = "Sleep Debt",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "Your last 14 nights",
             style = MaterialTheme.typography.bodyMedium,
@@ -74,7 +96,7 @@ fun SleepDebtDetailScreen(
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            return
+            return@Column
         }
 
         val sleepDebt = debt!!
@@ -159,6 +181,7 @@ fun SleepDebtDetailScreen(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+    }
     }
 }
 
@@ -288,7 +311,11 @@ private fun DebtBarChart(days: List<DailyDebt>) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(maxHeight * animFraction)
+                            .height(maxHeight)
+                            .graphicsLayer {
+                                scaleY = animFraction
+                                transformOrigin = TransformOrigin(0.5f, 1f)
+                            }
                             .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                             .background(barColor)
                     )

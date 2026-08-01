@@ -5,9 +5,14 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.vic41148.somn.core.data.repository.HealthConnectRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
+import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.TrackingMode
+import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
+import dev.vic41148.somn.core.domain.usecase.ExportJsonUseCase
+import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,23 +21,155 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
+import dev.vic41148.somn.core.data.repository.BackupRepository
+import dev.vic41148.somn.core.data.backup.NasClient
+import dev.vic41148.somn.core.data.backup.NasSyncWorker
+import dev.vic41148.somn.core.domain.model.NasConfig
+import dev.vic41148.somn.core.domain.model.NasProtocol
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
-    private val exportCsv: ExportCsvUseCase
+    private val preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository,
+    private val backupRepository: BackupRepository,
+    private val exportCsv: ExportCsvUseCase,
+    private val nasClient: NasClient,
+    private val healthConnectRepository: HealthConnectRepository,
+    private val exportJson: ExportJsonUseCase,
+    private val importSleepAsAndroid: ImportSleepAsAndroidUseCase,
+    private val calculateScore: CalculateSleepScoreUseCase,
+    private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository
 ) : ViewModel() {
+
+    init {
+        // Target Sleep Hours used to be purely local ViewModel state: the slider updated
+        // _settings.value but never touched the stored UserProfile, so it always displayed the
+        // hardcoded 8.0f default regardless of the user's actual saved target, and any change
+        // the user made was silently discarded — score calculation, oversleep detection, and
+        // sleep debt targets all read profile.targetSleepHours directly and never saw the edit.
+        viewModelScope.launch {
+            userProfileRepository.observeProfile().collect { profile ->
+                _settings.value = _settings.value.copy(
+                    targetSleepHours = profile?.targetSleepHours ?: 8.0f
+                )
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.healthConnectEnabled.collect { enabled ->
+                _settings.value = _settings.value.copy(healthConnectEnabled = enabled)
+            }
+        }
+        viewModelScope.launch {
+            sleepRepository.observeUnsyncedToHealthConnectCount().collect { count ->
+                _settings.value = _settings.value.copy(healthConnectUnsyncedCount = count)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.selectedCaptchaTaskId.collect { taskId ->
+                _settings.value = _settings.value.copy(selectedCaptchaTaskId = taskId)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.qrCodeValue.collect { value ->
+                _settings.value = _settings.value.copy(qrCodeValue = value)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.backupUri.collect { uri ->
+                _settings.value = _settings.value.copy(backupUri = uri)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.trackingMode.collect { mode ->
+                _settings.value = _settings.value.copy(trackingMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.nasEnabled.collect { enabled ->
+                _settings.value = _settings.value.copy(nasEnabled = enabled)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.nasHost.collect { host ->
+                _settings.value = _settings.value.copy(nasHost = host)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.nasPath.collect { path ->
+                _settings.value = _settings.value.copy(nasPath = path)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.nasUsername.collect { user ->
+                _settings.value = _settings.value.copy(nasUsername = user)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.nasProtocol.collect { proto ->
+                // REL-05: SMB/NFS are unimplemented stubs — coerce any stray stored value
+                // from before the picker was gated back to the only protocol that works.
+                _settings.value = _settings.value.copy(
+                    nasProtocol = if (proto == "WEBDAV") proto else "WEBDAV"
+                )
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.nasPort.collect { port ->
+                _settings.value = _settings.value.copy(nasPort = port)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.oversleepThresholdMinutes.collect { minutes ->
+                _settings.value = _settings.value.copy(oversleepThresholdMinutes = minutes)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.wakeVerificationEnabled.collect { enabled ->
+                _settings.value = _settings.value.copy(wakeVerificationEnabled = enabled)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.wakeVerificationWindowSeconds.collect { seconds ->
+                _settings.value = _settings.value.copy(wakeVerificationWindowSeconds = seconds)
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.snoreNudgeEnabled.collect { enabled ->
+                _settings.value = _settings.value.copy(snoreNudgeEnabled = enabled)
+            }
+        }
+    }
 
     // Settings state
     data class SettingsState(
         val targetSleepHours: Float = 8.0f,
-        val wakeWindowMinutes: Int = 30,
         val sensorMode: String = "Accelerometer",
         val dndEnabled: Boolean = true,
         val batteryThreshold: Int = 15,
+        val oversleepThresholdMinutes: Int = 60,
+        val wakeVerificationEnabled: Boolean = true,
+        val wakeVerificationWindowSeconds: Int = 15,
+        val snoreNudgeEnabled: Boolean = true,
         val darkMode: String = "System",
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
-        val selectedCaptchaTaskId: String = dev.vic41148.somn.core.domain.model.AlarmPreferences.selectedCaptchaTaskId,
-        val qrCodeValue: String? = dev.vic41148.somn.core.domain.model.AlarmPreferences.qrCodeValue
+        val selectedCaptchaTaskId: String = "math",
+        val qrCodeValue: String? = null,
+        val backupUri: String? = null,
+        // NAS
+        val nasEnabled: Boolean = false,
+        val nasHost: String = "",
+        val nasPath: String = "/somn",
+        val nasUsername: String = "",
+        val nasProtocol: String = "WEBDAV",
+        val nasPort: Int = 80,
+        val nasTestResult: String? = null,
+        // Health Connect
+        val healthConnectEnabled: Boolean = false,
+        val healthConnectStatus: HealthConnectStatus = HealthConnectStatus.UNAVAILABLE,
+        /** HEALTH-04: completed sessions never written to Health Connect — unsynced or silently dedup-skipped. Only meaningful once healthConnectEnabled is true. */
+        val healthConnectUnsyncedCount: Int = 0
     )
 
     private val _settings = MutableStateFlow(SettingsState())
@@ -41,12 +178,21 @@ class SettingsViewModel @Inject constructor(
     private val _exportStatus = MutableStateFlow<String?>(null)
     val exportStatus: StateFlow<String?> = _exportStatus.asStateFlow()
 
-    fun updateSleepTarget(hours: Float) {
-        _settings.value = _settings.value.copy(targetSleepHours = hours)
+    init {
+        // Must run after _settings above is initialized: unlike the DataStore .collect{}
+        // launches in the first init block (which always suspend on their first emission
+        // before touching _settings.value), getStatus() can return synchronously via its
+        // !isAvailable() early-return — calling this from the top init block would touch
+        // _settings before its property initializer ran, on any device without Health Connect.
+        refreshHealthConnectStatus()
     }
 
-    fun updateWakeWindow(minutes: Int) {
-        _settings.value = _settings.value.copy(wakeWindowMinutes = minutes)
+    fun updateSleepTarget(hours: Float) {
+        _settings.value = _settings.value.copy(targetSleepHours = hours)
+        viewModelScope.launch {
+            val profile = userProfileRepository.getProfile() ?: return@launch
+            userProfileRepository.saveProfile(profile.copy(targetSleepHours = hours))
+        }
     }
 
     fun updateDndEnabled(enabled: Boolean) {
@@ -57,18 +203,56 @@ class SettingsViewModel @Inject constructor(
         _settings.value = _settings.value.copy(batteryThreshold = threshold)
     }
 
+    fun updateOversleepThresholdMinutes(minutes: Int) {
+        viewModelScope.launch { preferencesRepository.updateOversleepThresholdMinutes(minutes) }
+    }
+
+    fun updateWakeVerificationEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateWakeVerificationEnabled(enabled) }
+    }
+
+    fun updateWakeVerificationWindowSeconds(seconds: Int) {
+        viewModelScope.launch { preferencesRepository.updateWakeVerificationWindowSeconds(seconds) }
+    }
+
+    fun updateSnoreNudgeEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateSnoreNudgeEnabled(enabled) }
+    }
+
     fun updateTrackingMode(mode: TrackingMode) {
-        _settings.value = _settings.value.copy(trackingMode = mode)
+        viewModelScope.launch {
+            preferencesRepository.updateTrackingMode(mode)
+        }
     }
 
     fun updateCaptchaTask(taskId: String) {
-        _settings.value = _settings.value.copy(selectedCaptchaTaskId = taskId)
-        dev.vic41148.somn.core.domain.model.AlarmPreferences.selectedCaptchaTaskId = taskId
+        viewModelScope.launch {
+            preferencesRepository.updateSelectedCaptchaTask(taskId)
+        }
     }
 
     fun updateQRCodeValue(value: String) {
-        _settings.value = _settings.value.copy(qrCodeValue = value)
-        dev.vic41148.somn.core.domain.model.AlarmPreferences.qrCodeValue = value
+        viewModelScope.launch {
+            preferencesRepository.updateQrCodeValue(value)
+        }
+    }
+
+    fun updateBackupUri(uri: String) {
+        viewModelScope.launch {
+            preferencesRepository.updateBackupUri(uri)
+        }
+    }
+
+    fun performManualBackup() {
+        viewModelScope.launch {
+            _exportStatus.value = "Backing up..."
+            try {
+                backupRepository.performSilentBackup()
+                _exportStatus.value = "Backup successful!"
+            } catch (e: Exception) {
+                _exportStatus.value = "Backup failed: ${e.message}"
+            }
+        }
     }
 
     fun exportData(context: Context) {
@@ -97,6 +281,174 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _exportStatus.value = "Export failed: ${e.message}"
             }
+        }
+    }
+
+    // ── Data Portability (DATA-01/02) ───────────────────────────────
+
+    private val _importStatus = MutableStateFlow<String?>(null)
+    val importStatus: StateFlow<String?> = _importStatus.asStateFlow()
+
+    /** DATA-01: full-fidelity JSON alongside the existing flat CSV, bundled as one ZIP to share. */
+    fun exportAllDataZip(context: Context) {
+        viewModelScope.launch {
+            try {
+                val sessions = sleepRepository.getRecentSessions(1000)
+                val csv = exportCsv(sessions)
+                val json = exportJson(sessions)
+
+                val file = File(context.cacheDir, "somn_export.zip")
+                java.util.zip.ZipOutputStream(file.outputStream()).use { zip ->
+                    zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.csv"))
+                    zip.write(csv.toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
+
+                    zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.json"))
+                    zip.write(json.toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
+                }
+
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(shareIntent, "Export All Sleep Data"))
+
+                _exportStatus.value = "Export ready!"
+            } catch (e: Exception) {
+                _exportStatus.value = "Export failed: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * DATA-02: reads the picked Sleep as Android `sleep-export.csv`, parses it, and persists
+     * every row the parser could confidently map as its own completed session. Best-effort and
+     * lossy by design (see [ImportSleepAsAndroidUseCase] doc) — the result summary always
+     * reports what was skipped rather than silently dropping rows.
+     */
+    fun importSleepAsAndroidFile(context: Context, uri: android.net.Uri) {
+        viewModelScope.launch {
+            _importStatus.value = "Importing..."
+            try {
+                val csv = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                    ?: run {
+                        _importStatus.value = "Import failed: couldn't read the selected file."
+                        return@launch
+                    }
+
+                val result = importSleepAsAndroid(csv)
+
+                for (session in result.sessions) {
+                    val newId = sleepRepository.createSession(
+                        session.startTimeMillis,
+                        session.timezoneId,
+                        session.sessionType
+                    )
+                    val scored = session.copy(
+                        id = newId,
+                        sleepScore = calculateScore(session).totalScore
+                    )
+                    sleepRepository.completeSession(scored)
+                }
+
+                _importStatus.value = buildString {
+                    append("Imported ${result.importedCount} session(s).")
+                    if (result.skippedRowCount > 0) {
+                        append(" ${result.skippedRowCount} row(s) skipped — see below.")
+                    }
+                }
+            } catch (e: Exception) {
+                _importStatus.value = "Import failed: ${e.message}"
+            }
+        }
+    }
+
+    fun clearImportStatus() {
+        _importStatus.value = null
+    }
+
+    // ── NAS ──────────────────────────────────────────────────────────
+
+    fun updateNasEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateNasEnabled(enabled) }
+    }
+
+    fun updateNasHost(host: String) {
+        viewModelScope.launch { preferencesRepository.updateNasHost(host) }
+    }
+
+    fun updateNasPath(path: String) {
+        viewModelScope.launch { preferencesRepository.updateNasPath(path) }
+    }
+
+    fun updateNasUsername(username: String) {
+        viewModelScope.launch { preferencesRepository.updateNasUsername(username) }
+    }
+
+    /** REL-06: password is write-only here — never round-tripped back into [settings] state. */
+    fun updateNasPassword(password: String) {
+        viewModelScope.launch { preferencesRepository.updateNasPassword(password) }
+    }
+
+    fun updateNasProtocol(protocol: String) {
+        viewModelScope.launch { preferencesRepository.updateNasProtocol(protocol) }
+    }
+
+    fun updateNasPort(port: Int) {
+        viewModelScope.launch { preferencesRepository.updateNasPort(port) }
+    }
+
+    fun testNasConnection() {
+        viewModelScope.launch {
+            _settings.value = _settings.value.copy(nasTestResult = "Testing...")
+            val s = _settings.value
+            val config = NasConfig(
+                host = s.nasHost,
+                path = s.nasPath,
+                username = s.nasUsername,
+                protocol = try { NasProtocol.valueOf(s.nasProtocol) } catch (_: Exception) { NasProtocol.WEBDAV },
+                port = s.nasPort,
+                isEnabled = true
+            )
+            val ok = nasClient.testConnection(config)
+            _settings.value = _settings.value.copy(
+                nasTestResult = if (ok) "Connected ✅" else "Connection failed ❌"
+            )
+        }
+    }
+
+    fun triggerNasSync(context: Context) {
+        val request = OneTimeWorkRequestBuilder<NasSyncWorker>()
+            .addTag(NasSyncWorker.TAG)
+            .build()
+        WorkManager.getInstance(context).enqueue(request)
+        _exportStatus.value = "NAS sync queued"
+    }
+
+    // ── Health Connect (HEALTH-01..04) ──────────────────────────────
+
+    /** Permission set + launcher contract for the settings screen's `rememberLauncherForActivityResult`. */
+    val healthConnectRequiredPermissions get() = healthConnectRepository.requiredPermissions
+    fun healthConnectPermissionsContract() = healthConnectRepository.permissionsContract()
+
+    fun updateHealthConnectEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateHealthConnectEnabled(enabled) }
+    }
+
+    /** HEALTH-03: called on screen resume and right after the permission sheet returns — never cached. */
+    fun refreshHealthConnectStatus() {
+        viewModelScope.launch {
+            _settings.value = _settings.value.copy(healthConnectStatus = healthConnectRepository.getStatus())
         }
     }
 }
