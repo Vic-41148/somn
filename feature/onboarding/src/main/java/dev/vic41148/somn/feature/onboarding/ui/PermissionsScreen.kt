@@ -138,7 +138,11 @@ fun PermissionsScreen(
             ) {
                 Icon(
                     imageVector = if (isGranted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                    contentDescription = null,
+                    // Unlike the other icons flagged in the audit, this one isn't decorative —
+                    // it's the only indicator of grant status. item.title/description never say
+                    // whether the permission was actually granted, so a screen reader user had no
+                    // way to tell which permissions still needed granting.
+                    contentDescription = if (isGranted) "${item.title} granted" else "${item.title} not granted",
                     tint = if (isGranted) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
