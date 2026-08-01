@@ -106,6 +106,19 @@ is disclosed as a non-free dependency for F-Droid purposes.
 - All recordings: *Settings → Delete all recordings now*.
 - Everything: uninstall Somn. Nothing survives it — there is no cloud copy and no Auto Backup.
 
+## How these claims are kept honest
+
+Documentation drifts from code, so the load-bearing claims above are enforced by CI rather
+than by memory. Every push and pull request fails the build if:
+
+- any Google Play Services artifact reappears on the release classpath
+- the Auto Backup or device-transfer opt-out is dropped, for either supported API range
+- `INTERNET` starts being contributed by any module other than `core:data`
+
+Unit tests cover the retention window, the keep-forever sentinel, the behaviour when the
+preference is corrupted, and the connection-scheme selection that governs whether your NAS
+credentials are encrypted in transit.
+
 ## Reporting a problem
 
 If you find something in the app that contradicts this document, that is a bug and we want to

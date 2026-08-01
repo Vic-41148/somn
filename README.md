@@ -2,6 +2,9 @@
 
 **A privacy-first, open-source sleep tracker for Android.**
 
+[![CI](https://github.com/Vic-41148/somn/actions/workflows/ci.yml/badge.svg)](https://github.com/Vic-41148/somn/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 Somn uses your phone's accelerometer to track sleep stages overnight — no wearable required. It scores your sleep with age-calibrated algorithms, supports biological profile adjustments (menstrual cycle, pregnancy, neurodivergent profiles), and keeps everything on-device.
 
 > *"somn"* — from Latin *somnus*, meaning sleep.
@@ -108,6 +111,22 @@ Or build from command line:
 ```
 
 The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
+
+> `gradle.properties` pins `org.gradle.java.home` to a local path. If your JDK 17 lives
+> elsewhere, override it per-invocation with `-Dorg.gradle.java.home="$JAVA_HOME"` rather
+> than editing the file.
+
+### Tests
+
+```bash
+./gradlew testDebugUnitTest   # 133 unit tests
+./gradlew lintDebug           # Android Lint
+```
+
+CI runs `assembleDebug`, `testDebugUnitTest` and `lintDebug` on every push and PR to `main`
+and `dev`, plus a set of privacy guardrails that fail the build if Google Play Services
+reappear on the release classpath, if the Auto Backup opt-out is dropped, or if `INTERNET`
+starts being contributed by a module other than `:core:data`.
 
 ---
 
