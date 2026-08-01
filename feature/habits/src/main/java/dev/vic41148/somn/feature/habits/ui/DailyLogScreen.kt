@@ -1,7 +1,9 @@
 package dev.vic41148.somn.feature.habits.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -57,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -201,21 +204,30 @@ private fun HabitSection(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    // One animator owns the height change. This Card used to also carry animateContentSize(),
+    // which ran its own tween over the same expand/collapse that AnimatedVisibility below was
+    // already animating on a different spec — the two chased each other, so the card visibly
+    // rubber-banded and every section under it kept sliding long after the content had settled.
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column {
             Row(
+                // Padding goes inside the click target, not around it. It used to sit on the
+                // parent Column, which left a 16dp dead border where a tap on the card's own
+                // edge — visually part of the header — hit nothing at all.
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded },
+                    .clickable(
+                        onClickLabel = if (expanded) "Collapse $title" else "Expand $title",
+                        role = Role.Button
+                    ) { expanded = !expanded }
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -250,10 +262,28 @@ private fun HabitSection(
 
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                // Material's motion split: size is spatial, so it springs; opacity is an effect,
+                // so it uses a short linear-ish fade. The spring is deliberately non-bouncy —
+                // these sections are stacked, and overshoot on one shoves every section below it
+                // past its resting position and back, which is what made taps land on the wrong
+                // card while the list was still settling.
+                enter = expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+                exit = shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) + fadeOut(animationSpec = tween(durationMillis = 100))
             ) {
-                Column(modifier = Modifier.padding(top = 16.dp)) {
+                // Header owns its own padding now, so the body supplies the sides and bottom.
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                ) {
                     content()
                 }
             }
