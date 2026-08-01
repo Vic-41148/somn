@@ -14,8 +14,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
+import zxingcpp.BarcodeReader
 import dev.vic41148.somn.core.domain.model.AlarmPreferences
 import dev.vic41148.somn.feature.alarm.captcha.CaptchaTask
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
@@ -70,13 +69,12 @@ class QRCodeCaptchaTask : CaptchaTask {
         }
 
         val executor = remember { Executors.newSingleThreadExecutor() }
-        val scanner = remember { BarcodeScanning.getClient() }
+        val barcodeReader = remember { BarcodeReader() }
         val cameraProviderRef = remember { arrayOfNulls<ProcessCameraProvider>(1) }
 
         DisposableEffect(Unit) {
             onDispose {
                 cameraProviderRef[0]?.unbindAll()
-                scanner.close()
                 executor.shutdown()
             }
         }
@@ -99,7 +97,7 @@ class QRCodeCaptchaTask : CaptchaTask {
                             .build()
 
                         imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                            processImageProxy(scanner, imageProxy, currentExpectedValue) {
+                            processImageProxy(barcodeReader, imageProxy, currentExpectedValue) {
                                 isSolved = true
                                 onComplete()
                             }
@@ -141,32 +139,25 @@ class QRCodeCaptchaTask : CaptchaTask {
         }
     }
 
-    @OptIn(ExperimentalGetImage::class)
+    /**
+     * zxing-cpp decodes synchronously on the calling thread — this runs on the single-threaded
+     * analyzer executor, not the main thread. The ImageProxy must be closed exactly once for
+     * CameraX to deliver the next frame, hence [use].
+     */
     private fun processImageProxy(
-        scanner: com.google.mlkit.vision.barcode.BarcodeScanner,
+        barcodeReader: BarcodeReader,
         imageProxy: ImageProxy,
         expectedValue: String,
         onSuccess: () -> Unit
     ) {
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-            val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-            scanner.process(image)
-                .addOnSuccessListener { barcodes ->
-                    for (barcode in barcodes) {
-                        if (barcode.rawValue == expectedValue) {
-                            onSuccess()
-                        }
-                    }
-                }
-                .addOnFailureListener {
-                    Log.e("QRCodeCaptchaTask", "QR scan failed", it)
-                }
-                .addOnCompleteListener {
-                    imageProxy.close()
-                }
-        } else {
-            imageProxy.close()
+        val results = try {
+            imageProxy.use { barcodeReader.read(it) }
+        } catch (e: Exception) {
+            Log.e("QRCodeCaptchaTask", "QR scan failed", e)
+            return
+        }
+        if (results.any { it.text == expectedValue }) {
+            onSuccess()
         }
     }
 }

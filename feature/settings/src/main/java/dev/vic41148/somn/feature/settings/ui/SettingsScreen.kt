@@ -32,8 +32,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.common.InputImage
+import zxingcpp.BarcodeReader
 import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.feature.settings.SettingsViewModel
@@ -50,6 +49,7 @@ fun SettingsScreen(
     val settings by viewModel.settings.collectAsState()
     val exportStatus by viewModel.exportStatus.collectAsState()
     val importStatus by viewModel.importStatus.collectAsState()
+    val clipDeletionStatus by viewModel.clipDeletionStatus.collectAsState()
 
     // Async operation results (export/import/NAS test) used to be plain Text sitting in a long
     // scrolling layout — easy to miss, never dismissed itself, no action. Snackbars instead.
@@ -62,6 +62,12 @@ fun SettingsScreen(
     }
     LaunchedEffect(settings.nasTestResult) {
         settings.nasTestResult?.let { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(clipDeletionStatus) {
+        clipDeletionStatus?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearClipDeletionStatus()
+        }
     }
 
     Scaffold(
@@ -135,19 +141,70 @@ fun SettingsScreen(
                 checked = settings.snoreNudgeEnabled,
                 onCheckedChange = { viewModel.updateSnoreNudgeEnabled(it) }
             )
-            if (settings.wakeVerificationEnabled) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${settings.wakeVerificationWindowSeconds}s to confirm",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Slider(
-                    value = settings.wakeVerificationWindowSeconds.toFloat(),
-                    onValueChange = { viewModel.updateWakeVerificationWindowSeconds(it.toInt()) },
-                    valueRange = 5f..60f,
-                    steps = 10,
-                    modifier = Modifier.fillMaxWidth()
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Sleep-talk recording retention. These clips are the most sensitive thing the app
+        // stores, so the retention window is surfaced here rather than buried in a backup screen.
+        SettingSection(title = "Sleep-Talk Recordings") {
+            val retentionDays = settings.clipRetentionDays
+            Text(
+                text = if (retentionDays <= 0) {
+                    "Kept until you delete them"
+                } else {
+                    "Deleted automatically after $retentionDays day${if (retentionDays == 1) "" else "s"}"
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Somn saves a short audio clip when it detects you talking in your sleep. " +
+                    "Set this to \"keep forever\" only if you want them to stay on the device indefinitely.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Slider(
+                value = retentionDays.toFloat(),
+                onValueChange = { viewModel.updateClipRetentionDays(it.toInt()) },
+                // 0 is the "keep forever" sentinel, so the slider's floor doubles as the opt-out.
+                valueRange = 0f..30f,
+                steps = 29,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            var confirmingClipDeletion by remember { mutableStateOf(false) }
+            OutlinedButton(
+                onClick = { confirmingClipDeletion = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Delete all recordings now")
+            }
+
+            if (confirmingClipDeletion) {
+                AlertDialog(
+                    onDismissRequest = { confirmingClipDeletion = false },
+                    title = { Text("Delete all recordings?") },
+                    text = {
+                        Text(
+                            "Every sleep-talk audio clip on this device will be permanently " +
+                                "deleted. Your sleep history and the events themselves are kept — " +
+                                "only the audio goes. This cannot be undone."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmingClipDeletion = false
+                            viewModel.deleteAllAudioClips()
+                        }) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmingClipDeletion = false }) {
+                            Text("Cancel")
+                        }
+                    }
                 )
             }
         }
@@ -661,7 +718,11 @@ fun SettingsScreen(
                 ) {
                     OutlinedTextField(
                         value = settings.nasPort.toString(),
-                        onValueChange = { viewModel.updateNasPort(it.toIntOrNull() ?: 80) },
+                        onValueChange = {
+                            viewModel.updateNasPort(
+                                it.toIntOrNull() ?: if (settings.nasUseHttps) 443 else 80
+                            )
+                        },
                         label = { Text("Port") },
                         singleLine = true,
                         modifier = Modifier.weight(0.3f)
@@ -672,6 +733,26 @@ fun SettingsScreen(
                         label = { Text("Path") },
                         singleLine = true,
                         modifier = Modifier.weight(0.7f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Transport security is an explicit switch, not something inferred from the port.
+                SettingToggle(
+                    title = "Use HTTPS",
+                    subtitle = "Encrypts the connection to your NAS. Without it your NAS username " +
+                        "and password travel over the network in the clear — and Android blocks " +
+                        "unencrypted connections anyway.",
+                    checked = settings.nasUseHttps,
+                    onCheckedChange = { viewModel.updateNasUseHttps(it) }
+                )
+                if (!settings.nasUseHttps) {
+                    Text(
+                        text = "⚠ HTTPS is off. Credentials would be sent unencrypted, and the " +
+                            "connection will be refused by Android.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
 
@@ -954,28 +1035,22 @@ private fun QRSetupDialog(
                                     surfaceProvider = previewView.surfaceProvider
                                 }
 
-                                val scanner = BarcodeScanning.getClient()
+                                val barcodeReader = BarcodeReader()
                                 val imageAnalysis = ImageAnalysis.Builder()
                                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                     .build()
 
+                                // zxing-cpp decodes synchronously on the analyzer executor.
+                                // use() closes the ImageProxy exactly once so CameraX keeps
+                                // delivering frames.
                                 imageAnalysis.setAnalyzer(executor) { imageProxy ->
-                                    val mediaImage = imageProxy.image
-                                    if (mediaImage != null) {
-                                        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                                        scanner.process(image)
-                                            .addOnSuccessListener { barcodes ->
-                                                for (barcode in barcodes) {
-                                                    val rawValue = barcode.rawValue
-                                                    if (rawValue != null) {
-                                                        onScanSuccess(rawValue)
-                                                    }
-                                                }
-                                            }
-                                            .addOnCompleteListener { imageProxy.close() }
-                                    } else {
-                                        imageProxy.close()
+                                    val results = try {
+                                        imageProxy.use { barcodeReader.read(it) }
+                                    } catch (e: Exception) {
+                                        Log.e("QRSetup", "QR scan failed", e)
+                                        return@setAnalyzer
                                     }
+                                    results.firstOrNull { it.text != null }?.text?.let(onScanSuccess)
                                 }
 
                                 try {
