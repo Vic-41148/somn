@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      SnoringNudgeController drives the vibrator directly, so this module declares the permission
+      it actually uses instead of relying on :app and :feature:alarm happening to declare it.
+      Without this the module is not self-contained: any consumer that did not separately declare
+      VIBRATE would hit a SecurityException the first time a snore was detected.
+    -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+</manifest>
