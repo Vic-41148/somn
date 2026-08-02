@@ -61,4 +61,8 @@ dependencies {
 
     // WorkManager for NAS sync triggers
     implementation(libs.work.runtime)
+
+    // Tests — guardedCollect flow-failure guard (collectInto's exception-proofing)
+    testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }

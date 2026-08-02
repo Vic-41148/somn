@@ -14,6 +14,8 @@ import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportJsonUseCase
 import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,117 +64,91 @@ class SettingsViewModel @Inject constructor(
         // hardcoded 8.0f default regardless of the user's actual saved target, and any change
         // the user made was silently discarded — score calculation, oversleep detection, and
         // sleep debt targets all read profile.targetSleepHours directly and never saw the edit.
-        viewModelScope.launch {
-            userProfileRepository.observeProfile().collect { profile ->
-                _settings.value = _settings.value.copy(
-                    targetSleepHours = profile?.targetSleepHours ?: 8.0f
-                )
-            }
+        collectInto(userProfileRepository.observeProfile()) { state, profile ->
+            state.copy(targetSleepHours = profile?.targetSleepHours ?: 8.0f)
         }
-        viewModelScope.launch {
-            preferencesRepository.backupPassphraseSet.collect { isSet ->
-                _settings.value = _settings.value.copy(backupPassphraseSet = isSet)
-            }
+        collectInto(preferencesRepository.backupPassphraseSet) { state, isSet ->
+            state.copy(backupPassphraseSet = isSet)
         }
-        viewModelScope.launch {
-            preferencesRepository.healthConnectEnabled.collect { enabled ->
-                _settings.value = _settings.value.copy(healthConnectEnabled = enabled)
-            }
+        collectInto(preferencesRepository.healthConnectEnabled) { state, enabled ->
+            state.copy(healthConnectEnabled = enabled)
         }
-        viewModelScope.launch {
-            preferencesRepository.yamnetClassificationEnabled.collect { enabled ->
-                _settings.value = _settings.value.copy(yamnetClassificationEnabled = enabled)
-            }
+        collectInto(preferencesRepository.yamnetClassificationEnabled) { state, enabled ->
+            state.copy(yamnetClassificationEnabled = enabled)
         }
-        viewModelScope.launch {
-            sleepRepository.observeUnsyncedToHealthConnectCount().collect { count ->
-                _settings.value = _settings.value.copy(healthConnectUnsyncedCount = count)
-            }
+        collectInto(sleepRepository.observeUnsyncedToHealthConnectCount()) { state, count ->
+            state.copy(healthConnectUnsyncedCount = count)
         }
-        viewModelScope.launch {
-            preferencesRepository.selectedCaptchaTaskId.collect { taskId ->
-                _settings.value = _settings.value.copy(selectedCaptchaTaskId = taskId)
-            }
+        collectInto(preferencesRepository.selectedCaptchaTaskId) { state, taskId ->
+            state.copy(selectedCaptchaTaskId = taskId)
         }
-        viewModelScope.launch {
-            preferencesRepository.qrCodeValue.collect { value ->
-                _settings.value = _settings.value.copy(qrCodeValue = value)
-            }
+        collectInto(preferencesRepository.qrCodeValue) { state, value ->
+            state.copy(qrCodeValue = value)
         }
-        viewModelScope.launch {
-            preferencesRepository.backupUri.collect { uri ->
-                _settings.value = _settings.value.copy(backupUri = uri)
-            }
+        collectInto(preferencesRepository.backupUri) { state, uri ->
+            state.copy(backupUri = uri)
         }
-        viewModelScope.launch {
-            preferencesRepository.trackingMode.collect { mode ->
-                _settings.value = _settings.value.copy(trackingMode = mode)
-            }
+        collectInto(preferencesRepository.trackingMode) { state, mode ->
+            state.copy(trackingMode = mode)
         }
-        viewModelScope.launch {
-            preferencesRepository.nasEnabled.collect { enabled ->
-                _settings.value = _settings.value.copy(nasEnabled = enabled)
-            }
+        collectInto(preferencesRepository.nasEnabled) { state, enabled ->
+            state.copy(nasEnabled = enabled)
         }
-        viewModelScope.launch {
-            preferencesRepository.nasHost.collect { host ->
-                _settings.value = _settings.value.copy(nasHost = host)
-            }
+        collectInto(preferencesRepository.nasHost) { state, host ->
+            state.copy(nasHost = host)
         }
-        viewModelScope.launch {
-            preferencesRepository.nasPath.collect { path ->
-                _settings.value = _settings.value.copy(nasPath = path)
-            }
+        collectInto(preferencesRepository.nasPath) { state, path ->
+            state.copy(nasPath = path)
         }
-        viewModelScope.launch {
-            preferencesRepository.nasUsername.collect { user ->
-                _settings.value = _settings.value.copy(nasUsername = user)
-            }
+        collectInto(preferencesRepository.nasUsername) { state, user ->
+            state.copy(nasUsername = user)
         }
-        viewModelScope.launch {
-            preferencesRepository.nasProtocol.collect { proto ->
-                // REL-05: WebDAV is the only implemented transport. Installs that stored "SMB" or
-                // "NFS" before the picker was gated are coerced back to it rather than left
-                // pointing at a protocol NasProtocol no longer even defines.
-                _settings.value = _settings.value.copy(
-                    nasProtocol = if (proto == "WEBDAV") proto else "WEBDAV"
-                )
-            }
+        // REL-05: WebDAV is the only implemented transport. Installs that stored "SMB" or
+        // "NFS" before the picker was gated are coerced back to it rather than left
+        // pointing at a protocol NasProtocol no longer even defines.
+        collectInto(preferencesRepository.nasProtocol) { state, proto ->
+            state.copy(nasProtocol = if (proto == "WEBDAV") proto else "WEBDAV")
         }
-        viewModelScope.launch {
-            preferencesRepository.nasUseHttps.collect { useHttps ->
-                _settings.value = _settings.value.copy(nasUseHttps = useHttps)
-            }
+        collectInto(preferencesRepository.nasUseHttps) { state, useHttps ->
+            state.copy(nasUseHttps = useHttps)
         }
-        viewModelScope.launch {
-            preferencesRepository.nasPort.collect { port ->
-                _settings.value = _settings.value.copy(nasPort = port)
-            }
+        collectInto(preferencesRepository.nasPort) { state, port ->
+            state.copy(nasPort = port)
         }
-        viewModelScope.launch {
-            preferencesRepository.oversleepThresholdMinutes.collect { minutes ->
-                _settings.value = _settings.value.copy(oversleepThresholdMinutes = minutes)
-            }
+        collectInto(preferencesRepository.oversleepThresholdMinutes) { state, minutes ->
+            state.copy(oversleepThresholdMinutes = minutes)
         }
-        viewModelScope.launch {
-            preferencesRepository.wakeVerificationEnabled.collect { enabled ->
-                _settings.value = _settings.value.copy(wakeVerificationEnabled = enabled)
-            }
+        collectInto(preferencesRepository.wakeVerificationEnabled) { state, enabled ->
+            state.copy(wakeVerificationEnabled = enabled)
         }
-        viewModelScope.launch {
-            preferencesRepository.wakeVerificationWindowSeconds.collect { seconds ->
-                _settings.value = _settings.value.copy(wakeVerificationWindowSeconds = seconds)
-            }
+        collectInto(preferencesRepository.wakeVerificationWindowSeconds) { state, seconds ->
+            state.copy(wakeVerificationWindowSeconds = seconds)
         }
-        viewModelScope.launch {
-            preferencesRepository.snoreNudgeEnabled.collect { enabled ->
-                _settings.value = _settings.value.copy(snoreNudgeEnabled = enabled)
-            }
+        collectInto(preferencesRepository.snoreNudgeEnabled) { state, enabled ->
+            state.copy(snoreNudgeEnabled = enabled)
         }
+        collectInto(preferencesRepository.clipRetentionDays) { state, days ->
+            state.copy(clipRetentionDays = days)
+        }
+    }
+
+    /**
+     * Subscribes a DataStore/Room-backed flow and folds each emission into [SettingsState],
+     * logging and swallowing any stream failure (corrupted DataStore file, unexpected Room error)
+     * so it can never crash the app the moment Settings opens. Mirrors the exception-proofing of
+     * [refreshHealthConnectStatus]: a dead flow leaves the last known value in place rather than
+     * killing the process. Every init-block subscription funnels through this.
+     */
+    private fun <T> collectInto(
+        flow: Flow<T>,
+        onEmit: (SettingsState, T) -> SettingsState
+    ) {
         viewModelScope.launch {
-            preferencesRepository.clipRetentionDays.collect { days ->
-                _settings.value = _settings.value.copy(clipRetentionDays = days)
-            }
+            guardedCollect(
+                flow,
+                onEmit = { value -> _settings.value = onEmit(_settings.value, value) },
+                onFailure = { e -> android.util.Log.e("SettingsViewModel", "Settings flow failed", e) }
+            )
         }
     }
 
@@ -579,10 +555,48 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateYamnetClassificationEnabled(enabled) }
     }
 
-    /** HEALTH-03: called on screen resume and right after the permission sheet returns — never cached. */
+    /**
+     * HEALTH-03: called on screen resume and right after the permission sheet returns — never cached.
+     *
+     * Deliberately exception-proof: this runs on Dispatchers.Main.immediate during ViewModel
+     * construction (the init block), so an unexpected platform error from the Health Connect SDK
+     * (service unresponsive, provider mid-update, etc.) must degrade to UNAVAILABLE instead of
+     * escaping the coroutine and crashing the whole app the moment Settings opens.
+     */
     fun refreshHealthConnectStatus() {
         viewModelScope.launch {
-            _settings.value = _settings.value.copy(healthConnectStatus = healthConnectRepository.getStatus())
+            val status = try {
+                healthConnectRepository.getStatus()
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsViewModel", "Failed to query Health Connect status", e)
+                HealthConnectStatus.UNAVAILABLE
+            }
+            _settings.value = _settings.value.copy(healthConnectStatus = status)
         }
+    }
+}
+
+/**
+ * Collects [flow], delivering every value to [onEmit], and swallows any stream failure via
+ * [onFailure] instead of letting it escape — a corrupted DataStore file or unexpected Room error
+ * must degrade to "keep the last known value" rather than crash the app the moment Settings
+ * opens. Cancellation is always rethrown (never reported as a failure): viewModelScope
+ * cancellation on ViewModel clear is normal teardown.
+ *
+ * Extracted out of SettingsViewModel.collectInto as a pure suspend function so the guard
+ * semantics are unit-testable without constructing the ViewModel's dependency graph.
+ */
+internal suspend fun <T> guardedCollect(
+    flow: Flow<T>,
+    onEmit: (T) -> Unit,
+    onFailure: (Exception) -> Unit
+) {
+    try {
+        flow.collect(onEmit)
+    } catch (e: CancellationException) {
+        // viewModelScope cancellation on ViewModel clear — propagate, never log as a failure.
+        throw e
+    } catch (e: Exception) {
+        onFailure(e)
     }
 }
