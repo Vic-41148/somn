@@ -4,12 +4,22 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!--
+      Fallback type for Android 14+: "specialUse" is the one FGS type that needs no runtime
+      permission, so the service can still start when the user denied/revoked RECORD_AUDIO and
+      BODY_SENSORS. SleepTrackingService only passes this bit when no sensor permission is
+      granted; otherwise it passes the subset whose permissions are actually held.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <!--
-      foregroundServiceType="health|microphone" is not satisfied by the FOREGROUND_SERVICE_*
-      permissions alone: the platform also requires a matching sensor permission for "health"
-      and RECORD_AUDIO for "microphone". These used to be declared only in :app, so the module
-      looked self-contained while relying on its consumer to make the service startable.
+      foregroundServiceType="health|microphone|specialUse" is not satisfied by the
+      FOREGROUND_SERVICE_* permissions alone: on Android 14+ the platform also requires the
+      matching runtime permission for each type at startForeground() time — BODY_SENSORS for
+      "health" and RECORD_AUDIO for "microphone". These used to be declared only in :app, so
+      the module looked self-contained while relying on its consumer to make the service
+      startable. The service computes the actual type mask from granted permissions (see
+      SleepTrackingService.startTrackingForeground), never assuming BODY_SENSORS is held.
     -->
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
@@ -18,8 +28,12 @@
     <application>
         <service
             android:name="dev.vic41148.somn.feature.tracking.service.SleepTrackingService"
-            android:foregroundServiceType="health|microphone"
-            android:exported="false" />
+            android:foregroundServiceType="health|microphone|specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Overnight sleep tracking: accelerometer motion sensing and microphone snore/cough detection" />
+        </service>
     </application>
 
 </manifest>
