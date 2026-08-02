@@ -1,0 +1,26 @@
+<b>No wearable, no cloud, on-device.</b>
+
+Somn is a privacy-first sleep tracker for Android. It uses your phone's accelerometer while the phone rests on the bed, tracks your sleep stages, and keeps everything on your device. No account, no subscription, no vendor cloud.
+
+<b>Sleep tracking</b>
+- Wake / Light / Deep / REM classification in 30-second epochs
+- Smart sleep scoring, age-calibrated from teens to 75+
+- Biological profile support: menstrual cycle, pregnancy, neurodivergent (ADHD)
+
+<b>Smart features</b>
+- Smart alarms with gradual volume and a configurable wake window
+- Sleep analytics: history, hypnograms, circadian insights, social jet lag, seasonal analysis, sleep-debt tracking
+- Habit tracking: caffeine, alcohol, exercise and stress vs. sleep outcomes
+- Audio monitoring: snoring, coughing and sleep-talk detection with optional on-device classification, plus an anti-snore nudge
+- Wind-down routines: breathing exercises, cognitive shuffle, ADHD cooldown
+- CSV / JSON export and Sleep as Android import
+
+<b>Privacy by design</b>
+- No analytics, no ads, no crash reporting
+- No Google Play Services in the release build
+- Opts out of Google Auto Backup
+- Optional encrypted NAS backup (AES-256-GCM), off by default
+- Optional Health Connect integration, off by default
+- INTERNET permission used for exactly one feature: NAS backup
+
+Open source under GPL-3.0. Every privacy claim is documented in PRIVACY.md and enforced by CI.

@@ -1,0 +1,8 @@
+First public release.
+
+- Sleep tracking with Wake/Light/Deep/REM classification and age-calibrated scoring
+- Smart alarms, sleep analytics, circadian insights and sleep-debt tracking
+- Habit tracking plus audio monitoring (snore/cough/sleep-talk) with on-device detection
+- Wind-down routines and biological profile support (cycle, pregnancy, ADHD)
+- Optional encrypted NAS backup and Health Connect, both off by default
+- Privacy-first: no analytics, no Google Play Services, no Auto Backup
