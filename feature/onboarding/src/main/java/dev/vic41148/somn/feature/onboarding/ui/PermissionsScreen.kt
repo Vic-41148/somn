@@ -75,6 +75,21 @@ fun PermissionsScreen(
                     required = false
                 )
             )
+            // BODY_SENSORS became a runtime permission on Android 11 (API 30). Somn doesn't read
+            // any sensor behind it directly (accelerometer needs no permission), but Android 14+
+            // refuses to start a foreground service with the "health" type unless this permission
+            // is held — and sleep tracking declares that type. Optional: without it the service
+            // still starts, just under the permission-free "specialUse" type.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                add(
+                    PermissionItem(
+                        Manifest.permission.BODY_SENSORS,
+                        "Body Sensors (optional)",
+                        "Required by Android 14+ to run sleep tracking as a health service",
+                        required = false
+                    )
+                )
+            }
         }
     }
 
