@@ -1,0 +1,6 @@
+Stability hotfix for v0.1.0:
+
+- Fixed: tapping Sleep no longer crashes or closes the app on Android 14+ — the tracking service now claims only the foreground-service types you've actually granted, and falls back to a permission-free type when microphone/body sensors are denied, so tracking always starts
+- Fixed: opening Settings no longer crashes if a preference fails to load
+- Fixed: alarms start and ring reliably (correct service type on Android 11+, guarded start)
+- Onboarding now asks for Body Sensors (optional) so sleep tracking can run as a health service on Android 14+
