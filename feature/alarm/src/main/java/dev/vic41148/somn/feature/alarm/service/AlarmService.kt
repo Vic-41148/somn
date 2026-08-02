@@ -6,9 +6,11 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.os.Build
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -190,7 +192,19 @@ class AlarmService : Service() {
                     }
                 }
                 
-                startForeground(NOTIFICATION_ID, createNotification())
+                // A failed foreground promotion must never take the whole app down with it — stop
+                // cleanly so the system doesn't kill the process for a service that started but
+                // never went foreground (e.g. ForegroundServiceDidNotStartInTimeException on a
+                // cold start, or ForegroundServiceStartNotAllowedException in a non-exempt edge
+                // case). The alarm is missed rather than crashing — same pattern as
+                // SleepTrackingService.
+                try {
+                    startAlarmForeground()
+                } catch (e: Exception) {
+                    android.util.Log.e("AlarmService", "Failed to start foreground alarm", e)
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
 
                 val label = intent?.getStringExtra(AlarmReceiver.EXTRA_ALARM_LABEL) ?: "Alarm"
                 val vibrationEnabled = intent?.getBooleanExtra(AlarmReceiver.EXTRA_VIBRATION, true) ?: true
@@ -231,6 +245,28 @@ class AlarmService : Service() {
             }
         }
         return START_NOT_STICKY
+    }
+
+    /**
+     * Promotes the service to foreground with the mediaPlayback type.
+     *
+     * Android 14+ (targetSdk 34+) throws MissingForegroundServiceTypeException when the two-arg
+     * overload is used while the manifest declares a foreground-service type ("mediaPlayback").
+     * mediaPlayback has no runtime-permission requirement, so the type can be passed
+     * unconditionally — it exactly matches the manifest declaration. The three-arg overload only
+     * exists from API 29 (Q); on API 26-28 the two-arg version is required.
+     */
+    private fun startAlarmForeground() {
+        val notification = createNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     private fun startAlarm(vibrationEnabled: Boolean, gradualSeconds: Int) {
