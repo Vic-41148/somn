@@ -7,6 +7,8 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
@@ -30,6 +32,7 @@ import dev.vic41148.somn.feature.alarm.receiver.AlarmReceiver
 import dev.vic41148.somn.feature.alarm.service.AlarmService
 import dev.vic41148.somn.core.audio.sensor.AccelerometerCollector
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -78,7 +81,13 @@ class SleepTrackingService : Service() {
     private var skipNextEpoch = false
 
     private var wakeLock: PowerManager.WakeLock? = null
-    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val serviceScope = CoroutineScope(
+        Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, e ->
+            // Any uncaught collector/loop failure (e.g. a Room write error mid-session) must
+            // degrade to a logged warning — never take the whole process down.
+            android.util.Log.e("SleepTrackingService", "Uncaught tracking coroutine failure", e)
+        }
+    )
     private var collectionJob: Job? = null
     private var audioJob: Job? = null
 
@@ -154,8 +163,20 @@ class SleepTrackingService : Service() {
                 val modeName  = intent.getStringExtra(EXTRA_TRACKING_MODE) ?: TrackingMode.ACCELEROMETER.name
                 val mode      = try { TrackingMode.valueOf(modeName) } catch (_: Exception) { TrackingMode.ACCELEROMETER }
                 if (sessionId != -1L) {
-                    startForeground(NOTIFICATION_ID, createNotification())
-                    startTracking(sessionId, mode)
+                    try {
+                        startTrackingForeground()
+                        startTracking(sessionId, mode)
+                    } catch (e: Exception) {
+                        // A failed foreground promotion or synchronous session-start error must
+                        // never take the whole app down with it — stop cleanly so the system
+                        // doesn't kill the process for a service that started but never went
+                        // foreground. The un-finished session is recovered later by REL-02's
+                        // incomplete-session finalization. Coroutine-level failures launched by
+                        // startTracking() are absorbed by serviceScope's CoroutineExceptionHandler.
+                        android.util.Log.e("SleepTrackingService", "Failed to start tracking session", e)
+                        stopSelf()
+                        return START_NOT_STICKY
+                    }
                 }
             }
             ACTION_STOP -> {
@@ -165,6 +186,36 @@ class SleepTrackingService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    /**
+     * Promotes the service to foreground using the correct [android.app.Service.startForeground]
+     * overload for the running API level. The overload dispatch needs an explicit
+     * [Build.VERSION.SDK_INT] guard — lint's NewApi check can't prove the three-arg overload
+     * (API 29+) is safe from a delegated value, so the two-arg path is taken below Q with an
+     * SDK check. The type passed to the three-arg overload is computed by [startForegroundTypeForApi],
+     * the single testable seam (locked in by StartForegroundBranchSelectionTest).
+     */
+    private fun startTrackingForeground() {
+        val notification = createNotification()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            // API 26-28: the three-arg overload does not exist; the two-arg version is required.
+            startForeground(NOTIFICATION_ID, notification)
+            return
+        }
+        // API 29+: type 0 means "use the manifest-declared types" on Q..Tiramisu (no runtime
+        // permission enforcement before API 34); API 34+ passes the permission-derived mask.
+        startForeground(
+            NOTIFICATION_ID,
+            notification,
+            startForegroundTypeForApi(
+                sdkInt = Build.VERSION.SDK_INT,
+                recordAudioGranted = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+                    PackageManager.PERMISSION_GRANTED,
+                bodySensorsGranted = checkSelfPermission(android.Manifest.permission.BODY_SENSORS) ==
+                    PackageManager.PERMISSION_GRANTED
+            )
+        )
     }
 
     private fun startTracking(sessionId: Long, mode: TrackingMode) {
@@ -473,3 +524,74 @@ class SleepTrackingService : Service() {
 }
 
 enum class TrackingState { IDLE, TRACKING, PAUSED }
+
+/**
+ * Computes the foreground-service type mask to pass to `startForeground(id, notification, type)`
+ * on Android 14+ (the three-arg overload).
+ *
+ * Android 14+ (targetSdk 34+) enforces the mask at startForeground() time: claiming "health"
+ * requires the BODY_SENSORS runtime permission and "microphone" requires RECORD_AUDIO — if a
+ * claimed type's permission isn't held, the system throws SecurityException. BODY_SENSORS is only
+ * granted if the user opted in during onboarding, so the mask must never assume it. When neither
+ * permission is held, it falls back to the permission-free "specialUse" type (declared in the
+ * manifest), so the service can still start — audio stays off because [SleepTrackingService]
+ * gates mic collection on RECORD_AUDIO separately.
+ *
+ * @return a bitwise OR of [ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE] and/or
+ *   [ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH], or [ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE]
+ *   when neither permission is granted.
+ */
+internal fun foregroundServiceTypeMask(
+    recordAudioGranted: Boolean,
+    bodySensorsGranted: Boolean
+): Int {
+    var type = 0
+    if (recordAudioGranted) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+    if (bodySensorsGranted) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
+    // No sensor permission held (user denied or revoked) — specialUse is the one declared
+    // type that needs no runtime permission, so use it rather than crashing.
+    if (type == 0) type = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+    return type
+}
+
+/**
+ * Sentinel returned by [startForegroundTypeForApi] on API 26-28: the three-arg
+ * [android.app.Service.startForeground] overload does not exist before API 29, so the two-arg
+ * overload must be used.
+ */
+internal const val START_FOREGROUND_TWO_ARG = -1
+
+/**
+ * Computes the type to pass to the three-arg [android.app.Service.startForeground] overload on
+ * API 29+ — the single testable seam behind [SleepTrackingService.startTrackingForeground]'s
+ * SDK-conditional branch selection (locked in by StartForegroundBranchSelectionTest). The
+ * two-arg-vs-three-arg overload dispatch itself is guarded by [Build.VERSION.SDK_INT] at the
+ * call site, because lint's NewApi check requires an explicit SDK guard on the three-arg call.
+ *
+ *  - API 26-28 (below Q): returns [START_FOREGROUND_TWO_ARG] — the two-arg overload must be used.
+ *    The call site dispatches the two-arg path via its own SDK_INT guard (lint's NewApi check
+ *    requires it), so this branch is deliberately redundant — kept so the full decision table
+ *    stays locked in by StartForegroundBranchSelectionTest. Do not remove it as "dead".
+ *  - API 29-33 (Q..Tiramisu): returns 0, meaning "use the manifest-declared types". FGS types had
+ *    no runtime-permission enforcement before API 34, so this can never throw for the type.
+ *  - API 34+ (UpsideDownCake): returns the permission-derived mask from [foregroundServiceTypeMask]
+ *    — only claiming types whose runtime permission is actually held, falling back to the
+ *    permission-free "specialUse" type when none are granted.
+ *
+ * Android 14+ (targetSdk 34+) enforces the mask at startForeground() time: the two-arg overload
+ * throws MissingForegroundServiceTypeException when the manifest declares multiple types, and the
+ * three-arg overload throws SecurityException when a claimed type's runtime permission isn't held
+ * ("health" requires BODY_SENSORS, "microphone" requires RECORD_AUDIO). BODY_SENSORS is only
+ * granted if the user opted in during onboarding, so the service must never assume it — it must
+ * only ever claim the types it can prove it holds, falling back to the permission-free
+ * "specialUse" type when none are granted.
+ */
+internal fun startForegroundTypeForApi(
+    sdkInt: Int,
+    recordAudioGranted: Boolean,
+    bodySensorsGranted: Boolean
+): Int = when {
+    sdkInt < Build.VERSION_CODES.Q -> START_FOREGROUND_TWO_ARG
+    sdkInt < Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> 0
+    else -> foregroundServiceTypeMask(recordAudioGranted, bodySensorsGranted)
+}
