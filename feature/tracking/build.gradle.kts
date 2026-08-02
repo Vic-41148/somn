@@ -57,4 +57,6 @@ dependencies {
 
     // WorkManager for trigger sync
     implementation(libs.work.runtime)
+
+    testImplementation(libs.junit)
 }
