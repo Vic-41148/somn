@@ -38,7 +38,7 @@ data class DailyDebt(
 }
 
 /** Direction of sleep debt trend (comparing last 7 days vs prior 7 days). */
-enum class DebtTrend(val displayName: String, val emoji: String) {
+enum class DebtTrend(val displayName: String, val glyph: String) {
     IMPROVING("Improving", "↑"),
     STABLE("Stable", "→"),
     WORSENING("Worsening", "↓")

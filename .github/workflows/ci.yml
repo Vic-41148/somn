@@ -115,3 +115,29 @@ jobs:
                    grep -A1 'uses-permission#android.permission.INTERNET' "$REPORT"; exit 1; }
           fi
           echo "OK: backup opt-out intact, INTERNET scoped to :core:data."
+
+  style-guardrails:
+    name: Style guardrails
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # CONTRIBUTING.md's "no emoji in source or user-facing text" is a promise to users exactly
+      # like the privacy claims above: cheap to assert, expensive to notice breaking, because a
+      # doc rewrite or a copy-paste can reintroduce emoji in a heading or a string with no
+      # compiler complaining. Scans every tracked file; grep -I skips binaries (yamnet.tflite,
+      # gradle-wrapper.jar) so they can't trip it. Covers the emoji pictograph ranges, the
+      # Miscellaneous Symbols block (e.g. the U+26A0 warning sign removed in Aug 2026), the
+      # emoji variation selector, and the ZWJ used in emoji sequences.
+      - name: No emoji in tracked source or docs
+        run: |
+          EMOJI_HITS=$(git ls-files -z | xargs -0 grep -nPI \
+            '[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{FE0F}\x{200D}]' 2>/dev/null || true)
+          if [ -n "$EMOJI_HITS" ]; then
+            echo "::error::Emoji characters found in tracked source or docs — CONTRIBUTING.md: 'No emoji in source or user-facing text':"
+            echo "$EMOJI_HITS"
+            exit 1
+          fi
+          echo "OK: no emoji in tracked source or docs."

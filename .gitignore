@@ -80,3 +80,6 @@ secrets.properties
 *.aab
 *.flat
 
+# Scratch / temporary files — never published
+tmp/
+
