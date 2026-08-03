@@ -82,4 +82,6 @@ secrets.properties
 
 # Scratch / temporary files — never published
 tmp/
+__pycache__/
+
 
