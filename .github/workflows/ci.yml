@@ -38,6 +38,15 @@ jobs:
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
+      # A transitive constraint (androidx.emoji2 -> foundation 1.9.0) once forced the app runtime
+      # to a newer compose foundation than modules compiled against; FlowRow's changed signature
+      # made the habits forms crash with NoSuchMethodError on-device. This task fails if any
+      # module's compile classpath resolves a different androidx.compose.foundation version than
+      # :app ships, so the class of bug is caught in CI instead of by a user.
+      - name: Compose foundation versions align (compile == shipped)
+        run: ./gradlew verifyComposeFoundationAlignment -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+
       - name: Android Lint
         run: ./gradlew lintDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
