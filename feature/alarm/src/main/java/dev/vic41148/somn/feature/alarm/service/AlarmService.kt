@@ -65,6 +65,13 @@ class AlarmService : Service() {
     private var lastGradualSeconds = 60
     private var currentAlarmId: Long = -1L
 
+    /**
+     * Per-alarm smart wake window (minutes) for the current firing episode, when the firing
+     * intent carried one. Drives the WAKE-01 confirmation window for this alarm (override in
+     * minutes); null falls back to the global `wakeVerificationWindowSeconds` preference.
+     */
+    private var currentWakeWindowMinutes: Int? = null
+
     /** WAKE-01/02: lifecycle of one alarm-firing episode, including the post-dismiss wake check. */
     enum class AlarmPhase { FIRING, AWAITING_WAKE_CONFIRMATION, DISMISSED }
 
@@ -157,6 +164,11 @@ class AlarmService : Service() {
                 val snoozeMinutes = intent.getIntExtra("snooze_minutes", 9)
                 val alarmIdForSnooze = currentAlarmId
                 stopAlarm()
+                // Ends the firing episode: AlarmActivity's phase watcher finishes it, and the nav
+                // graph pops the in-app firing screen. (Previously phase stayed FIRING, so any UI
+                // that observed the phase — e.g. the alarm_firing route — would sit on a "ringing"
+                // screen forever after a snooze.)
+                _phase.value = AlarmPhase.DISMISSED
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 // The comment here used to say "snooze handled by the UI/ViewModel" — it wasn't;
                 // neither AlarmViewModel.snoozeAlarm nor anything else ever actually scheduled a
@@ -174,7 +186,8 @@ class AlarmService : Service() {
                                 label = alarm.label,
                                 vibration = alarm.vibrationEnabled,
                                 gradualSeconds = alarm.gradualVolumeSeconds,
-                                captchaType = alarm.captchaType.name
+                                captchaType = alarm.captchaType.name,
+                                wakeWindowMinutes = alarm.wakeWindowMinutes
                             )
                         }
                         stopSelf()
@@ -211,8 +224,12 @@ class AlarmService : Service() {
                 val gradualSeconds = intent?.getIntExtra(AlarmReceiver.EXTRA_GRADUAL_SECONDS, 60) ?: 60
                 val captchaType = intent?.getStringExtra(AlarmReceiver.EXTRA_CAPTCHA_TYPE) ?: "NONE"
                 val alarmId = intent?.getLongExtra(AlarmReceiver.EXTRA_ALARM_ID, -1L) ?: -1L
+                val wakeWindowMinutes = intent?.getIntExtra(
+                    AlarmReceiver.EXTRA_WAKE_WINDOW_MINUTES, AlarmReceiver.NO_WAKE_WINDOW
+                ) ?: AlarmReceiver.NO_WAKE_WINDOW
 
                 currentAlarmId = alarmId
+                currentWakeWindowMinutes = wakeWindowMinutes.takeIf { it > 0 }
                 if (alarmId != -1L) {
                     serviceScope.launch(Dispatchers.IO) {
                         val alarm = alarmRepository.getAlarm(alarmId)
@@ -347,7 +364,11 @@ class AlarmService : Service() {
             return
         }
 
-        val windowSeconds = preferencesRepository.wakeVerificationWindowSeconds.first()
+        // WAKE-01 window: the per-alarm smart wake window (in minutes) is authoritative for the
+        // alarm that's firing — the confirmation countdown lasts as long as the alarm's own wake
+        // window. Alarms fired without one (legacy pending intents) keep the global preference.
+        val windowSeconds = currentWakeWindowMinutes?.let { it * 60 }
+            ?: preferencesRepository.wakeVerificationWindowSeconds.first()
         stopAlarm()
         _phase.value = AlarmPhase.AWAITING_WAKE_CONFIRMATION
         _wakeConfirmDeadlineMillis.value = System.currentTimeMillis() + windowSeconds * 1000L
