@@ -34,6 +34,7 @@ scripts/run-session-e2e.sh --no-seed --duration 40 --retries 2
 | `verify-cycle-legend.sh [male\|cycling]` | Asserts the Trends "Cycle phase" legend renders (cycling) or is absent (male) — the UI-gating check. |
 | `verify-vitals.sh` | Asserts the detail-screen Vitals card renders the seeded external_vitals (HR/HRV/SpO2/skin temp). |
 | `verify-alarms.sh` | Asserts the Alarms screen shows both seeded alarms. |
+| `verify-wake-window.sh [--minutes N]` | REGRESSION: fires an alarm through the real service with `wake_window_minutes=N` (default 2) + per-alarm MATH captcha, solves the captcha via UI, taps Dismiss, and asserts the WAKE-01 countdown is minutes-scale (~Nm), not the 15s global default. `--minutes 10/30/45` match the edit-screen slider range. Requires `adb root` (emulator). |
 | `verify-trends.sh` | Dumps the Trends screen texts (informational). |
 | `verify-habits-forms.sh` | REGRESSION: taps all four Daily Log habit sections (Caffeine → Alcohol → Exercise → Stress), asserts each form expands and renders its content, and that no FATAL lands in logcat. Guards the compose foundation FlowRow NoSuchMethodError crash. |
 | `verify-release-pipeline.sh` | Pre-release check: `assembleRelease` → compose-foundation alignment guardrail → resolved foundation on the release runtime classpath → R8 clean (no missing-member warnings). |
@@ -73,3 +74,13 @@ compiled against the BOM's 1.7.6, and foundation changed the `FlowRow` signature
 between those versions. Fixed by the 2025.08.01 BOM bump + the
 `verifyComposeFoundationAlignment` CI guardrail — this script proves all four forms
 still expand and render on-device.
+
+`verify-wake-window.sh` exists because the per-alarm wake window was decorative: the
+firing service read only the global `wakeVerificationWindowSeconds` (15s), so the
+10–45min smart-wake window set on the alarm edit screen never reached the firing
+path. Fixed in commit 49a5112 — the value now flows scheduler → receiver extra →
+service (plus smart-fire and snooze re-arm) and drives the WAKE-01 confirmation
+window in minutes. This script proves the post-dismiss countdown honors the per-alarm
+value end-to-end, and (by firing with `captcha_type=MATH`) doubles as the per-alarm
+captcha-precedence check. It needs `adb root` because Android 14+ won't let the
+shell uid start the non-exported AlarmService — hence emulator-only.
