@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.vic41148.somn.core.data.repository.SleepRepository
+import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.core.domain.model.ChronotypeAssessment
 import dev.vic41148.somn.core.domain.model.SeasonalAnalysis
@@ -24,6 +25,7 @@ import javax.inject.Inject
 class CircadianViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
     private val userProfileRepository: UserProfileRepository,
+    private val preferencesRepository: SomnPreferencesRepository,
     private val chronotypeAssessmentUseCase: ChronotypeAssessmentUseCase,
     private val socialJetLagUseCase: SocialJetLagUseCase,
     private val seasonalAnalysisUseCase: SeasonalAnalysisUseCase
@@ -56,15 +58,19 @@ class CircadianViewModel @Inject constructor(
                     userProfileRepository.observeProfile(),
                     // SESS-04: chronotype/social-jetlag/seasonal analysis is bedtime-based —
                     // naps/commute/shift sessions would skew it.
-                    sleepRepository.observeMainSleepSessions()
-                ) { profile, sessions ->
-                    Pair(profile, sessions)
-                }.collect { (profile, sessions) ->
+                    sleepRepository.observeMainSleepSessions(),
+                    // Seasonal analysis can be pinned to a hemisphere; a change to the override
+                    // re-runs the analysis immediately, not on the next screen open.
+                    preferencesRepository.hemisphereOverride
+                ) { profile, sessions, hemisphereOverride ->
+                    Triple(profile, sessions, hemisphereOverride)
+                }.collect { (profile, sessions, hemisphereOverride) ->
                     if (profile == null) return@collect
 
                     _chronotypeAssessment.value = chronotypeAssessmentUseCase.assess(profile, sessions)
                     _socialJetLag.value = socialJetLagUseCase.calculate(sessions)
-                    _seasonalAnalysis.value = seasonalAnalysisUseCase.analyze(sessions)
+                    _seasonalAnalysis.value =
+                        seasonalAnalysisUseCase.analyze(sessions, hemisphereOverride = hemisphereOverride)
                     _errorMessage.value = null
                 }
             } catch (e: Exception) {

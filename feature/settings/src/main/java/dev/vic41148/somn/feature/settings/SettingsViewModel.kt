@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dev.vic41148.somn.core.data.repository.HealthConnectRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.domain.model.HealthConnectStatus
+import dev.vic41148.somn.core.domain.model.HemisphereOverride
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
@@ -124,6 +125,9 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.wakeVerificationWindowSeconds) { state, seconds ->
             state.copy(wakeVerificationWindowSeconds = seconds)
         }
+        collectInto(preferencesRepository.hemisphereOverride) { state, override ->
+            state.copy(hemisphereOverride = override)
+        }
         collectInto(preferencesRepository.snoreNudgeEnabled) { state, enabled ->
             state.copy(snoreNudgeEnabled = enabled)
         }
@@ -161,6 +165,8 @@ class SettingsViewModel @Inject constructor(
         val oversleepThresholdMinutes: Int = 60,
         val wakeVerificationEnabled: Boolean = true,
         val wakeVerificationWindowSeconds: Int = 15,
+        /** Which hemisphere seasonal analysis assumes; AUTO keeps the timezone heuristic. */
+        val hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO,
         val snoreNudgeEnabled: Boolean = true,
         /** Days sleep-talk recordings are kept; 0 means keep forever. */
         val clipRetentionDays: Int =
@@ -239,6 +245,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateWakeVerificationWindowSeconds(seconds: Int) {
         viewModelScope.launch { preferencesRepository.updateWakeVerificationWindowSeconds(seconds) }
+    }
+
+    fun updateHemisphereOverride(override: HemisphereOverride) {
+        viewModelScope.launch { preferencesRepository.updateHemisphereOverride(override) }
     }
 
     fun updateSnoreNudgeEnabled(enabled: Boolean) {

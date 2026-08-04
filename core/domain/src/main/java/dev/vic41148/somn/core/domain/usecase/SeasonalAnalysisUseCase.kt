@@ -1,5 +1,6 @@
 package dev.vic41148.somn.core.domain.usecase
 
+import dev.vic41148.somn.core.domain.model.HemisphereOverride
 import dev.vic41148.somn.core.domain.model.MIN_SESSIONS_PER_SEASON
 import dev.vic41148.somn.core.domain.model.Season
 import dev.vic41148.somn.core.domain.model.SeasonalAnalysis
@@ -23,7 +24,7 @@ import java.time.ZoneId
  *   - UTC offset of the session's stored timezone is used as a proxy
  *   - Positive offsets (east of UTC) are assumed Northern Hemisphere by default
  *   - Negative offsets beyond -3h are assumed Southern Hemisphere
- *   - This heuristic is imperfect; a user settings override is recommended in future
+ *   - This heuristic is imperfect; a user settings override ([HemisphereOverride]) pins it
  *
  * Research basis §2.8: SAD affects 1.4–9.9% of the population; subsyndromal SAD
  * ("winter blues") affects ~14.3% (NIMH). Both winter and summer patterns are circadian
@@ -34,13 +35,19 @@ class SeasonalAnalysisUseCase {
     /**
      * @param sessions All completed sleep sessions (no date range limit — more = better).
      * @param deviceTimezoneId The current device timezone for hemisphere detection.
+     * @param hemisphereOverride User override; [HemisphereOverride.AUTO] keeps the UTC-offset heuristic.
      */
     fun analyze(
         sessions: List<SleepSession>,
-        deviceTimezoneId: String = ZoneId.systemDefault().id
+        deviceTimezoneId: String = ZoneId.systemDefault().id,
+        hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO
     ): SeasonalAnalysis {
-        val currentSeason = currentSeason(deviceTimezoneId)
-        val northernHemisphere = isNorthernHemisphere(deviceTimezoneId)
+        val northernHemisphere = when (hemisphereOverride) {
+            HemisphereOverride.AUTO -> isNorthernHemisphere(deviceTimezoneId)
+            HemisphereOverride.NORTHERN -> true
+            HemisphereOverride.SOUTHERN -> false
+        }
+        val currentSeason = currentSeason(deviceTimezoneId, northernHemisphere)
 
         val completed = sessions.filter { it.isCompleted && it.endTimeMillis > 0 }
 
@@ -152,17 +159,17 @@ class SeasonalAnalysisUseCase {
     /**
      * Determine current season from device timezone.
      */
-    private fun currentSeason(timezoneId: String): Season {
+    private fun currentSeason(timezoneId: String, northernHemisphere: Boolean): Season {
         val zone  = runCatching { ZoneId.of(timezoneId) }.getOrDefault(ZoneId.systemDefault())
         val month = java.time.LocalDate.now(zone).monthValue
-        return Season.fromMonth(month, isNorthernHemisphere(timezoneId))
+        return Season.fromMonth(month, northernHemisphere)
     }
 
     /**
      * Heuristic: UTC offset < -3 hours is assumed Southern Hemisphere (much of South America,
      * South Africa, Australia, New Zealand). UTC offsets ≥ -3h are assumed Northern Hemisphere.
      *
-     * This covers ~90% of users correctly. A manual override in settings is the robust solution.
+     * This covers ~90% of users correctly; [HemisphereOverride] in settings pins the rest.
      */
     private fun isNorthernHemisphere(timezoneId: String): Boolean {
         return try {
