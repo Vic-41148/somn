@@ -80,6 +80,27 @@ class SleepTrackingService : Service() {
     private var brpmCount = 0
     private var skipNextEpoch = false
 
+    // ── Stage smoothing state (3-epoch mode filter) ───────────────────
+    // smoothStages() smooths epoch i against [i-1, i, i+1], so an epoch can't be persisted
+    // until its successor has been classified. The latest raw epoch is held back and, on each
+    // new epoch, the previous one is written smoothed against [prevprev, prev, current]. The
+    // final epoch has no successor and is flushed raw when tracking stops — matching
+    // smoothStages()'s "first and last epochs are never replaced" semantics.
+    //
+    // Who flushes it: the ViewModel's stopTracking() writes it (via the [finalEpoch] companion
+    // flow) in the normal user-stop path. The service itself only flushes asynchronously for the
+    // non-ViewModel stop paths (smart-alarm early wake, onDestroy). It must NEVER flush with
+    // runBlocking on the main thread — that blocks main while Room queries from the ViewModel
+    // coroutine are in flight, wedging Room's executors so every later query (including the
+    // morning health alerts in notifyMorningAlerts) hangs forever.
+    private var pendingRawEpoch: SleepEpoch? = null
+    private var prevPrevStage: SleepStage? = null
+    private var prevStage: SleepStage? = null
+
+    // True when this service instance is being stopped via ACTION_STOP — the ViewModel owns the
+    // final-epoch flush in that path, so onDestroy must not race it by flushing too.
+    private var stopViaActionStop = false
+
     private var wakeLock: PowerManager.WakeLock? = null
     private val serviceScope = CoroutineScope(
         Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, e ->
@@ -101,6 +122,17 @@ class SleepTrackingService : Service() {
         const val ACTION_STOP     = "dev.vic41148.somn.action.STOP_TRACKING"
         const val EXTRA_SESSION_ID    = "session_id"
         const val EXTRA_TRACKING_MODE = "tracking_mode"
+
+        // REL-02: the last epoch held back by the 3-epoch smoothing filter. The ViewModel's
+        // stopTracking() reads it and writes it itself (see the stage-smoothing note above) so
+        // the service never has to block the main thread with a runBlocking flush. Cleared by
+        // the ViewModel after writing, or by the service after its own async flush.
+        private val _finalEpoch = MutableStateFlow<SleepEpoch?>(null)
+        val finalEpoch: StateFlow<SleepEpoch?> = _finalEpoch.asStateFlow()
+
+        fun clearFinalEpoch() {
+            _finalEpoch.value = null
+        }
 
         private val _trackingState = MutableStateFlow(TrackingState.IDLE)
         val trackingState: StateFlow<TrackingState> = _trackingState.asStateFlow()
@@ -180,7 +212,12 @@ class SleepTrackingService : Service() {
                 }
             }
             ACTION_STOP -> {
-                stopTracking()
+                // The ViewModel's stopTracking() writes the held-back final epoch itself, so the
+                // service must not flush here — doing so with runBlocking on the main thread used
+                // to wedge Room's executors while the ViewModel ran concurrent queries. The flag
+                // tells onDestroy not to flush either, keeping the VM path fully deterministic.
+                stopViaActionStop = true
+                stopTracking(flushFinalEpochHere = false)
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -227,6 +264,9 @@ class SleepTrackingService : Service() {
         brpmSum       = 0
         brpmCount     = 0
         skipNextEpoch = false
+        pendingRawEpoch = null
+        prevPrevStage   = null
+        prevStage       = null
 
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(
@@ -338,7 +378,10 @@ class SleepTrackingService : Service() {
     private fun startAccelerometerCollection(sessionId: Long) {
         accelerometerCollector.start()
 
-        // Phone-lifted → immediate AWAKE epoch
+        // Phone-lifted → immediate AWAKE epoch. Written raw, bypassing the stage-smoothing
+        // buffer in handleEpoch() — a real lift is a strong signal, not single-epoch noise.
+        // Note the skip it causes (skipNextEpoch below) can make the next smoothing window
+        // non-consecutive (e.g. [E1, E2, E4]); harmless, mode-of-3 stays sane.
         serviceScope.launch {
             accelerometerCollector.liftEvents.collect { liftEvent ->
                 if (liftEvent.type == AccelerometerCollector.LiftEventType.PHONE_LIFTED ||
@@ -369,15 +412,31 @@ class SleepTrackingService : Service() {
 
     private suspend fun handleEpoch(epochData: AccelerometerCollector.EpochData, sessionId: Long) {
         val stage = classifyStage(epochData.movementMagnitude, epochData.movementVariability)
-        val epoch = SleepEpoch(
+        val rawEpoch = SleepEpoch(
             sessionId           = sessionId,
             timestampMillis     = epochData.timestampMillis,
             stage               = stage,
             movementMagnitude   = epochData.movementMagnitude,
             movementVariability = epochData.movementVariability
         )
-        sleepRepository.insertEpoch(epoch)
 
+        // Stage smoothing: the epoch before this one now has a successor, so it can be written
+        // — smoothed against [prevprev, prev, current]. The current epoch stays pending until
+        // its own successor arrives.
+        pendingRawEpoch?.let { prevEpoch ->
+            val smoothedStage = classifyStage.smoothStages(
+                listOf(prevPrevStage ?: prevEpoch.stage, prevEpoch.stage, stage)
+            )[1]
+            sleepRepository.insertEpoch(prevEpoch.copy(stage = smoothedStage))
+        }
+        prevPrevStage = prevStage
+        prevStage     = stage
+        pendingRawEpoch = rawEpoch
+        _finalEpoch.value = rawEpoch
+
+        // Smart alarm uses the raw current stage — it's the freshest signal available (the
+        // current epoch has no successor to smooth against yet, so this is what the
+        // pre-smoothing code would have used anyway).
         nextAlarmTimeMillis?.let { alarmTime ->
             if (smartAlarmUseCase.shouldWakeEarly(System.currentTimeMillis(), alarmTime,
                     nextAlarm?.wakeWindowMinutes ?: 30, stage)) {
@@ -432,9 +491,12 @@ class SleepTrackingService : Service() {
             putExtra(AlarmReceiver.EXTRA_VIBRATION,      alarm.vibrationEnabled)
             putExtra(AlarmReceiver.EXTRA_GRADUAL_SECONDS, alarm.gradualVolumeSeconds)
             putExtra(AlarmReceiver.EXTRA_CAPTCHA_TYPE,   alarm.captchaType.name)
+            putExtra(AlarmReceiver.EXTRA_WAKE_WINDOW_MINUTES, alarm.wakeWindowMinutes)
         }
         startForegroundService(si)
-        stopTracking()
+        // Smart-alarm wake: no ViewModel stop path follows, so flush the final epoch here
+        // (async, best-effort — never block the main thread).
+        stopTracking(flushFinalEpochHere = true)
     }
 
     private fun fireLowBreathRateAlarm(brpm: Int) {
@@ -482,7 +544,35 @@ class SleepTrackingService : Service() {
 
     // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
-    private fun stopTracking() {
+    /**
+     * Stops all collectors and releases tracking state.
+     *
+     * @param flushFinalEpochHere whether this caller flushes the held-back final epoch itself.
+     *   The ViewModel's user-stop path sets this false and writes the epoch itself (deterministic
+     *   ordering before it reads the epoch list back); fireSmartAlarm/onDestroy set it true and
+     *   flush asynchronously on the service scope. Never runBlocking on the main thread here —
+     *   that wedged Room's executors during teardown and hung every later query.
+     */
+    private fun stopTracking(flushFinalEpochHere: Boolean = true) {
+        // The held-back final epoch has no successor, so per smoothStages() semantics it is
+        // written unsmoothed. The ViewModel path writes it synchronously in its own coroutine
+        // (which guarantees it lands before the epoch list is read back); the service paths
+        // flush asynchronously as best-effort.
+        if (flushFinalEpochHere) {
+            _finalEpoch.value?.let { last ->
+                _finalEpoch.value = null
+                serviceScope.launch {
+                    try {
+                        sleepRepository.insertEpoch(last)
+                    } catch (e: Exception) {
+                        android.util.Log.e("SleepTrackingService", "Failed to flush final epoch", e)
+                    }
+                }
+            }
+        }
+        pendingRawEpoch = null
+        prevPrevStage   = null
+        prevStage       = null
         accelerometerCollector.stop()
         audioCollector.stop()
         sonarCollector.stop()
@@ -515,7 +605,11 @@ class SleepTrackingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        stopTracking()
+        // When the stop came via ACTION_STOP, the ViewModel owns the final-epoch flush — flushing
+        // here too would clear finalEpoch and async-write while the ViewModel is mid-suspend,
+        // reintroducing the race this fix eliminates. When the service is destroyed without an
+        // ACTION_STOP (e.g. system-initiated), flush as best-effort like the old code did.
+        stopTracking(flushFinalEpochHere = !stopViaActionStop)
         yamnetClassifier?.close()
         yamnetClassifier = null
         serviceScope.cancel()

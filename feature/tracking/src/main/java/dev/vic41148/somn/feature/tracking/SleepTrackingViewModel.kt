@@ -155,6 +155,17 @@ class SleepTrackingViewModel @Inject constructor(
             SleepTrackingService.stopTracking(context)
 
             val session = sleepRepository.getActiveSession() ?: return@launch
+
+            // REL-02: the service no longer flushes its held-back final epoch with a runBlocking on
+            // the main thread (that wedged Room's executors during teardown and hung every later
+            // query — including the morning alerts below). Instead it exposes the epoch here and the
+            // ViewModel writes it, synchronously and in order, before reading the epoch list back.
+            val finalEpoch = SleepTrackingService.finalEpoch.value
+            if (finalEpoch != null) {
+                sleepRepository.insertEpoch(finalEpoch)
+                SleepTrackingService.clearFinalEpoch()
+            }
+
             val epochs = sleepRepository.getEpochs(session.id)
             val now = System.currentTimeMillis()
 
