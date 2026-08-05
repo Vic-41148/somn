@@ -9,3 +9,4 @@ What's new in v0.1.2:
 - Fixed a race where the morning deep-sleep alert could be dropped when a tracking session ended
 - Fixed the stop button becoming unreachable if you pressed back during sleep tracking: back is now locked while a session is running, and the Home screen always returns you to the stop screen
 - Fixed the morning review occasionally showing a previous night's session after the app was restarted mid-tracking
+- Tapping the ongoing sleep-tracking notification now opens the tracking screen, so you can stop a session from anywhere
