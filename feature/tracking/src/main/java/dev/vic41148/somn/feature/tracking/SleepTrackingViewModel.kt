@@ -93,6 +93,13 @@ class SleepTrackingViewModel @Inject constructor(
     }
 
     private suspend fun finalizeIncompleteSession(session: SleepSession) {
+        // REL-02: the held-back final epoch dies with a hard-killed process (it lives in the
+        // service's memory), but an interrupted stop — the normal stop path dying mid-flight in
+        // THIS process — leaves it pending in the companion flow. Recover it exactly like
+        // [stopTracking] does, before reading the epoch list back, so the recovered session
+        // includes every epoch this process still could write.
+        flushPendingFinalEpoch()
+
         val epochs = sleepRepository.getEpochs(session.id)
         val audioEventsForSession = sleepRepository.getAudioEvents(session.id)
         val endTimeMillis = epochs.maxOfOrNull { it.timestampMillis } ?: session.startTimeMillis
@@ -160,11 +167,7 @@ class SleepTrackingViewModel @Inject constructor(
             // the main thread (that wedged Room's executors during teardown and hung every later
             // query — including the morning alerts below). Instead it exposes the epoch here and the
             // ViewModel writes it, synchronously and in order, before reading the epoch list back.
-            val finalEpoch = SleepTrackingService.finalEpoch.value
-            if (finalEpoch != null) {
-                sleepRepository.insertEpoch(finalEpoch)
-                SleepTrackingService.clearFinalEpoch()
-            }
+            flushPendingFinalEpoch()
 
             val epochs = sleepRepository.getEpochs(session.id)
             val now = System.currentTimeMillis()
@@ -204,6 +207,21 @@ class SleepTrackingViewModel @Inject constructor(
             } catch (e: Exception) {
                 android.util.Log.e("SleepTrackingViewModel", "Failed to enqueue NAS sync", e)
             }
+        }
+    }
+
+    /**
+     * REL-02: writes the service's held-back final epoch if one is still pending, then clears it.
+     * Shared by the user-stop path and the incomplete-session recovery path so both recover the
+     * same data the 3-epoch smoothing filter deliberately held back (an epoch can't be persisted
+     * until its successor arrives). Runs on the ViewModel's coroutine, never the main thread —
+     * the whole point of the companion flow is that the service must not runBlocking a Room write.
+     */
+    private suspend fun flushPendingFinalEpoch() {
+        val finalEpoch = SleepTrackingService.finalEpoch.value
+        if (finalEpoch != null) {
+            sleepRepository.insertEpoch(finalEpoch)
+            SleepTrackingService.clearFinalEpoch()
         }
     }
 

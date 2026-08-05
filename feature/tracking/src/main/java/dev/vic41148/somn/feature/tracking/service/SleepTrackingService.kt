@@ -124,9 +124,10 @@ class SleepTrackingService : Service() {
         const val EXTRA_TRACKING_MODE = "tracking_mode"
 
         // REL-02: the last epoch held back by the 3-epoch smoothing filter. The ViewModel's
-        // stopTracking() reads it and writes it itself (see the stage-smoothing note above) so
-        // the service never has to block the main thread with a runBlocking flush. Cleared by
-        // the ViewModel after writing, or by the service after its own async flush.
+        // stopTracking() and its incomplete-session recovery (finalizeIncompleteSession) read it
+        // and write it themselves (see the stage-smoothing note above) so the service never has
+        // to block the main thread with a runBlocking flush. Cleared by the ViewModel after
+        // writing, or by the service after its own async flush.
         private val _finalEpoch = MutableStateFlow<SleepEpoch?>(null)
         val finalEpoch: StateFlow<SleepEpoch?> = _finalEpoch.asStateFlow()
 
