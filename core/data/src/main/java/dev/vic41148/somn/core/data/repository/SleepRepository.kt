@@ -73,6 +73,11 @@ class SleepRepository @Inject constructor(
         return sessionDao.getById(id)?.toDomain()
     }
 
+    /** Emits the session whenever its row changes — the review screen keys its data on this, never the shared lastSession flow. */
+    fun observeSession(id: Long): Flow<SleepSession?> {
+        return sessionDao.observeById(id).map { it?.toDomain() }
+    }
+
     fun observeActiveSession(): Flow<SleepSession?> {
         return sessionDao.observeActiveSession().map { it?.toDomain() }
     }

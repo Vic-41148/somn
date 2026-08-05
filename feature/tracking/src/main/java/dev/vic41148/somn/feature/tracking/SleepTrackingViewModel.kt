@@ -23,6 +23,7 @@ import dev.vic41148.somn.core.notifications.PPDRiskNotifier
 import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
 import dev.vic41148.somn.feature.tracking.service.TrackingState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -261,6 +262,28 @@ class SleepTrackingViewModel @Inject constructor(
             healthConnectRepository.writeSleepSession(session, epochs)
         } catch (e: Exception) {
             android.util.Log.e("SleepTrackingViewModel", "Failed to sync to Health Connect", e)
+        }
+    }
+
+    /**
+     * Morning Review must render the session it was opened for — never the shared [lastSession]
+     * flow. The tracking stop path fills [lastSession] asynchronously and can race this screen's
+     * creation (a relaunch mid-flow previously showed a stale session from a previous night).
+     */
+    fun observeSession(sessionId: Long): Flow<SleepSession?> = sleepRepository.observeSession(sessionId)
+
+    /**
+     * Loads the detail state for the given session: score explanation, epochs, audio events.
+     * Runs once the session row arrives so it can't race the stop path's commit.
+     */
+    fun loadSessionDetail(sessionId: Long) {
+        viewModelScope.launch {
+            val session = sleepRepository.getSession(sessionId) ?: return@launch
+            if (session.sleepScore > 0) {
+                _lastScore.value = calculateScore(session)
+            }
+            _epochs.value = sleepRepository.getEpochs(sessionId)
+            _audioEvents.value = sleepRepository.getAudioEvents(sessionId)
         }
     }
 
