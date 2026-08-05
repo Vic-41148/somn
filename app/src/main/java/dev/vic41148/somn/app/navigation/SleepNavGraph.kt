@@ -1,5 +1,6 @@
 package dev.vic41148.somn.app.navigation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -19,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -41,6 +43,7 @@ import dev.vic41148.somn.feature.habits.ui.MedicationLogScreen
 import dev.vic41148.somn.feature.habits.ui.SleepDebtDetailScreen
 import dev.vic41148.somn.feature.onboarding.ui.OnboardingFlow
 import dev.vic41148.somn.feature.settings.ui.SettingsScreen
+import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
 import dev.vic41148.somn.feature.tracking.ui.HomeScreen
 import dev.vic41148.somn.feature.tracking.ui.MorningReviewScreen
 import dev.vic41148.somn.feature.tracking.ui.TrackingScreen
@@ -111,6 +114,19 @@ fun SleepNavGraph(
 
             alarmPhase == AlarmService.AlarmPhase.DISMISSED && currentRoute == "alarm_firing" ->
                 navController.popBackStack()
+        }
+    }
+
+    // FGS notification tap-through (SleepTrackingService.EXTRA_OPEN_TRACKING): land straight on
+    // the tracking screen so the Wake Up button is always one tap away. Keyed on the activity
+    // intent so both cold starts (original intent) and warm taps (MainActivity.onNewIntent ->
+    // setIntent) fire it; launchSingleTop keeps an already-open tracking screen from duplicating.
+    val activity = LocalContext.current as? ComponentActivity
+    LaunchedEffect(activity?.intent) {
+        if (activity?.intent?.getBooleanExtra(SleepTrackingService.EXTRA_OPEN_TRACKING, false) == true) {
+            navController.navigate("tracking") {
+                launchSingleTop = true
+            }
         }
     }
 

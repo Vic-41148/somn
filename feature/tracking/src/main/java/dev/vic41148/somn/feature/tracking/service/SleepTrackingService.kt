@@ -122,6 +122,10 @@ class SleepTrackingService : Service() {
         const val ACTION_STOP     = "dev.vic41148.somn.action.STOP_TRACKING"
         const val EXTRA_SESSION_ID    = "session_id"
         const val EXTRA_TRACKING_MODE = "tracking_mode"
+        // Tapping the ongoing tracking notification opens MainActivity with this extra set, so
+        // the NavGraph can land straight on the tracking screen (Wake Up button) instead of the
+        // Home dead-end. Carried on the launcher intent so the service never imports app classes.
+        const val EXTRA_OPEN_TRACKING = "dev.vic41148.somn.extra.OPEN_TRACKING"
 
         // REL-02: the last epoch held back by the 3-epoch smoothing filter. The ViewModel's
         // stopTracking() and its incomplete-session recovery (finalizeIncompleteSession) read it
@@ -593,15 +597,31 @@ class SleepTrackingService : Service() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    private fun createNotification(): Notification =
-        NotificationCompat.Builder(this, CHANNEL_ID)
+    private fun createNotification(): Notification {
+        // Tap-through: the notification opens MainActivity (via the launcher intent so this
+        // feature module never imports app classes) with EXTRA_OPEN_TRACKING set, and the
+        // NavGraph navigates to the tracking screen. CLEAR_TOP brings an existing task forward
+        // instead of stacking a second activity.
+        val openTrackingIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_OPEN_TRACKING, true)
+        }
+        val contentIntent = PendingIntent.getActivity(
+            this,
+            NOTIFICATION_ID,
+            openTrackingIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Sleep Tracking Active")
-            .setContentText("Monitoring your sleep…")
+            .setContentText("Monitoring your sleep… — tap to open")
             .setSmallIcon(android.R.drawable.ic_menu_recent_history)
             .setOngoing(true).setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setContentIntent(contentIntent)
             .build()
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 

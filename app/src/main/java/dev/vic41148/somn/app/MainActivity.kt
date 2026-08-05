@@ -1,5 +1,6 @@
 package dev.vic41148.somn.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,6 +31,15 @@ class MainActivity : ComponentActivity() {
         // REL-03: OEM power-management layers can silently revoke this exemption after an
         // OTA update, so re-check on every resume rather than only once at onboarding.
         BatteryExemptionState.recheck(this)
+    }
+
+    // The tracking FGS notification carries EXTRA_OPEN_TRACKING on its content intent. On a
+    // warm tap the activity is already alive, so onNewIntent must refresh the intent property
+    // — SleepNavGraph keys an effect on activity.intent, which re-fires and navigates to the
+    // tracking screen (cold starts pick the original intent up directly).
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
