@@ -189,9 +189,18 @@ fun HomeScreen(
                         MaterialTheme.colorScheme.primaryContainer
                 )
                 .clickable {
-                    if (trackingState == TrackingState.IDLE) {
-                        viewModel.startTracking(context, trackingMode, selectedSessionType)
-                        onNavigateToTracking()
+                    when (trackingState) {
+                        // Start a new session and open the tracking screen.
+                        TrackingState.IDLE -> {
+                            viewModel.startTracking(context, trackingMode, selectedSessionType)
+                            onNavigateToTracking()
+                        }
+                        // A session is running but this screen is showing (app relaunched, or the
+                        // process was restarted while the FGS kept tracking). The moon becomes the
+                        // re-entry point to the tracking screen — without this, a live foreground
+                        // session has no in-app way back to the Wake Up button.
+                        TrackingState.TRACKING -> onNavigateToTracking()
+                        TrackingState.PAUSED -> Unit
                     }
                 }
         ) {
