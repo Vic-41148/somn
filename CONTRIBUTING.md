@@ -158,7 +158,9 @@ Both `main` and `dev` are protected on GitHub:
 - **One approval is required** before a pull request from a non-admin can merge
   (the maintainer will review and merge it for you).
 - **CI must pass.** The following checks run on every PR and must be green:
-  - `Build, test & lint` — `assembleDebug`, unit tests, and Android Lint
+  - `Build, test & lint` — `assembleDebug`, unit tests, and Android Lint. The
+    unit-test step also fails if the test count advertised in this file or in
+    README.md no longer matches the suite total
   - `Privacy guardrails` — automated checks that protect the privacy promises
     (details below)
   - `Style guardrails` — fails the build if emoji appear anywhere in tracked
@@ -196,10 +198,11 @@ Every pull request is expected to keep the test suite green:
 ./gradlew testDebugUnitTest
 ```
 
-The suite currently runs 133 unit tests. If you add a feature, add tests for it —
-especially for pure logic like scoring, classification, and parsing. Pure
-functions with well-defined inputs are the cheapest, highest-value tests you can
-write.
+The suite currently runs 193 unit tests — a number enforced by CI: if you add
+or remove a test, update this line and the count in README.md in the same PR,
+or the build fails. If you add a feature, add tests for it — especially for
+pure logic like scoring, classification, and parsing. Pure functions with
+well-defined inputs are the cheapest, highest-value tests you can write.
 
 ## Privacy guardrails
 
