@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 # seed-somn-demo.sh — reproducibly seed the Somn DEBUG build with FABRICATED
-# demo state on a connected device (exactly one adb device).
+# demo state on a connected device. Requires exactly one adb device, or exactly the
+# device named by ANDROID_SERIAL when set (the preflight pins the emulator this way
+# so a phone plugged in alongside it doesn't trip the guard).
 #
 #   Wipes any existing Somn install/data on the device (uninstall), installs the
 #   latest debug APK, then seeds:
@@ -56,9 +58,16 @@ if [ "$CI_FLAG" = "true" ]; then
   exit 1
 fi
 
-DEVICE_COUNT=$(adb devices | awk 'NR > 1 && $2 == "device" { n++ } END { print n + 0 }')
+# The preflight wrapper exports ANDROID_SERIAL to pin the emulator when a physical device
+# is also plugged in — in that case count only the target, not every device on the bus.
+if [ -n "${ANDROID_SERIAL:-}" ]; then
+  DEVICE_COUNT=$(adb devices | awk -v want="$ANDROID_SERIAL" \
+    'NR > 1 && $2 == "device" && $1 == want { n++ } END { print n + 0 }')
+else
+  DEVICE_COUNT=$(adb devices | awk 'NR > 1 && $2 == "device" { n++ } END { print n + 0 }')
+fi
 if [ "$DEVICE_COUNT" -ne 1 ]; then
-  echo "Expected exactly one connected device, found $DEVICE_COUNT." >&2
+  echo "Expected exactly one connected device${ANDROID_SERIAL:+ (target: $ANDROID_SERIAL)}, found $DEVICE_COUNT." >&2
   echo "Connect a device (authorized) and re-run." >&2
   exit 1
 fi
