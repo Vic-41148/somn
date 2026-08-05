@@ -98,25 +98,36 @@ enum class LifeStage(val displayName: String, val description: String) {
 }
 
 /**
- * Chronotype determined by MEQ questionnaire or detected from sleep data.
- * Research doc §2.11: chronotype is neurologically determined, encoded in circadian genes.
+ * Chronotype determined by the rMEQ questionnaire (5-item, score 4-25) or detected from
+ * sleep data. Research doc §2.11: chronotype is neurologically determined, encoded in
+ * circadian genes.
  */
 enum class Chronotype(val displayName: String, val meqRange: IntRange?) {
     UNKNOWN("Not assessed", null),
-    DEFINITE_MORNING("Definite Morning", 59..86),
-    MODERATE_MORNING("Moderate Morning", 42..58),
-    INTERMEDIATE("Intermediate", 31..41),
-    MODERATE_EVENING("Moderate Evening", 18..30),
-    DEFINITE_EVENING("Definite Evening", 16..17);
+    DEFINITE_MORNING("Definite Morning", 21..25),
+    MODERATE_MORNING("Moderate Morning", 17..20),
+    INTERMEDIATE("Intermediate", 13..16),
+    MODERATE_EVENING("Moderate Evening", 9..12),
+    DEFINITE_EVENING("Definite Evening", 4..8);
 
     companion object {
+        /**
+         * rMEQ (Adan & Almirall, 1991) is a 5-item questionnaire scoring 4-25, NOT the 19-item
+         * Horne & Östberg MEQ's 16-86 range this used to use. The old bands (59-86/42-58/...)
+         * were structurally unreachable from a 5-item quiz sum, which silently pushed most
+         * users toward evening-type. Rescaled onto the real rMEQ range (4-25), keeping the
+         * existing 5-way typology since it's load-bearing elsewhere (ADHD adjustment, circadian
+         * UI). No published rMEQ study defines 5 bands specifically — the validated cutoffs
+         * are the 3-band 4-11/12-17/18-25 split — so this is an even-width approximation over
+         * that range, not a literature value.
+         */
         fun fromMeqScore(score: Int): Chronotype = when (score) {
-            in 59..86 -> DEFINITE_MORNING
-            in 42..58 -> MODERATE_MORNING
-            in 31..41 -> INTERMEDIATE
-            in 18..30 -> MODERATE_EVENING
-            in 16..17 -> DEFINITE_EVENING
-            else -> UNKNOWN
+            in 21..25 -> DEFINITE_MORNING
+            in 17..20 -> MODERATE_MORNING
+            in 13..16 -> INTERMEDIATE
+            in 9..12  -> MODERATE_EVENING
+            in 4..8   -> DEFINITE_EVENING
+            else      -> UNKNOWN
         }
     }
 }

@@ -94,8 +94,12 @@ class UserProfileRepository @Inject constructor(
             .getOrDefault(BiologicalSex.NOT_SPECIFIED),
         lifeStage = runCatching { LifeStage.valueOf(lifeStage) }
             .getOrDefault(LifeStage.DEFAULT),
-        chronotype = runCatching { Chronotype.valueOf(chronotype) }
-            .getOrDefault(Chronotype.UNKNOWN),
+        // The persisted chronotype string may have been derived with the old broken 16-86
+        // banding (see Chronotype.fromMeqScore) — the raw meqScore is the source of truth, so
+        // recompute on read to self-heal stale rows without a schema migration. Falls back to
+        // the persisted value only when no score exists (quiz skipped).
+        chronotype = chronotypeMeqScore?.let { Chronotype.fromMeqScore(it) }
+            ?: runCatching { Chronotype.valueOf(chronotype) }.getOrDefault(Chronotype.UNKNOWN),
         chronotypeMeqScore = chronotypeMeqScore,
         neurodivergentProfile = NeurodivergentProfile(
             adhdMode = adhdMode,

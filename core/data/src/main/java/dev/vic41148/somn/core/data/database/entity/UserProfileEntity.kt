@@ -15,6 +15,10 @@ data class UserProfileEntity(
     val dateOfBirth: String? = null,        // ISO-8601: "2000-05-15"
     val biologicalSex: String = "NOT_SPECIFIED",
     val lifeStage: String = "DEFAULT",
+    // Derived from chronotypeMeqScore at write time; reads recompute from the score in
+    // UserProfileRepository (the raw score is the source of truth — this string may predate
+    // the rMEQ band fix and be stale). Never write a deliberate value here that diverges from
+    // the score; it will be silently overridden on read.
     val chronotype: String = "UNKNOWN",
     val chronotypeMeqScore: Int? = null,
     val adhdMode: Boolean = false,
