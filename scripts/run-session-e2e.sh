@@ -4,7 +4,7 @@
 # Drives a REAL start -> stop tracking session through the UI (moon -> Wake Up) and
 # asserts:
 #   1. the session completed in the DB
-#   2. the deep-sleep alert (id 1001) posted — via dumpsys notification, since
+#   2. the deep-sleep alert (id 1004) posted — via dumpsys notification, since
 #      NotificationEngine.showNotification has no Log call (logcat greps would be noise)
 #   3. the hormonal Luteal Phase Alert (id 1003) posted — unless --profile default
 #   4. the tracking FGS stopped
@@ -75,16 +75,31 @@ run_once() {
         fail=1
     fi
 
-    # 2. deep-sleep alert (always fires for a near-zero-epoch session). Its absence
-    #    with a completed session means teardown skipped the alerts entirely -> fail.
+    # 2. deep-sleep alert. 1001 fires only when the session's deepSleepPercent is < 10
+    #    (DeepSleepAlertNotifier) — so whether it SHOULD post depends on the epochs the
+    #    real short session actually recorded, which varies with emulator sensor input per
+    #    boot: an idle boot yields ~0 sleep epochs (deep ~0 -> alert fires), but a boot
+    #    with slightly more motion can produce a couple of DEEP-classified epochs
+    #    (deep >= 10 -> alert correctly suppressed). Assert against the session's actual
+    #    deep %: only "absent despite deep < 10" means teardown skipped the alerts
+    #    entirely and is a genuine failure.
     #    Evidence: NotificationEngine.showNotification calls notificationManager.notify()
     #    with no Log call, so logcat greps are useless — dumpsys notification is the only
     #    authoritative "did it post" check.
+    local deep
+    deep=$(db_q "SELECT deepSleepPercent FROM sleep_sessions ORDER BY id DESC LIMIT 1;" 2>/dev/null || echo "0")
+    deep="${deep:-0}"
     if notification_text_present "Brain Detox Interrupted"; then
-        echo "   PASS: deep-sleep alert (1001) posted"
-    else
-        echo "   FAIL: deep-sleep alert (1001) not posted (dumpsys has no 'Brain Detox Interrupted')"
+        echo "   PASS: deep-sleep alert (1004) posted (deep ${deep}%)"
+        # Informational only: if it posted while deep >= 10 the notifier threshold drifted.
+        if awk "BEGIN{exit !($deep >= 10.0)}"; then
+            echo "   NOTE: 1004 posted despite deep ${deep}% >= 10 — check DeepSleepAlertNotifier threshold"
+        fi
+    elif awk "BEGIN{exit !($deep < 10.0)}"; then
+        echo "   FAIL: deep-sleep alert (1004) not posted despite deep ${deep}% < 10 (teardown skipped alerts)"
         fail=1
+    else
+        echo "   PASS: no deep-sleep alert (1004) — deep ${deep}% is >= 10, alert correctly suppressed"
     fi
 
     # 3. hormonal alert
