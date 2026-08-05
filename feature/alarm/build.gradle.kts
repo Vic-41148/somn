@@ -49,6 +49,9 @@ dependencies {
     implementation(libs.lifecycle.service)
     implementation(libs.coroutines.android)
 
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
