@@ -46,6 +46,38 @@ jobs:
       - name: Compose foundation versions align (compile == shipped)
         run: ./gradlew verifyComposeFoundationAlignment -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
+      # README.md (and CONTRIBUTING.md) advertise a unit-test count that drifts the moment
+      # anyone adds or removes a test, and nothing complains until a user notices the number is
+      # wrong — the same doc-accuracy problem the emoji guardrail solves. Sum the tests="..."
+      # attributes from the testDebugUnitTest results this job just produced (a fresh checkout,
+      # so no stale XMLs) and fail if either doc's number no longer matches the suite — or if
+      # the count was removed from a doc altogether.
+      - name: README test count matches the suite
+        run: |
+          set -euo pipefail
+          # || true: with no XMLs on disk the grep chain exits 1 and, under the default
+          # -o pipefail, the assignment would abort the step before any ::error:: is printed.
+          # The substitution still captures awk's "0", so TOTAL degrades to a clear mismatch.
+          TOTAL=$(find . -path '*/build/test-results/testDebugUnitTest/TEST-*.xml' -print0 \
+            | xargs -0 grep -ho 'tests="[0-9]*"' 2>/dev/null \
+            | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}') || true
+          TOTAL=${TOTAL:-0}
+          # Anchored to the claim lines so prose that repeats "N unit tests" can't double-match;
+          # tail -1 keeps the last (real) claim if the docs are ever edited to repeat it.
+          README_CLAIMED=$(grep -oE '# [0-9]+ unit tests' README.md | grep -oE '[0-9]+' | tail -1 || true)
+          CONTRIBUTING_CLAIMED=$(grep -oE 'currently runs [0-9]+ unit tests' CONTRIBUTING.md \
+            | grep -oE '[0-9]+' | tail -1 || true)
+          FAIL=0
+          if [ -z "$README_CLAIMED" ] || [ "$README_CLAIMED" != "$TOTAL" ]; then
+            echo "::error::README.md claims \"${README_CLAIMED:-no count} unit tests\" but the suite has $TOTAL — update the count."
+            FAIL=1
+          fi
+          if [ -z "$CONTRIBUTING_CLAIMED" ] || [ "$CONTRIBUTING_CLAIMED" != "$TOTAL" ]; then
+            echo "::error::CONTRIBUTING.md claims \"${CONTRIBUTING_CLAIMED:-no count} unit tests\" but the suite has $TOTAL — update the count."
+            FAIL=1
+          fi
+          [ "$FAIL" -eq 0 ] && echo "OK: README ($README_CLAIMED) and CONTRIBUTING ($CONTRIBUTING_CLAIMED) match the suite ($TOTAL)."
+          exit "$FAIL"
 
       - name: Android Lint
         run: ./gradlew lintDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
