@@ -80,7 +80,19 @@ jobs:
           "$APKSIGNER" verify --print-certs app-release-signed.apk
           ls -la
 
+      # Emit the signed APK's SHA-256 so release notes don't need a manually
+      # filled placeholder (the signed bytes only exist on CI). The hash is
+      # printed to the run log and uploaded alongside the APK as SHA256SUMS.txt.
+      - name: Compute checksums
+        shell: bash
+        run: |
+          cd app/build/outputs/apk/release
+          sha256sum app-release-signed.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/app-release-signed.apk
+          files: |
+            app/build/outputs/apk/release/app-release-signed.apk
+            app/build/outputs/apk/release/SHA256SUMS.txt
