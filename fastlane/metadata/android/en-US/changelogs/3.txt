@@ -7,3 +7,5 @@ What's new in v0.1.2:
 - Onboarding life-stage options refined, with an explicit "prefer not to say" choice; recommended sleep-hours display fixed
 - Alarms: the in-app firing screen is reachable again and each alarm's wake-confirmation window is honored
 - Fixed a race where the morning deep-sleep alert could be dropped when a tracking session ended
+- Fixed the stop button becoming unreachable if you pressed back during sleep tracking: back is now locked while a session is running, and the Home screen always returns you to the stop screen
+- Fixed the morning review occasionally showing a previous night's session after the app was restarted mid-tracking
