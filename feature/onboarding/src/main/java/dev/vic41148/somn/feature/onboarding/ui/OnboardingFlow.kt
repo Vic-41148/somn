@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.domain.model.UserProfile
 import dev.vic41148.somn.feature.onboarding.OnboardingViewModel
 import dev.vic41148.somn.feature.onboarding.OnboardingViewModel.OnboardingStep
 
@@ -107,13 +108,13 @@ fun OnboardingFlow(
                 )
                 OnboardingStep.SLEEP_GOAL -> SleepGoalScreen(
                     targetHours = state.targetSleepHours,
+                    // Delegate to the canonical property instead of re-deriving the age brackets
+                    // inline. This used to duplicate only the 13-18/19-64/else subset, collapsing
+                    // every age under 13 into the 65+ "7.5h" bucket — a 6-year-old was told
+                    // "we recommend 7.5 hours" while setDateOfBirth had actually set the target
+                    // to 10h. Same drift the ViewModel's setDateOfBirth comment documents as fixed.
                     recommendedHours = state.dateOfBirth?.let {
-                        val age = java.time.Period.between(it, java.time.LocalDate.now()).years
-                        when (age) {
-                            in 13..18 -> 9.0f
-                            in 19..64 -> 8.0f
-                            else -> 7.5f
-                        }
+                        UserProfile(dateOfBirth = it).recommendedSleepHours
                     } ?: 8.0f,
                     onTargetChanged = { viewModel.setTargetSleepHours(it) },
                     onNext = { viewModel.nextStep() },

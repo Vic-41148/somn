@@ -86,7 +86,20 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun setLifeStage(stage: LifeStage) {
-        _state.update { it.copy(lifeStage = stage) }
+        _state.update { state ->
+            state.copy(
+                lifeStage = stage,
+                // Clear the conditional inputs only on opt-out to DEFAULT: DEFAULT keeps
+                // showCycleFeatures true for FEMALE (by design), so a stale lastPeriodStart
+                // from an earlier CYCLING tap would keep driving phase-aware scoring after
+                // the user opted out via the Default card. Clearing on any other switch
+                // (e.g. CYCLING -> PREGNANT) would silently discard entered data that the
+                // back-navigation round trip could otherwise preserve.
+                cycleLength = if (stage != LifeStage.DEFAULT) state.cycleLength else 28,
+                lastPeriodStart = if (stage != LifeStage.DEFAULT) state.lastPeriodStart else null,
+                pregnancyTrimester = if (stage != LifeStage.DEFAULT) state.pregnancyTrimester else null
+            )
+        }
     }
 
     fun setAdhdMode(enabled: Boolean) {

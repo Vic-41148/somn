@@ -83,18 +83,22 @@ enum class BiologicalSex(val displayName: String) {
 /**
  * Life stage determines which biological adjustments apply to scoring.
  * Research doc §2.1–2.5.
+ *
+ * The age-band stages (Adolescent / Young Adult / Older Adult) were pruned: nothing consumed
+ * them, and their intent is already covered by the age-derived `recommendedSleepHours`,
+ * `deepSleepTargetPercent`, and the age-based score adjustments in CalculateSleepScoreUseCase
+ * (adolescent duration bonus, 55+ deep-sleep band, wake-expectation by age). Add a consumer
+ * before ever re-adding an age stage — a selectable option with no downstream effect is worse
+ * than no option.
  */
 enum class LifeStage(val displayName: String, val description: String) {
     DEFAULT("Default", "Standard sleep tracking"),
-    ADOLESCENT("Adolescent", "Ages 12–18: delayed circadian phase is biological, not behavioral"),
-    YOUNG_ADULT("Young Adult", "Ages 18–35: sleep architecture at adult steady state"),
     CYCLING("Menstrual Cycling", "Active menstrual cycle tracking with phase-aware scoring"),
     PREGNANT("Pregnant", "Trimester-aware scoring and safe sleep guidance"),
     POSTPARTUM("Postpartum", "Fragmentation-focused tracking with PPD risk monitoring"),
     PERIMENOPAUSE("Perimenopause", "Vasomotor event detection and REM disruption alerts"),
     MENOPAUSE("Menopause", "Temperature spike flagging and adjusted scoring"),
-    POST_MENOPAUSE("Post-Menopause", "Age-calibrated scoring with hormonal context"),
-    OLDER_ADULT("Older Adult", "SWS decline normalisation and brain health framing")
+    POST_MENOPAUSE("Post-Menopause", "Age-calibrated scoring with hormonal context")
 }
 
 /**
