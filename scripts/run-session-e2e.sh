@@ -2,11 +2,13 @@
 # run-session-e2e.sh — end-to-end test of the morning-alert path.
 #
 # Drives a REAL start -> stop tracking session through the UI (moon -> Wake Up) and
-# asserts, with a live logcat capture + dumpsys:
+# asserts:
 #   1. the session completed in the DB
-#   2. the deep-sleep alert (id 1001) posted
+#   2. the deep-sleep alert (id 1001) posted — via dumpsys notification, since
+#      NotificationEngine.showNotification has no Log call (logcat greps would be noise)
 #   3. the hormonal Luteal Phase Alert (id 1003) posted — unless --profile default
 #   4. the tracking FGS stopped
+#   5. no FATAL in the live logcat capture (kept for crash evidence)
 #
 # Usage:
 #   run-session-e2e.sh                 # seed cycling, run, expect the Luteal alert
@@ -75,20 +77,22 @@ run_once() {
 
     # 2. deep-sleep alert (always fires for a near-zero-epoch session). Its absence
     #    with a completed session means teardown skipped the alerts entirely -> fail.
-    if grep -q 'dev\.vic41148\.somn: notify(1001' "$log"; then
+    #    Evidence: NotificationEngine.showNotification calls notificationManager.notify()
+    #    with no Log call, so logcat greps are useless — dumpsys notification is the only
+    #    authoritative "did it post" check.
+    if notification_text_present "Brain Detox Interrupted"; then
         echo "   PASS: deep-sleep alert (1001) posted"
     else
-        echo "   FAIL: deep-sleep alert (1001) not seen in live log"
+        echo "   FAIL: deep-sleep alert (1001) not posted (dumpsys has no 'Brain Detox Interrupted')"
         fail=1
     fi
 
     # 3. hormonal alert
     if [ "$EXPECT_ALERT" = "1" ]; then
-        if grep -q 'dev\.vic41148\.somn: notify(1003' "$log" && \
-           notification_text_present "Luteal Phase Alert"; then
+        if notification_text_present "Luteal Phase Alert"; then
             echo "   PASS: Luteal Phase Alert (1003) posted"
         else
-            echo "   FAIL: Luteal Phase Alert (1003) NOT posted"
+            echo "   FAIL: Luteal Phase Alert (1003) NOT posted (dumpsys has no 'Luteal Phase Alert')"
             fail=1
         fi
     else
@@ -98,6 +102,14 @@ run_once() {
         else
             echo "   PASS: no Luteal alert on $PROFILE profile (as expected)"
         fi
+    fi
+
+    # 5. the capture is still worth checking: any FATAL during the whole flow fails.
+    if grep -q 'FATAL EXCEPTION' "$log"; then
+        echo "   FAIL: FATAL exception during the tracking flow"
+        fail=1
+    else
+        echo "   PASS: no FATAL in logcat"
     fi
 
     # 4. FGS stopped

@@ -6,15 +6,17 @@ echo '=== 1) assembleRelease (the CI build step; unsigned APK, R8 minification) 
 
 echo
 echo '=== 2) alignment guardrail (debug-classpath check) ==='
-./gradlew verifyComposeFoundationAlignment --console=plain 2>&1 | grep -E 'OK:|FAILED|BUILD' | head -3echo
- echo '=== 3) RESOLVED foundation on the RELEASE runtime classpath (authoritative) ==='
+./gradlew verifyComposeFoundationAlignment --console=plain 2>&1 | grep -E 'OK:|FAILED|BUILD' | head -3
+
+echo '=== 3) RESOLVED foundation on the RELEASE runtime classpath (authoritative) ==='
 ./gradlew -q :app:dependencyInsight --dependency androidx.compose.foundation:foundation \
   --configuration releaseRuntimeClasspath 2>/dev/null | grep -m1 -E 'foundation:.*[0-9]+\.' 
 
 echo
 echo '=== 4) release APK artifact ==='
-ls -la app/build/outputs/apk/release/*.apk 2>/dev/null | head -4echo
- echo '=== 5) R8 minification clean (no missing-class/member linkage warnings) ==='
+ls -la app/build/outputs/apk/release/*.apk 2>/dev/null | head -4
+
+echo '=== 5) R8 minification clean (no missing-class/member linkage warnings) ==='
 # R8 renames methods in release builds, so name-level dex checks are meaningless. The real
 # guarantee is: (a) the resolved foundation on the release runtime classpath == what modules
 # compile against (checked in step 3 + the guardrail), and (b) R8 minification completes with
