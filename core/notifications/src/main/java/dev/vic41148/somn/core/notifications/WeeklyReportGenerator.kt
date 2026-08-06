@@ -30,7 +30,10 @@ class WeeklyReportGenerator @AssistedInject constructor(
             if (sessions.isEmpty()) {
                 // No sessions this week — send encouragement
                 notificationEngine.showNotification(
-                    id = 2001,
+                    // 2002, NOT 2001: the alarm FGS owns id 2001 for its ongoing notification
+                // (startForeground), so a weekly report sharing it would silently replace a
+                // ringing alarm's notification (alerts must never share ids, per the 1001 fix).
+                id = 2002,
                     channelId = NotificationEngine.CHANNEL_REPORTS,
                     title = "Weekly Sleep Report",
                     content = "No sleep sessions were tracked this week. Try tracking tonight to start building insights!"
@@ -61,7 +64,8 @@ class WeeklyReportGenerator @AssistedInject constructor(
             }
 
             notificationEngine.showNotification(
-                id = 2001,
+                // 2002, NOT 2001: same rationale as the sibling call above (alarm FGS owns 2001).
+                id = 2002,
                 channelId = NotificationEngine.CHANNEL_REPORTS,
                 title = "Weekly Sleep Report",
                 content = content

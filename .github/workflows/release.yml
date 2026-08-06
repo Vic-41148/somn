@@ -27,10 +27,10 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -80,7 +80,51 @@ jobs:
           "$APKSIGNER" verify --print-certs app-release-signed.apk
           ls -la
 
+      # Emit the signed APK's SHA-256 so release notes don't need a manually
+      # filled placeholder (the signed bytes only exist on CI). The hash is
+      # printed to the run log and uploaded alongside the APK as SHA256SUMS.txt.
+      - name: Compute checksums
+        shell: bash
+        run: |
+          cd app/build/outputs/apk/release
+          sha256sum app-release-signed.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      # The GitHub Release title and body come from CHANGELOG.md (tracked, one
+      # section per release) instead of a hardcoded notes file: the section whose
+      # header contains the pushed tag becomes the release title and body, so
+      # cutting a release is just bumping the version and pushing the tag. The step
+      # fails loudly if no section matches, rather than publishing an empty-body
+      # release.
+      - name: Extract release notes for this tag
+        id: notes
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          awk -v tag="$TAG" '
+            /^## / {
+              if (in_section) exit
+              if (index($0, tag) > 0) { in_section = 1; next }
+            }
+            in_section { print }
+          ' CHANGELOG.md | sed -n '/[^[:space:]]/,$p' > "$RUNNER_TEMP/release-body.md"
+          test -s "$RUNNER_TEMP/release-body.md" || {
+            echo "::error::No CHANGELOG.md section matches tag $TAG — add one and re-push."
+            exit 1
+          }
+          TITLE="$(awk -v tag="$TAG" \
+            '$0 ~ /^## / && index($0, tag) > 0 { sub(/^## /, ""); print; exit }' CHANGELOG.md)"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "--- release body ---"
+          cat "$RUNNER_TEMP/release-body.md"
+
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          files: app/build/outputs/apk/release/app-release-signed.apk
+          name: ${{ steps.notes.outputs.title }}
+          body_path: ${{ runner.temp }}/release-body.md
+          files: |
+            app/build/outputs/apk/release/app-release-signed.apk
+            app/build/outputs/apk/release/SHA256SUMS.txt

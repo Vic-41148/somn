@@ -47,6 +47,12 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.coroutines.android)
 
+    // Tests — OnboardingViewModel state machine (rMEQ scoring, LIFE_STAGE skip,
+    // completeOnboarding mapping) against a fake UserProfileDao; no Robolectric needed.
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.coroutines.test)
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)

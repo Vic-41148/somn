@@ -68,13 +68,19 @@ class AlarmActivity : ComponentActivity() {
                 var taskReady by remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
-                    val taskId = preferencesRepository.selectedCaptchaTaskId.first()
+                    // Per-alarm captcha wins; "NONE" falls back to the global Settings preference.
+                    // The service publishes the per-alarm type (Alarm.captchaType -> receiver ->
+                    // intent extra) before isAlarmFiring goes true, so it is always populated by
+                    // the time this screen opens.
+                    val perAlarmType = AlarmService.currentCaptchaType.first()
+                    val globalTaskId = preferencesRepository.selectedCaptchaTaskId.first()
                     val qrValue = preferencesRepository.qrCodeValue.first()
-                    var task = CaptchaTaskRegistry.getTask(taskId)
-                    if (taskId == "qrcode" && qrValue == null) {
-                        task = CaptchaTaskRegistry.getTask("math")
-                    }
-                    task?.reset()
+                    val nfcAvailable = packageManager.hasSystemFeature(
+                        android.content.pm.PackageManager.FEATURE_NFC
+                    )
+                    val task = CaptchaTaskRegistry.resolveTask(
+                        perAlarmType, globalTaskId, qrValue, nfcAvailable
+                    )
                     currentTask = task
                     loadedTask = task
                     taskReady = true
@@ -319,6 +325,16 @@ private fun WakeConfirmScreen(deadlineMillis: Long?, onConfirmAwake: () -> Unit)
     }
 
     val secondsLeft = deadlineMillis?.let { ((it - now) / 1000).coerceAtLeast(0) } ?: 0
+    // The WAKE-01 window is the per-alarm wake window in minutes (30 by default), so a bare
+    // "within 1800s" countdown is unreadable — render minutes once the window crosses 60s.
+    val windowLabel = when {
+        secondsLeft >= 60 -> {
+            val m = secondsLeft / 60
+            val s = secondsLeft % 60
+            if (s > 0) "${m}m ${s}s" else "${m}m"
+        }
+        else -> "${secondsLeft}s"
+    }
     val haptics = LocalHapticFeedback.current
 
     Surface(
@@ -339,7 +355,7 @@ private fun WakeConfirmScreen(deadlineMillis: Long?, onConfirmAwake: () -> Unit)
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Confirm within ${secondsLeft}s or the alarm will ring again.",
+                text = "Confirm within $windowLabel or the alarm will ring again.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

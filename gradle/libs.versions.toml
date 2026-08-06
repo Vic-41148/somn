@@ -2,7 +2,7 @@
 agp = "9.1.0"
 kotlin = "2.2.10"
 ksp = "2.3.6"
-compose-bom = "2024.12.01"
+compose-bom = "2025.08.01"
 hilt = "2.59.2"
 room = "2.8.4"
 navigation = "2.8.5"
@@ -10,7 +10,6 @@ lifecycle = "2.8.7"
 coroutines = "1.9.0"
 datastore = "1.1.1"
 work = "2.10.0"
-material3 = "1.3.1"
 camerax = "1.4.0"
 zxingcpp = "3.1.1"
 documentfile = "1.0.1"
@@ -26,9 +25,22 @@ compose-ui = { group = "androidx.compose.ui", name = "ui" }
 compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+# material3 is BOM-managed now too (1.3.2 via BOM 2025.08.01) — it used to be pinned at 1.3.1,
+# an explicit override that predated the 2025.08.01 BOM bump. Dropping the pin keeps the whole
+# compose stack under the BOM, exactly like foundation/ui/animation.
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 compose-animation = { group = "androidx.compose.animation", name = "animation" }
+# BOM 2025.08.01 pins the whole compose stack at 1.9.0 (foundation, foundation-layout, ui,
+# animation, runtime) — the version the app runtime actually ships. Previously the BOM (2024.12.01)
+# pinned 1.7.6 while androidx.emoji2's transitive constraint forced foundation 1.9.0 at runtime;
+# foundation's FlowRow signature changed between 1.7.6 and 1.9.0 (gained a verticalAlignment
+# parameter), so modules compiled against 1.7.6 crashed with NoSuchMethodError on FlowRow (habits
+# Caffeine tap). With the aligned BOM, every module compiles against the same 1.9.0 stack. Explicit
+# foundation deps below are declared for dependency hygiene (DailyLogScreen uses FlowRow), not
+# version overrides.
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 
 # Activity & Core
 activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.9.3" }

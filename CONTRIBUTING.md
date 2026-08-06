@@ -149,6 +149,26 @@ We use conventional commit prefixes so the history stays readable:
 Example scopes: `tracking`, `alarm`, `analytics`, `habits`, `settings`,
 `onboarding`, `audio`, `data`, `notifications`, `privacy`.
 
+## Cutting a release
+
+Releases are driven by tags, not by hand. The `Release` workflow builds and signs
+`app-release-signed.apk` on every `v*` tag push and publishes the GitHub Release
+automatically; the release title and body are read from `CHANGELOG.md` (the
+section whose header contains the tag name), so there is no separate notes file
+to maintain.
+
+1. Add a section to the top of `CHANGELOG.md` whose header contains the tag, for
+   example `## Somn v0.1.2 — ...`. The release body will be exactly that section;
+   use `### ` (or deeper) for subheadings inside it, since the next `## `-level
+   header is what terminates the section.
+2. Bump `versionCode` / `versionName` in `app/build.gradle.kts` and add the Play
+   store changelog under `fastlane/metadata/android/en-US/changelogs/`.
+3. Run the release preflight: `scripts/run-release-preflight.sh`.
+4. Push `dev`, then push the tag (`git push origin v0.1.2`). The workflow builds,
+   signs, attaches `app-release-signed.apk` + `SHA256SUMS.txt`, and fills the
+   release body from the matching `CHANGELOG.md` section. If no section matches
+   the tag, the workflow fails instead of publishing an empty release.
+
 ## Branch protection & CI
 
 Both `main` and `dev` are protected on GitHub:
@@ -158,7 +178,9 @@ Both `main` and `dev` are protected on GitHub:
 - **One approval is required** before a pull request from a non-admin can merge
   (the maintainer will review and merge it for you).
 - **CI must pass.** The following checks run on every PR and must be green:
-  - `Build, test & lint` — `assembleDebug`, unit tests, and Android Lint
+  - `Build, test & lint` — `assembleDebug`, unit tests, and Android Lint. The
+    unit-test step also fails if the test count advertised in this file or in
+    README.md no longer matches the suite total
   - `Privacy guardrails` — automated checks that protect the privacy promises
     (details below)
   - `Style guardrails` — fails the build if emoji appear anywhere in tracked
@@ -196,10 +218,11 @@ Every pull request is expected to keep the test suite green:
 ./gradlew testDebugUnitTest
 ```
 
-The suite currently runs 133 unit tests. If you add a feature, add tests for it —
-especially for pure logic like scoring, classification, and parsing. Pure
-functions with well-defined inputs are the cheapest, highest-value tests you can
-write.
+The suite currently runs 193 unit tests — a number enforced by CI: if you add
+or remove a test, update this line and the count in README.md in the same PR,
+or the build fails. If you add a feature, add tests for it — especially for
+pure logic like scoring, classification, and parsing. Pure functions with
+well-defined inputs are the cheapest, highest-value tests you can write.
 
 ## Privacy guardrails
 

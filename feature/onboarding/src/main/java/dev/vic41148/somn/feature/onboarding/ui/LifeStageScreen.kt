@@ -41,6 +41,13 @@ private val femaleLifeStages = listOf(
     LifeStage.POST_MENOPAUSE
 )
 
+/**
+ * Everything the screen can select: an explicit "Default" opt-out card first, then the
+ * hormone-driven stages. Previously the screen offered no way to unselect a stage once tapped
+ * (a mis-tap was sticky until reinstall/restore) — the Default card is the unselect path.
+ */
+private val lifeStageOptions = listOf(LifeStage.DEFAULT) + femaleLifeStages
+
 @Composable
 fun LifeStageScreen(
     selected: LifeStage,
@@ -85,7 +92,7 @@ fun LifeStageScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        femaleLifeStages.forEach { stage ->
+        lifeStageOptions.forEach { stage ->
             val isSelected = selected == stage
             OutlinedCard(
                 onClick = { onSelected(stage) },

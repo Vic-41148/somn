@@ -1,0 +1,12 @@
+What's new in v0.1.2:
+
+- Sleep stage classification is now smoother and more accurate: a rolling window evens out stage flicker, and the final moments of a session are always counted
+- Fixed a crash when tapping habit rows (caffeine, alcohol, stress) in Daily Log
+- The morning/evening chronotype quiz now uses the real rMEQ scale (4-25), and older results are corrected automatically
+- Habit insights now show how confident a correlation is and how many nights it is based on
+- Onboarding life-stage options refined, with an explicit "prefer not to say" choice; recommended sleep-hours display fixed
+- Alarms: the in-app firing screen is reachable again and each alarm's wake-confirmation window is honored
+- Fixed a race where the morning deep-sleep alert could be dropped when a tracking session ended
+- Fixed the stop button becoming unreachable if you pressed back during sleep tracking: back is now locked while a session is running, and the Home screen always returns you to the stop screen
+- Fixed the morning review occasionally showing a previous night's session after the app was restarted mid-tracking
+- Tapping the ongoing sleep-tracking notification now opens the tracking screen, so you can stop a session from anywhere

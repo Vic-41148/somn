@@ -1,5 +1,6 @@
 package dev.vic41148.somn.feature.tracking.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,7 @@ import dev.vic41148.somn.core.audio.SonarCollector
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
+import dev.vic41148.somn.feature.tracking.service.TrackingState
 import kotlinx.coroutines.delay
 
 @Composable
@@ -46,8 +48,17 @@ fun TrackingScreen(
     val epochs              by viewModel.epochs.collectAsState()
     val activeMode          by viewModel.activeTrackingMode.collectAsState()
     val calibrationState    by viewModel.sonarCalibrationState.collectAsState()
+    val trackingState       by viewModel.trackingState.collectAsState()
     val isSonar             = activeMode == TrackingMode.SONAR
     val isCalibrating       = isSonar && calibrationState == SonarCollector.SonarCalibrationState.CALIBRATING
+
+    // Back must never strand a live session: popping this screen mid-tracking dumps the user
+    // back on Home with a running foreground service and no in-app way to stop it (the Home
+    // moon button only starts sessions). Block system back for as long as the service is
+    // actually tracking — the stop has to go through the explicit Wake Up button, same as the
+    // alarm firing screen's BackHandler {}. Once tracking ends (Wake Up, or the service stops
+    // via smart-alarm wake) the back stack unlocks again.
+    BackHandler(enabled = trackingState == TrackingState.TRACKING) { }
 
     Column(
         modifier = Modifier

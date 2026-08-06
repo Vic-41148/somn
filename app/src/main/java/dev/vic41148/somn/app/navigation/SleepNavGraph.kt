@@ -1,5 +1,6 @@
 package dev.vic41148.somn.app.navigation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -14,9 +15,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -25,6 +29,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.vic41148.somn.feature.alarm.service.AlarmService
 import dev.vic41148.somn.feature.alarm.ui.AlarmEditScreen
 import dev.vic41148.somn.feature.alarm.ui.AlarmFiringScreen
 import dev.vic41148.somn.feature.alarm.ui.AlarmListScreen
@@ -38,6 +43,7 @@ import dev.vic41148.somn.feature.habits.ui.MedicationLogScreen
 import dev.vic41148.somn.feature.habits.ui.SleepDebtDetailScreen
 import dev.vic41148.somn.feature.onboarding.ui.OnboardingFlow
 import dev.vic41148.somn.feature.settings.ui.SettingsScreen
+import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
 import dev.vic41148.somn.feature.tracking.ui.HomeScreen
 import dev.vic41148.somn.feature.tracking.ui.MorningReviewScreen
 import dev.vic41148.somn.feature.tracking.ui.TrackingScreen
@@ -89,6 +95,40 @@ fun SleepNavGraph(
     val startDestination = if (isOnboardingCompleted) Screen.Home.route else "onboarding"
 
     val hideBottomBar = currentDestination?.route in hideNavRoutes
+
+    // The alarm_firing route used to be registered but unreachable — nothing ever navigated to
+    // it, so while the alarm was ringing the in-app full-screen experience only ever existed as
+    // the system AlarmActivity. If the full-screen intent is unavailable (API 34+ can revoke the
+    // permission) that left no in-app firing surface. Navigate here whenever a firing episode
+    // starts while the app is open, and leave when the episode ends (dismiss, or snooze — which
+    // the service now reports as ending the episode). During the WAKE-01 confirmation window the
+    // route is kept so the screen can show its countdown.
+    val isAlarmFiring by AlarmService.isAlarmFiring.collectAsState()
+    val alarmPhase by AlarmService.phase.collectAsState()
+    val currentRoute = currentDestination?.route
+
+    LaunchedEffect(isAlarmFiring, alarmPhase, currentRoute) {
+        when {
+            isAlarmFiring && currentRoute != "alarm_firing" ->
+                navController.navigate("alarm_firing")
+
+            alarmPhase == AlarmService.AlarmPhase.DISMISSED && currentRoute == "alarm_firing" ->
+                navController.popBackStack()
+        }
+    }
+
+    // FGS notification tap-through (SleepTrackingService.EXTRA_OPEN_TRACKING): land straight on
+    // the tracking screen so the Wake Up button is always one tap away. Keyed on the activity
+    // intent so both cold starts (original intent) and warm taps (MainActivity.onNewIntent ->
+    // setIntent) fire it; launchSingleTop keeps an already-open tracking screen from duplicating.
+    val activity = LocalContext.current as? ComponentActivity
+    LaunchedEffect(activity?.intent) {
+        if (activity?.intent?.getBooleanExtra(SleepTrackingService.EXTRA_OPEN_TRACKING, false) == true) {
+            navController.navigate("tracking") {
+                launchSingleTop = true
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -240,13 +280,7 @@ fun SleepNavGraph(
             }
 
             composable("alarm_firing") {
-                AlarmFiringScreen(
-                    onDismissed = {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Home.route) { inclusive = true }
-                        }
-                    }
-                )
+                AlarmFiringScreen()
             }
 
             // ---- Phase 2: Habits detail screens ----

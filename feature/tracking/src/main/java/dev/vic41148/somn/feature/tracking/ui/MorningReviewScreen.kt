@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,7 +57,7 @@ fun MorningReviewScreen(
     onDone: () -> Unit,
     viewModel: SleepTrackingViewModel = hiltViewModel()
 ) {
-    val lastSession by viewModel.lastSession.collectAsState()
+    val sessionFlow by viewModel.observeSession(sessionId).collectAsState(initial = null)
     val lastScore by viewModel.lastScore.collectAsState()
     val epochs by viewModel.epochs.collectAsState()
     val audioEvents by viewModel.audioEvents.collectAsState()
@@ -64,7 +65,16 @@ fun MorningReviewScreen(
     var selectedMood by rememberSaveable { mutableIntStateOf(0) }
     var notes by rememberSaveable { mutableStateOf("") }
 
-    val session = lastSession ?: return
+    // This screen renders the session it was opened for (the sessionId argument) — never the
+    // shared lastSession flow. The stop path fills lastSession asynchronously and can race this
+    // screen's creation, so a relaunch mid-flow used to show a stale session from a previous
+    // night. The detail data (score explanation, epochs, audio) loads once the session row
+    // arrives, so it can't race the stop path's commit either.
+    LaunchedEffect(sessionFlow?.id) {
+        sessionFlow?.let { viewModel.loadSessionDetail(it.id) }
+    }
+
+    val session = sessionFlow ?: return
 
     Column(
         modifier = Modifier

@@ -17,6 +17,7 @@ Sleep tracker — master research document*.md
 # Agent/tooling config — local only
 .claude/
 .antigravitycli/
+.aider.chat.history.md
 
 # IDE - IntelliJ / Android Studio
 .idea/
@@ -82,4 +83,8 @@ secrets.properties
 
 # Scratch / temporary files — never published
 tmp/
+__pycache__/
+# Stray Room DBs pulled off a device via run-as (m1.db was one) — never publish these.
+*.db
+
 

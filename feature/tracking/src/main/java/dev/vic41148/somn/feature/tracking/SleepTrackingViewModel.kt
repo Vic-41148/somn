@@ -23,6 +23,7 @@ import dev.vic41148.somn.core.notifications.PPDRiskNotifier
 import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
 import dev.vic41148.somn.feature.tracking.service.TrackingState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -93,6 +94,13 @@ class SleepTrackingViewModel @Inject constructor(
     }
 
     private suspend fun finalizeIncompleteSession(session: SleepSession) {
+        // REL-02: the held-back final epoch dies with a hard-killed process (it lives in the
+        // service's memory), but an interrupted stop — the normal stop path dying mid-flight in
+        // THIS process — leaves it pending in the companion flow. Recover it exactly like
+        // [stopTracking] does, before reading the epoch list back, so the recovered session
+        // includes every epoch this process still could write.
+        flushPendingFinalEpoch()
+
         val epochs = sleepRepository.getEpochs(session.id)
         val audioEventsForSession = sleepRepository.getAudioEvents(session.id)
         val endTimeMillis = epochs.maxOfOrNull { it.timestampMillis } ?: session.startTimeMillis
@@ -155,6 +163,13 @@ class SleepTrackingViewModel @Inject constructor(
             SleepTrackingService.stopTracking(context)
 
             val session = sleepRepository.getActiveSession() ?: return@launch
+
+            // REL-02: the service no longer flushes its held-back final epoch with a runBlocking on
+            // the main thread (that wedged Room's executors during teardown and hung every later
+            // query — including the morning alerts below). Instead it exposes the epoch here and the
+            // ViewModel writes it, synchronously and in order, before reading the epoch list back.
+            flushPendingFinalEpoch()
+
             val epochs = sleepRepository.getEpochs(session.id)
             val now = System.currentTimeMillis()
 
@@ -196,6 +211,21 @@ class SleepTrackingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * REL-02: writes the service's held-back final epoch if one is still pending, then clears it.
+     * Shared by the user-stop path and the incomplete-session recovery path so both recover the
+     * same data the 3-epoch smoothing filter deliberately held back (an epoch can't be persisted
+     * until its successor arrives). Runs on the ViewModel's coroutine, never the main thread —
+     * the whole point of the companion flow is that the service must not runBlocking a Room write.
+     */
+    private suspend fun flushPendingFinalEpoch() {
+        val finalEpoch = SleepTrackingService.finalEpoch.value
+        if (finalEpoch != null) {
+            sleepRepository.insertEpoch(finalEpoch)
+            SleepTrackingService.clearFinalEpoch()
+        }
+    }
+
     /** Fires the health-context notifications that depend on this morning's completed session. */
     private suspend fun notifyMorningAlerts(session: SleepSession) {
         deepSleepAlertNotifier.checkAndNotify(session.deepSleepPercent.toDouble())
@@ -232,6 +262,28 @@ class SleepTrackingViewModel @Inject constructor(
             healthConnectRepository.writeSleepSession(session, epochs)
         } catch (e: Exception) {
             android.util.Log.e("SleepTrackingViewModel", "Failed to sync to Health Connect", e)
+        }
+    }
+
+    /**
+     * Morning Review must render the session it was opened for — never the shared [lastSession]
+     * flow. The tracking stop path fills [lastSession] asynchronously and can race this screen's
+     * creation (a relaunch mid-flow previously showed a stale session from a previous night).
+     */
+    fun observeSession(sessionId: Long): Flow<SleepSession?> = sleepRepository.observeSession(sessionId)
+
+    /**
+     * Loads the detail state for the given session: score explanation, epochs, audio events.
+     * Runs once the session row arrives so it can't race the stop path's commit.
+     */
+    fun loadSessionDetail(sessionId: Long) {
+        viewModelScope.launch {
+            val session = sleepRepository.getSession(sessionId) ?: return@launch
+            if (session.sleepScore > 0) {
+                _lastScore.value = calculateScore(session)
+            }
+            _epochs.value = sleepRepository.getEpochs(sessionId)
+            _audioEvents.value = sleepRepository.getAudioEvents(sessionId)
         }
     }
 

@@ -252,6 +252,8 @@ data class CorrelationResult(
     val dataPoints: Int,
     val insight: String
 ) {
+    /** How settled this read is, given how many nights it was computed from. */
+    val confidence: CorrelationConfidence get() = CorrelationConfidence.from(dataPoints)
     val strength: CorrelationStrength get() = when {
         kotlin.math.abs(correlation) < 0.15f -> CorrelationStrength.NONE
         kotlin.math.abs(correlation) < 0.3f -> CorrelationStrength.MILD
@@ -266,6 +268,30 @@ enum class CorrelationStrength(val displayName: String) {
     MILD("Mild link"),
     MODERATE("Moderate link"),
     STRONG("Strong link")
+}
+
+/**
+ * Statistical confidence of a correlation result, scaled by sample size. Distinct from
+ * [CorrelationStrength] (which describes the magnitude of the effect): a "STRONG" r computed
+ * from 7 nights is still an early, tentative read, while the same r from 30+ nights is far
+ * more settled. Small-sample Pearson coefficients carry very wide confidence intervals, so
+ * this qualifier exists so the UI never presents a bare-minimum finding as a settled one.
+ */
+enum class CorrelationConfidence(val displayName: String, val minNights: Int) {
+    /** 7-13 nights — above the data floor but statistically underpowered; may flip with a few more nights. */
+    LOW("Low confidence", 7),
+    /** 14-29 nights — two to four weeks of paired data; pattern is visible but not yet stable. */
+    MEDIUM("Medium confidence", 14),
+    /** 30+ nights — a month or more; close to the point where small-to-moderate effects become distinguishable from noise. */
+    HIGH("High confidence", 30);
+
+    companion object {
+        fun from(dataPoints: Int): CorrelationConfidence = when {
+            dataPoints < MEDIUM.minNights -> LOW
+            dataPoints < HIGH.minNights -> MEDIUM
+            else -> HIGH
+        }
+    }
 }
 
 /** All four lifestyle correlations bundled. */

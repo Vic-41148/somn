@@ -16,8 +16,8 @@ Somn uses your phone's accelerometer to track sleep stages overnight — no wear
 ### Built & Working
 - **Accelerometer-based sleep tracking** — phone-on-bed motion analysis with 30-second epoch classification
 - **Sleep stage classification** — Wake, Light, Deep, REM via movement magnitude & variability
-- **Smart sleep scoring** — weighted algorithm (duration, efficiency, stage distribution, consistency, onset latency)
-- **Age-calibrated scoring** — adjusts deep sleep targets from 27.5% (teens) to 10% (75+)
+- **Smart sleep scoring** — weighted algorithm (duration, efficiency, deep sleep, consistency, wake events)
+- **Age-calibrated scoring** — adjusts deep sleep targets from 27.5% (children and teens) to 10% (75+)
 - **Biological profile support** — menstrual cycle phase adjustments, pregnancy trimester scoring, ADHD consistency leniency
 - **Full onboarding flow** — birth date, biological sex, life stage, chronotype quiz (rMEQ), neurodivergent profile, sleep goals, permissions
 - **Smart alarm system** — gradual volume increase, configurable wake window
@@ -94,12 +94,12 @@ feature/
 
 The easiest way to try Somn is the latest release:
 
-- **v0.1.1** — download `app-release-signed.apk` from the
+- **v0.1.2** — download `app-release-signed.apk` from the
   [releases page](https://github.com/Vic-41148/somn/releases) and open it on your device
   (Android 8.0 / API 26+). Allow "install unknown apps" when prompted.
 
 > **Do not install v0.1.0.** It is deprecated and its release has been removed: tapping the
-> Sleep button (and in some cases Settings) could close the app on Android 14+. Use v0.1.1
+> Sleep button (and in some cases Settings) could close the app on Android 14+. Use v0.1.2
 > or newer instead.
 
 ### Prerequisites
@@ -131,14 +131,32 @@ The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 ### Tests
 
 ```bash
-./gradlew testDebugUnitTest   # 143 unit tests
+./gradlew testDebugUnitTest   # 193 unit tests
 ./gradlew lintDebug           # Android Lint
 ```
 
 CI runs `assembleDebug`, `testDebugUnitTest` and `lintDebug` on every push and PR to `main`
 and `dev`, plus guardrails that fail the build if Google Play Services reappear on the release
 classpath, if the Auto Backup opt-out is dropped, if `INTERNET` starts being contributed by a
-module other than `:core:data`, or if emoji appear in any tracked source or docs.
+module other than `:core:data`, if emoji appear in any tracked source or docs, or if this
+README's (or CONTRIBUTING.md's) unit-test count drifts from the actual suite total.
+
+### Seeding demo data (development)
+
+`scripts/seed-somn-demo.sh` installs the debug build on a connected device and seeds
+**fabricated** state — a demo profile, 7 nights of sleep sessions with sleep epochs, audio
+events, habit logs, external vitals (HR/HRV/SpO2 as if written by a paired wearable via
+Health Connect), tags and a couple of smart alarms — by writing the Room DB directly via
+`run-as`. It **uninstalls any existing Somn install on the device first**, refuses to run in
+CI, and requires exactly one connected device:
+
+```bash
+bash scripts/seed-somn-demo.sh --yes                  # baseline MALE profile
+bash scripts/seed-somn-demo.sh --yes --profile cycling  # FEMALE + CYCLING (cycle UI)
+```
+
+Re-runs are idempotent (same state every time) — see
+`scripts/seed-somn-demo-checklist.md` for the full procedure and verification steps.
 
 ---
 

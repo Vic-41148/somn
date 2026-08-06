@@ -111,3 +111,17 @@ enum class SeasonalTrendType(val displayName: String) {
 
 /** Minimum qualifying sessions per season for statistical validity. */
 const val MIN_SESSIONS_PER_SEASON = 7
+
+/**
+ * User override for which hemisphere the seasons are computed against.
+ *
+ * [AUTO] keeps the [dev.vic41148.somn.core.domain.usecase.SeasonalAnalysisUseCase] UTC-offset
+ * heuristic (positive offsets assumed Northern, beyond -3h assumed Southern). Selecting
+ * [NORTHERN] or [SOUTHERN] pins the season mapping so users near the equator or on the wrong
+ * side of a timezone boundary can correct a misdetected season.
+ */
+enum class HemisphereOverride(val displayName: String) {
+    AUTO("Auto"),
+    NORTHERN("Northern"),
+    SOUTHERN("Southern")
+}

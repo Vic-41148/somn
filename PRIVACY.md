@@ -24,11 +24,23 @@ Other apps cannot read it.
 
 ## Sensors and permissions
 
+`RECORD_AUDIO`, `BODY_SENSORS` (API 30+) and `POST_NOTIFICATIONS` (Android 13+) are runtime
+permissions requested during onboarding. Every one of them can be declined without breaking the
+app, and each can be granted or revoked later from Android's app settings.
+
 - **Microphone** (`RECORD_AUDIO`) — audio is analysed in memory to classify snoring, coughing
   and talking. Except for the sleep-talk clips described below, audio is never written to disk
-  and never transmitted.
+  and never transmitted. Declining it only disables audio-based features; motion tracking is
+  unaffected.
 - **Motion sensors** (`BODY_SENSORS`, `HIGH_SAMPLING_RATE_SENSORS`) — movement drives sleep-stage
-  classification.
+  classification. `BODY_SENSORS` became a runtime permission on Android 11 (API 30) and is
+  requested during onboarding; on Android 14+ it is what lets sleep tracking run as the
+  "health" foreground-service type. Without it the health type is dropped — tracking runs under
+  whatever types remain (microphone if `RECORD_AUDIO` is granted, otherwise a permission-free
+  "special use" type).
+- **Notifications** (`POST_NOTIFICATIONS`, Android 13+) — requested at onboarding for bedtime
+  reminders, morning briefings and insights. Notifications are produced on-device and never
+  leave the phone.
 - **Camera** (`CAMERA`) — used only when you scan a QR code, for the alarm dismiss captcha or NAS
   setup. Frames are decoded on-device by zxing-cpp and never stored or sent.
 - **Internet** (`INTERNET`) — declared in `core/data` and used by exactly one feature: optional

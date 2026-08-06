@@ -30,5 +30,6 @@ enum class CaptchaType(val displayName: String) {
     NONE("None"),
     MATH("Math Problem"),
     SHAKE("Shake Phone"),
-    QR_SCAN("QR Code Scan")
+    QR_SCAN("QR Code Scan"),
+    NFC("NFC Tag Tap")
 }

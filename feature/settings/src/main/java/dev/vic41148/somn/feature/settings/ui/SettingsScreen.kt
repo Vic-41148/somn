@@ -34,6 +34,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import zxingcpp.BarcodeReader
 import dev.vic41148.somn.core.domain.model.HealthConnectStatus
+import dev.vic41148.somn.core.domain.model.HemisphereOverride
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.feature.settings.SettingsViewModel
 import java.util.concurrent.Executors
@@ -336,6 +337,36 @@ fun SettingsScreen(
                 steps = 4,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+        // Seasonal Analysis — hemisphere override for the seasons used in circadian insights.
+        // The default AUTO uses the device-timezone heuristic; travelers near the equator or on
+        // the wrong side of a timezone boundary can pin the correct hemisphere here.
+        SettingSection(title = "Seasonal Analysis") {
+            Text(
+                text = "Seasons are detected from your timezone. If the app labels the wrong " +
+                    "season for your location, set your hemisphere here.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            HemisphereOverride.entries.forEach { override ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.updateHemisphereOverride(override) }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = settings.hemisphereOverride == override,
+                        onClick = { viewModel.updateHemisphereOverride(override) }
+                    )
+                    Text(text = override.displayName, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))

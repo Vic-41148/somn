@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.domain.usecase.CorrelationConfidence
 import dev.vic41148.somn.core.domain.usecase.CorrelationResult
 import dev.vic41148.somn.core.domain.usecase.CorrelationStrength
 import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
@@ -96,7 +97,8 @@ fun CorrelationInsightsScreen(
         ) {
             Text(
                 text = "These patterns are personal to you — not population averages. " +
-                    "Minimum ${CorrelationUseCase.MIN_DATA_POINTS} sleep sessions needed per correlation.",
+                    "Minimum ${CorrelationUseCase.MIN_DATA_POINTS} sleep sessions needed per correlation. " +
+                    "Findings from fewer nights are a tentative early read — they firm up as you log more.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.padding(16.dp)
@@ -210,7 +212,17 @@ private fun CorrelationCard(result: CorrelationResult) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("r = ${"%.2f".format(result.correlation)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${result.dataPoints} nights", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Sample size + confidence qualifier, distinct from the strength badge above:
+                // a strong r from 7 nights is still an early read (CorrelationConfidence).
+                Text(
+                    text = "n = ${result.dataPoints} · ${result.confidence.displayName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when (result.confidence) {
+                        CorrelationConfidence.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
+                        CorrelationConfidence.MEDIUM -> MaterialTheme.colorScheme.secondary
+                        CorrelationConfidence.HIGH -> MaterialTheme.colorScheme.primary
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))

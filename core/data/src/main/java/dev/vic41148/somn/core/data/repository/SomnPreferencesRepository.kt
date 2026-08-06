@@ -53,6 +53,11 @@ class SomnPreferencesRepository @Inject constructor(
         val OVERSLEEP_THRESHOLD_MINUTES = intPreferencesKey("oversleep_threshold_minutes")
         val WAKE_VERIFICATION_ENABLED = booleanPreferencesKey("wake_verification_enabled")
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
+        /**
+         * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO — the
+         * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
+         */
+        val HEMISPHERE_OVERRIDE = stringPreferencesKey("hemisphere_override")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
         val YAMNET_CLASSIFICATION_ENABLED = booleanPreferencesKey("yamnet_classification_enabled")
         /**
@@ -193,6 +198,28 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateWakeVerificationWindowSeconds(seconds: Int) {
         context.dataStore.edit { it[PreferencesKeys.WAKE_VERIFICATION_WINDOW_SECONDS] = seconds }
+    }
+
+    /**
+     * Hemisphere pin for seasonal analysis — [HemisphereOverride.AUTO] keeps the UTC-offset
+     * heuristic, NORTHERN/SOUTHERN force the season mapping.
+     */
+    val hemisphereOverride: Flow<dev.vic41148.somn.core.domain.model.HemisphereOverride> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+            .map { prefs ->
+                val raw = prefs[PreferencesKeys.HEMISPHERE_OVERRIDE]
+                try {
+                    dev.vic41148.somn.core.domain.model.HemisphereOverride.valueOf(raw ?: "AUTO")
+                } catch (e: Exception) {
+                    dev.vic41148.somn.core.domain.model.HemisphereOverride.AUTO
+                }
+            }
+
+    suspend fun updateHemisphereOverride(
+        override: dev.vic41148.somn.core.domain.model.HemisphereOverride
+    ) {
+        context.dataStore.edit { it[PreferencesKeys.HEMISPHERE_OVERRIDE] = override.name }
     }
 
     /** HEALTH-01/02: user opt-in — off by default, syncing external health data is not implied by installing the app. */

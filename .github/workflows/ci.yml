@@ -18,16 +18,16 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # gradle.properties pins org.gradle.java.home to a local Arch path so the maintainer's
       # machine picks the right JDK. That path does not exist on a runner, so every Gradle
@@ -38,12 +38,53 @@ jobs:
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
+      # A transitive constraint (androidx.emoji2 -> foundation 1.9.0) once forced the app runtime
+      # to a newer compose foundation than modules compiled against; FlowRow's changed signature
+      # made the habits forms crash with NoSuchMethodError on-device. This task fails if any
+      # module's compile classpath resolves a different androidx.compose.foundation version than
+      # :app ships, so the class of bug is caught in CI instead of by a user.
+      - name: Compose foundation versions align (compile == shipped)
+        run: ./gradlew verifyComposeFoundationAlignment -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      # README.md (and CONTRIBUTING.md) advertise a unit-test count that drifts the moment
+      # anyone adds or removes a test, and nothing complains until a user notices the number is
+      # wrong — the same doc-accuracy problem the emoji guardrail solves. Sum the tests="..."
+      # attributes from the testDebugUnitTest results this job just produced (a fresh checkout,
+      # so no stale XMLs) and fail if either doc's number no longer matches the suite — or if
+      # the count was removed from a doc altogether.
+      - name: README test count matches the suite
+        run: |
+          set -euo pipefail
+          # || true: with no XMLs on disk the grep chain exits 1 and, under the default
+          # -o pipefail, the assignment would abort the step before any ::error:: is printed.
+          # The substitution still captures awk's "0", so TOTAL degrades to a clear mismatch.
+          TOTAL=$(find . -path '*/build/test-results/testDebugUnitTest/TEST-*.xml' -print0 \
+            | xargs -0 grep -ho 'tests="[0-9]*"' 2>/dev/null \
+            | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}') || true
+          TOTAL=${TOTAL:-0}
+          # Anchored to the claim lines so prose that repeats "N unit tests" can't double-match;
+          # tail -1 keeps the last (real) claim if the docs are ever edited to repeat it.
+          README_CLAIMED=$(grep -oE '# [0-9]+ unit tests' README.md | grep -oE '[0-9]+' | tail -1 || true)
+          CONTRIBUTING_CLAIMED=$(grep -oE 'currently runs [0-9]+ unit tests' CONTRIBUTING.md \
+            | grep -oE '[0-9]+' | tail -1 || true)
+          FAIL=0
+          if [ -z "$README_CLAIMED" ] || [ "$README_CLAIMED" != "$TOTAL" ]; then
+            echo "::error::README.md claims \"${README_CLAIMED:-no count} unit tests\" but the suite has $TOTAL — update the count."
+            FAIL=1
+          fi
+          if [ -z "$CONTRIBUTING_CLAIMED" ] || [ "$CONTRIBUTING_CLAIMED" != "$TOTAL" ]; then
+            echo "::error::CONTRIBUTING.md claims \"${CONTRIBUTING_CLAIMED:-no count} unit tests\" but the suite has $TOTAL — update the count."
+            FAIL=1
+          fi
+          [ "$FAIL" -eq 0 ] && echo "OK: README ($README_CLAIMED) and CONTRIBUTING ($CONTRIBUTING_CLAIMED) match the suite ($TOTAL)."
+          exit "$FAIL"
+
       - name: Android Lint
         run: ./gradlew lintDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: '**/build/reports/tests/**'
@@ -51,7 +92,7 @@ jobs:
 
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-report
           path: '**/build/reports/lint-results-*.html'
@@ -63,16 +104,16 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # These are the claims PRIVACY.md and the README make to users. They are cheap to assert
       # and expensive to notice breaking, because a transitive dependency can reintroduce any of
@@ -122,7 +163,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # CONTRIBUTING.md's "no emoji in source or user-facing text" is a promise to users exactly
       # like the privacy claims above: cheap to assert, expensive to notice breaking, because a

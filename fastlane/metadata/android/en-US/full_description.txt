@@ -4,7 +4,7 @@ Somn is a privacy-first sleep tracker for Android. It uses your phone's accelero
 
 <b>Sleep tracking</b>
 - Wake / Light / Deep / REM classification in 30-second epochs
-- Smart sleep scoring, age-calibrated from teens to 75+
+- Smart sleep scoring, age-calibrated from childhood to 75+
 - Biological profile support: menstrual cycle, pregnancy, neurodivergent (ADHD)
 
 <b>Smart features</b>
