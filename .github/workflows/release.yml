@@ -125,11 +125,6 @@ jobs:
         with:
           name: ${{ steps.notes.outputs.title }}
           body_path: ${{ runner.temp }}/release-body.md
-          # Apply title/body even if a release for this tag already exists (a
-          # workflow re-run, or a release pre-created by hand), not just at
-          # creation time.
-          update_release_body: true
-          update_release_title: true
           files: |
             app/build/outputs/apk/release/app-release-signed.apk
             app/build/outputs/apk/release/SHA256SUMS.txt
