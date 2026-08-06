@@ -13,7 +13,11 @@ object CaptchaTaskRegistry {
         register(ShakeCaptchaTask())
         register(SequenceCaptchaTask())
         register(QRCodeCaptchaTask())
-        // NFC task placeholder, will check for availability in getTasks()
+        // NFC captchas only make sense on devices that can read tags. The task is
+        // registered unconditionally, but getAvailableTasks() filters it by
+        // PackageManager.FEATURE_NFC and resolveTask() falls back to the global
+        // preference (or math) when NFC is unavailable — a captcha the user can
+        // never solve must not lock them out of dismissing their own alarm.
         register(NFCCaptchaTask())
     }
 

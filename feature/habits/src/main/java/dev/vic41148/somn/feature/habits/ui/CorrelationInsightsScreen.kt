@@ -129,7 +129,8 @@ fun CorrelationInsightsScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Placeholder cards for correlations with insufficient data
+            // Deliberate empty state: one InsufficientDataCard per correlation with
+            // too few nights to compute a result (not a placeholder).
             listOf(
                 "Caffeine → Sleep Onset" to report?.caffeineToOnset,
                 "Alcohol → Efficiency" to report?.alcoholToEfficiency,
