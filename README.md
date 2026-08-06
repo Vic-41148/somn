@@ -94,12 +94,12 @@ feature/
 
 The easiest way to try Somn is the latest release:
 
-- **v0.1.1** — download `app-release-signed.apk` from the
+- **v0.1.2** — download `app-release-signed.apk` from the
   [releases page](https://github.com/Vic-41148/somn/releases) and open it on your device
   (Android 8.0 / API 26+). Allow "install unknown apps" when prompted.
 
 > **Do not install v0.1.0.** It is deprecated and its release has been removed: tapping the
-> Sleep button (and in some cases Settings) could close the app on Android 14+. Use v0.1.1
+> Sleep button (and in some cases Settings) could close the app on Android 14+. Use v0.1.2
 > or newer instead.
 
 ### Prerequisites
