@@ -149,6 +149,26 @@ We use conventional commit prefixes so the history stays readable:
 Example scopes: `tracking`, `alarm`, `analytics`, `habits`, `settings`,
 `onboarding`, `audio`, `data`, `notifications`, `privacy`.
 
+## Cutting a release
+
+Releases are driven by tags, not by hand. The `Release` workflow builds and signs
+`app-release-signed.apk` on every `v*` tag push and publishes the GitHub Release
+automatically; the release title and body are read from `CHANGELOG.md` (the
+section whose header contains the tag name), so there is no separate notes file
+to maintain.
+
+1. Add a section to the top of `CHANGELOG.md` whose header contains the tag, for
+   example `## Somn v0.1.2 — ...`. The release body will be exactly that section;
+   use `### ` (or deeper) for subheadings inside it, since the next `## `-level
+   header is what terminates the section.
+2. Bump `versionCode` / `versionName` in `app/build.gradle.kts` and add the Play
+   store changelog under `fastlane/metadata/android/en-US/changelogs/`.
+3. Run the release preflight: `scripts/run-release-preflight.sh`.
+4. Push `dev`, then push the tag (`git push origin v0.1.2`). The workflow builds,
+   signs, attaches `app-release-signed.apk` + `SHA256SUMS.txt`, and fills the
+   release body from the matching `CHANGELOG.md` section. If no section matches
+   the tag, the workflow fails instead of publishing an empty release.
+
 ## Branch protection & CI
 
 Both `main` and `dev` are protected on GitHub:
