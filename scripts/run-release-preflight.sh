@@ -1,11 +1,20 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S setsid --fork bash
 # run-release-preflight.sh — full release preflight on the emulator, in one command.
 #
-#   bash scripts/run-release-preflight.sh            # boot + run all 15 device scripts
-#   bash scripts/run-release-preflight.sh --boot-only  # just ensure the emulator, exit
-#   bash scripts/run-release-preflight.sh --avd other  # use a different AVD
+# The `env -S setsid --fork` shebang detaches the script into its own session the
+# instant it starts (before bash even runs), so DIRECT execution is immune to a
+# launcher that reaps its process group — the race-free launch path.
 #
-# Why this wrapper exists (two hard-won lessons):
+#   ./scripts/run-release-preflight.sh               # boot + run all 15 device scripts
+#   ./scripts/run-release-preflight.sh --boot-only   # just ensure the emulator, exit
+#   ./scripts/run-release-preflight.sh --avd other   # use a different AVD
+#
+# `bash scripts/run-release-preflight.sh` also works: the in-script self-detach
+# block below covers it (best-effort against instant-reap launchers; `setsid bash
+# scripts/... &` removes even that race). Requires util-linux setsid --fork and
+# coreutils env -S, both standard on modern Linux.
+#
+# Why this wrapper exists (three hard-won lessons):
 #
 #  1. The emulator must be launched DETACHED (setsid) — `nohup ... &` alone dies with the
 #     launching shell's process group, and a preflight left staring at zero devices hangs
@@ -17,12 +26,50 @@
 #     scrolled sections never match). The runner boots with -skin 1080x2340 and *reuses a
 #     running emulator only if its display already matches* — a wrong-size emulator is
 #     killed and rebooted rather than silently producing a wall of bogus FAILs.
+#  3. The wrapper itself must detach from the launching shell (self-detach block below).
+#     Lesson 1 fixed the emulator but not the wrapper: a preflight launched from a
+#     short-lived shell still died with that shell's process group after printing only
+#     the boot line. The wrapper now re-launches itself under setsid when it is not
+#     already a session leader, so any `nohup ... &` invocation is safe.
 #
 # The 15-step sequence itself is unchanged from the historical preflight: destructive
 # seeders first, then state-dependent verifies, the cycling re-seeding session e2e, a
 # baseline restore, then the build-only pipeline check. Steps MUST run sequentially — they
 # share one device and fight each other if parallelised.
 set -uo pipefail
+
+# ── self-detach (lesson three) ─────────────────────────────────────────────────
+# A preflight launched from a short-lived shell (`nohup ... &` from a tool, a CI
+# step, or any launcher that cleans up its process group) used to die with that
+# shell — the emulator survived (it is setsid-detached below) but the wrapper did
+# not, so the 15 steps never ran. When we are not already a session leader,
+# re-exec ourselves under `setsid --fork`; the re-exec'd process keeps our
+# stdout/stderr (the caller's log redirect), so output flows to the same place.
+# This block is the fallback for `bash scripts/...` invocations (the shebang
+# detaches direct execution before bash starts). A launcher that reaps its
+# process group within a couple of milliseconds can still beat it, so prefer
+# direct execution, or launch with `setsid bash scripts/... &` for zero race.
+# Idempotent: a setsid-launched wrapper sees $$ == SID and skips this.
+#
+# Session check without forking `ps`: parse /proc/$$/stat instead — field 6 of
+# the procfs layout (session) is index 3 after stripping `pid (comm) `. Every
+# millisecond counts against an instant-reap launcher.
+_self_stat=$(<"/proc/$$/stat") 2>/dev/null || _self_stat=""
+if [ -n "$_self_stat" ]; then
+    _self_rest=${_self_stat##*) }
+    _fields=(${_self_rest})
+    _sid=${_fields[3]:-}
+else
+    _sid=$(ps -o sid= -p $$ | tr -d ' ')  # no /proc (rare) — slow fallback
+fi
+# -n guard: with neither /proc nor ps available, _sid stays empty and the
+# comparison would always be true — re-execing forever. Only re-exec when we
+# actually determined a session id that differs from ours.
+if [ -n "$_sid" ] && [ "$$" != "$_sid" ]; then
+    if command -v setsid >/dev/null 2>&1; then
+        exec setsid --fork "$0" "$@"
+    fi
+fi
 
 AVD="somn_test"
 BOOT_ONLY=false
