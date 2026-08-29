@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -38,7 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import dev.vic41148.somn.core.ui.components.ColorLegendItem
 import dev.vic41148.somn.core.ui.theme.DebtMild
 import dev.vic41148.somn.core.ui.theme.DebtModerate
 import androidx.compose.ui.graphics.TransformOrigin
@@ -124,11 +123,10 @@ fun SleepDebtDetailScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Legend
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            LegendItem(color = MaterialTheme.colorScheme.primary, label = "Surplus")
-            LegendItem(color = MaterialTheme.colorScheme.error, label = "Deficit")
-            LegendItem(color = MaterialTheme.colorScheme.surfaceVariant, label = "No data")
+            ColorLegendItem(color = MaterialTheme.colorScheme.primary, label = "Surplus")
+            ColorLegendItem(color = MaterialTheme.colorScheme.error, label = "Deficit")
+            ColorLegendItem(color = MaterialTheme.colorScheme.surfaceVariant, label = "No data")
         }
 
         // ---- Recovery plan ----
@@ -352,20 +350,5 @@ private fun RecoveryMetric(label: String, value: String) {
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
-    }
-}
-
-@Composable
-private fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .width(12.dp)
-                .height(12.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(color)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

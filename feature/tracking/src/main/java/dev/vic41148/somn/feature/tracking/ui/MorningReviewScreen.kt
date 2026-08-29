@@ -1,8 +1,6 @@
 package dev.vic41148.somn.feature.tracking.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -35,11 +32,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import dev.vic41148.somn.core.ui.components.ColorLegendItem
 import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.SleepCard
@@ -157,10 +154,10 @@ fun MorningReviewScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StageLegendItem(color = StageAwake, label = "Awake")
-                    StageLegendItem(color = StageRem, label = "REM")
-                    StageLegendItem(color = StageLight, label = "Light")
-                    StageLegendItem(color = StageDeep, label = "Deep")
+                    ColorLegendItem(color = StageAwake, label = "Awake")
+                    ColorLegendItem(color = StageRem, label = "REM")
+                    ColorLegendItem(color = StageLight, label = "Light")
+                    ColorLegendItem(color = StageDeep, label = "Deep")
                 }
             }
         }
@@ -293,19 +290,5 @@ fun MorningReviewScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-/** A single Hypnogram legend entry — a color swatch matching [dev.vic41148.somn.core.ui.components.toColor] plus its label. */
-@Composable
-private fun StageLegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(color = color, shape = CircleShape)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }

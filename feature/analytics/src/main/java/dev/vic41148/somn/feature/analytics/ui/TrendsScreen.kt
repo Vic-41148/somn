@@ -1,8 +1,6 @@
 package dev.vic41148.somn.feature.analytics.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,10 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,7 +23,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import dev.vic41148.somn.core.ui.theme.CycleFollicular
@@ -36,10 +30,10 @@ import dev.vic41148.somn.core.ui.theme.CycleLuteal
 import dev.vic41148.somn.core.ui.theme.CycleMenstrual
 import dev.vic41148.somn.core.ui.theme.CycleOvulation
 import dev.vic41148.somn.core.ui.theme.CyclePremenstrual
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.MenstrualCyclePhase
+import dev.vic41148.somn.core.ui.components.ColorLegend
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.TrendBand
 import dev.vic41148.somn.core.ui.components.TrendLineChart
@@ -141,30 +135,10 @@ private fun MenstrualCyclePhase.toBandColor(): Color = when (this) {
 
 @Composable
 private fun CyclePhaseLegend() {
-    Column {
-        Text(
-            text = "Cycle phase",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        MenstrualCyclePhase.entries.forEach { phase ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 2.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .background(phase.toBandColor().copy(alpha = 1f), RoundedCornerShape(3.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "${phase.displayName} — ${phase.sleepImpact}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Normal
-                )
-            }
+    ColorLegend(
+        title = "Cycle phase",
+        entries = MenstrualCyclePhase.entries.map { phase ->
+            phase.toBandColor().copy(alpha = 1f) to "${phase.displayName} · ${phase.sleepImpact}"
         }
-    }
+    )
 }

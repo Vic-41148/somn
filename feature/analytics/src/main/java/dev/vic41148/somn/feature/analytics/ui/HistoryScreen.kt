@@ -37,6 +37,8 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.SessionType
+import dev.vic41148.somn.core.ui.components.ColorLegendItem
+import dev.vic41148.somn.core.ui.theme.ScoreTier
 import dev.vic41148.somn.core.ui.theme.scoreColor
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
@@ -172,6 +174,18 @@ fun HistoryScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    item {
+                        // Score tier colors — the same ramp each row's score digit renders,
+                        // spelled out once so the list reads as one system.
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            ScoreTier.entries.forEach { tier ->
+                                ColorLegendItem(color = scoreColor(tier.minScore), label = tier.label)
+                            }
+                        }
+                    }
                     items(sessions, key = { it.id }) { session ->
                         val isSelected = selectedIds.contains(session.id)
                         SessionRow(
