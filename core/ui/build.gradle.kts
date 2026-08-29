@@ -41,4 +41,6 @@ dependencies {
 
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
+
+    testImplementation(libs.junit)
 }

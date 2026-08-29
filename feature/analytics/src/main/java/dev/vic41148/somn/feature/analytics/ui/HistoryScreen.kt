@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.SessionType
+import dev.vic41148.somn.core.ui.theme.scoreColor
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 import java.text.SimpleDateFormat
@@ -272,11 +273,7 @@ private fun SessionRow(
                     text = "${session.sleepScore}",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = when {
-                        session.sleepScore >= 80 -> MaterialTheme.colorScheme.primary
-                        session.sleepScore >= 60 -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.error
-                    }
+                    color = scoreColor(session.sleepScore)
                 )
                 if (session.moodRating > 0) {
                     val moods = listOf("", "Exhausted", "Tired", "Okay", "Good", "Great")
