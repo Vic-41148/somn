@@ -21,12 +21,12 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "dev.vic41148.somn.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "dev.vic41148.somn"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 3
         versionName = "0.1.2"
 

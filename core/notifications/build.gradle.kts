@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.core.notifications"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
