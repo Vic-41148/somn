@@ -1,5 +1,10 @@
 package dev.vic41148.somn.feature.alarm.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -47,17 +52,29 @@ fun AlarmEditScreen(
             }
         }
 
-        if (alarmId > 0 && !isInitialized) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        // The spinner fades out as the form fades in, so an edit screen opening from the
+        // alarm list doesn't hard-cut between two surfaces (MOTION-04 entrance).
+        Box(modifier = Modifier.fillMaxSize()) {
+            AnimatedVisibility(
+                visible = !isInitialized,
+                modifier = Modifier.fillMaxSize(),
+                exit = fadeOut(tween(200))
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-            return
-        }
 
-        val timePickerState = rememberTimePickerState(
-            initialHour = editingAlarm?.hour ?: 7,
-            initialMinute = editingAlarm?.minute ?: 0
-        )
+            AnimatedVisibility(
+                visible = isInitialized,
+                modifier = Modifier.fillMaxSize(),
+                enter = fadeIn(tween(300)) +
+                    scaleIn(initialScale = 0.98f, animationSpec = tween(300))
+            ) {
+                val timePickerState = rememberTimePickerState(
+                    initialHour = editingAlarm?.hour ?: 7,
+                    initialMinute = editingAlarm?.minute ?: 0
+                )
 
         // The save button used to be the last child of an unscrollable Column. A Material3
         // TimePicker dial alone is ~300dp, and with the day chips, label field and wake-window
@@ -198,5 +215,7 @@ fun AlarmEditScreen(
                     Text(if (alarmId > 0) "Update Alarm" else "Save Alarm")
                 }
             }
+            }
         }
+    }
 }
