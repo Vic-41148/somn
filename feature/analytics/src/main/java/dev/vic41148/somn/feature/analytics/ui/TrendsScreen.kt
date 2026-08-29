@@ -30,6 +30,7 @@ import dev.vic41148.somn.core.ui.theme.CycleLuteal
 import dev.vic41148.somn.core.ui.theme.CycleMenstrual
 import dev.vic41148.somn.core.ui.theme.CycleOvulation
 import dev.vic41148.somn.core.ui.theme.CyclePremenstrual
+import dev.vic41148.somn.core.ui.theme.ScoreGood
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.MenstrualCyclePhase
@@ -50,6 +51,8 @@ fun TrendsScreen(
     val sessions by viewModel.sessions.collectAsState()
     val selectedMetric by viewModel.selectedMetric.collectAsState()
     val cyclePhaseRuns by viewModel.cyclePhaseRuns.collectAsState()
+    val deepSleepTargetPercent by viewModel.deepSleepTargetPercent.collectAsState()
+    val deepTarget = deepSleepTargetPercent
 
     Scaffold(
         topBar = {
@@ -106,6 +109,20 @@ fun TrendsScreen(
                         color = run.phase.toBandColor(),
                         label = run.phase.displayName
                     )
+                } + if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
+                    // Age-calibrated deep-sleep window — the same target±5% band that
+                    // calculateDeepSleepScore marks as ideal, drawn behind the line.
+                    listOf(
+                        TrendBand(
+                            startMillis = 0L,
+                            endMillis = 0L,
+                            color = ScoreGood.copy(alpha = 0.30f),
+                            label = "Target",
+                            valueRange = (deepTarget - 5f)..(deepTarget + 5f)
+                        )
+                    )
+                } else {
+                    emptyList()
                 }
 
                 TrendLineChart(
@@ -114,6 +131,14 @@ fun TrendsScreen(
                     bands = bands,
                     height = 220.dp
                 )
+                if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
+                    Text(
+                        text = "Shaded band: your age-adjusted deep sleep target (${"%.0f".format(deepTarget)}% ± 5).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
             }
 
             if (!cyclePhaseRuns.isNullOrEmpty()) {

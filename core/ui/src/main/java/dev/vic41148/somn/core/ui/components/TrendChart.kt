@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlin.math.floor
 
 /** One data point in a [TrendLineChart] series — X is a wall-clock timestamp, not an index. */
@@ -24,8 +25,18 @@ data class TrendPoint(val timestampMillis: Long, val value: Float)
 /**
  * DATA-04: a colored background band drawn behind the line, e.g. a menstrual cycle phase's
  * date range — [startMillis, endMillis) in the same timestamp space as [TrendPoint]s.
+ * Set [valueRange] instead to draw a full-width band between two Y values (e.g. the age
+ * calibrated deep-sleep target window), for metrics where the band is value-driven, not
+ * date-driven.
  */
-data class TrendBand(val startMillis: Long, val endMillis: Long, val color: Color, val label: String = "")
+data class TrendBand(
+    val startMillis: Long,
+    val endMillis: Long,
+    val color: Color,
+    val label: String = "",
+    /** When set, the band spans the chart's full width at these plot values instead of an X-range. */
+    val valueRange: ClosedFloatingPointRange<Float>? = null
+)
 
 /**
  * DATA-03: minimal multi-metric-capable trend line chart. Deliberately simple (no axis text
@@ -85,6 +96,17 @@ fun TrendLineChart(
 
         // Cycle-phase (or other) background bands, drawn first so the line renders on top.
         for (band in bands) {
+            if (band.valueRange != null) {
+                val yBottom = yFor(band.valueRange.start)
+                val yTop = yFor(band.valueRange.endInclusive)
+                val top = minOf(yTop, yBottom)
+                drawRect(
+                    color = band.color.copy(alpha = band.color.alpha * bandAlpha),
+                    topLeft = Offset(x = 0f, y = top),
+                    size = Size(width = size.width, height = abs(yBottom - yTop))
+                )
+                continue
+            }
             val left = xFor(band.startMillis.coerceIn(minX, maxX))
             val right = xFor(band.endMillis.coerceIn(minX, maxX))
             if (right <= left) continue

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
 import java.time.LocalDate
@@ -41,8 +42,14 @@ class TrendsViewModel @Inject constructor(
 
     // SESS-04: trends are a bedtime-consistency signal — naps/commute/shift sessions would skew it,
     // same reasoning CircadianViewModel already applies.
+    /** DATA-03: one metric at a time, since the metrics don't share a scale. */
     val sessions: StateFlow<List<SleepSession>> = sleepRepository.observeMainSleepSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Profile-derived deep-sleep target percent (age-adjusted); null until onboarding completes. */
+    val deepSleepTargetPercent: StateFlow<Float?> = userProfileRepository.observeProfile()
+        .map { it?.deepSleepTargetPercent }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /** DATA-04: null when the user's profile doesn't have cycle tracking enabled/configured — screen hides the overlay entirely rather than showing an empty one. */
     val cyclePhaseRuns: StateFlow<List<CyclePhaseRun>?> = combine(
