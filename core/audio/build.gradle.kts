@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.core.audio"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 26
