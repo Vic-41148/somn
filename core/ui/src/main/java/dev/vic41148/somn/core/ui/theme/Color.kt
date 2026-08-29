@@ -24,7 +24,7 @@ val OnSecondaryDark = Color(0xFF2D2F42)
 val SecondaryContainerDark = Color(0xFF434559)
 val OnSecondaryContainerDark = Color(0xFFE0E0F9)
 
-// Tertiary — Warm amber for alerts/accents
+// Tertiary — Dusty mauve, a calm accent intended for secondary flavour
 val TertiaryLight = Color(0xFF77536D)
 val OnTertiaryLight = Color(0xFFFFFFFF)
 val TertiaryContainerLight = Color(0xFFFFD7F1)
@@ -46,32 +46,85 @@ val OnBackgroundDark = Color(0xFFE4E1E6)
 val SurfaceDark = Color(0xFF1B1B1F)
 val OnSurfaceDark = Color(0xFFE4E1E6)
 
-// Sleep Score colors
-val ScoreGreat = Color(0xFF4CAF50)
-val ScoreGood = Color(0xFFFFC107)
-val ScoreFair = Color(0xFFFF9800)
-val ScorePoor = Color(0xFFF44336)
+// Surface, outline and error roles that complete the scheme. Without them the colour scheme
+// falls back to Material's baseline purple for the roles screens actually use (cards, chips,
+// text fields, outlines, disabled content), so non-dynamic devices leaked purple into a sea
+// of indigo. Dark surfaces climb a monotonic tone ladder out of true black (4/8/10/12/17/22)
+// so the container hierarchy resolves cleanly; light ones descend from white the same way.
+val SurfaceVariantLight = Color(0xFFE3E1EC)
+val OnSurfaceVariantLight = Color(0xFF44464F)
+val SurfaceDimLight = Color(0xFFDAD8DF)
+val SurfaceBrightLight = Color(0xFFFEFBFF)
+val SurfaceContainerLowestLight = Color(0xFFFFFFFF)
+val SurfaceContainerLowLight = Color(0xFFF7F7FB)
+val SurfaceContainerLight = Color(0xFFF2F2F7)
+val SurfaceContainerHighLight = Color(0xFFECECF1)
+val SurfaceContainerHighestLight = Color(0xFFE6E6EC)
+val OutlineLight = Color(0xFF74777F)
+val OutlineVariantLight = Color(0xFFC4C6CE)
+val ErrorLight = Color(0xFFB3261E)
+val OnErrorLight = Color(0xFFFFFFFF)
+val ErrorContainerLight = Color(0xFFF9DEDC)
+val OnErrorContainerLight = Color(0xFF410E0B)
+val InverseSurfaceLight = Color(0xFF333136)
+val InverseOnSurfaceLight = Color(0xFFF1F0F4)
+val InversePrimaryLight = Color(0xFFBBC3FF)
+val ScrimLight = Color(0xFF000000)
 
-// Sleep stage colors
-val StageAwake = Color(0xFFEF5350)
-val StageLight = Color(0xFF64B5F6)
-val StageDeep = Color(0xFF1A237E)
-val StageRem = Color(0xFFAB47BC)
+val SurfaceVariantDark = Color(0xFF46464F)
+val OnSurfaceVariantDark = Color(0xFFC4C4D0)
+val SurfaceDimDark = Color(0xFF100F13)
+val SurfaceBrightDark = Color(0xFF3C3C40)
+val SurfaceContainerLowestDark = Color(0xFF0B0B0F)
+val SurfaceContainerLowDark = Color(0xFF1E1E22)
+val SurfaceContainerDark = Color(0xFF222227)
+val SurfaceContainerHighDark = Color(0xFF2A2A2F)
+val SurfaceContainerHighestDark = Color(0xFF333338)
+val OutlineDark = Color(0xFF8E9099)
+val OutlineVariantDark = Color(0xFF46464F)
+val ErrorDark = Color(0xFFF2B8B5)
+val OnErrorDark = Color(0xFF601410)
+val ErrorContainerDark = Color(0xFF8C1D18)
+val OnErrorContainerDark = Color(0xFFF9DEDC)
+val InverseSurfaceDark = Color(0xFFE4E1E6)
+val InverseOnSurfaceDark = Color(0xFF343337)
+val InversePrimaryDark = Color(0xFF4A5AC7)
+val ScrimDark = Color(0xFF000000)
+
+// Sleep Score colors — a fixed ramp independent of dynamic colour, so a score means the same
+// green anywhere in the app. Green (well) to amber (caution) to red (poor); prepared next to
+// the Okabe-Ito palette below so the ramp has no glaring collision with stage/cycle hues.
+val ScoreGreat = Color(0xFF43A047)
+val ScoreGood = Color(0xFF9CCC65)
+val ScoreFair = Color(0xFFFFC107)
+val ScorePoor = Color(0xFFEF5350)
+
+// Sleep stage colors — Okabe-Ito colour-blind-safe set (orange/blue/dark-blue/rose). The old
+// 2014 Material swatches collided with the score ramp and the cycle bands (light blue and
+// magenta appeared in both Stage and Cycle contexts), which made a shared legend ambiguous.
+val StageAwake = Color(0xFFD55E00)
+val StageLight = Color(0xFF56B4E9)
+val StageDeep = Color(0xFF0072B2)
+val StageRem = Color(0xFFCC79A7)
 
 // Sleep debt severity — was duplicated inline as raw hex in both HomeScreen and
 // SleepDebtDetailScreen; named here so the two can't drift out of sync with each other.
+// Already an ordered amber-to-red ramp, so it stays as it is.
 val DebtMild = Color(0xFFF9A825)
 val DebtModerate = Color(0xFFE65100)
 
 // Menstrual cycle phase bands (DATA-04, TrendsScreen) — kept at full alpha here; callers apply
 // their own alpha since the same hue is used at different opacities depending on context.
-val CycleMenstrual = Color(0xFFE57373)
-val CycleFollicular = Color(0xFF81C784)
-val CycleOvulation = Color(0xFFFFD54F)
-val CycleLuteal = Color(0xFF64B5F6)
-val CyclePremenstrual = Color(0xFFBA68C8)
+// Paired from the densified Okabe-Ito / IBM fortified palette so every band is distinct even
+// with the adjacent alpha-blended stage and score hues in the same chart.
+val CycleMenstrual = Color(0xFFFE6100)
+val CycleFollicular = Color(0xFF009E73)
+val CycleOvulation = Color(0xFFF0E442)
+val CycleLuteal = Color(0xFF648FFF)
+val CyclePremenstrual = Color(0xFFE69F00)
 
-// Audio event type colors (AudioTimeline)
-val AudioEventTalk = Color(0xFF6200EE)
-val AudioEventSnore = Color(0xFFFF9800)
-val AudioEventCough = Color(0xFFF44336)
+// Audio event type colors (AudioTimeline) — IBM fortified palette, shifted away from the score
+// ramp: the old amber/orange/red here were indistinguishable from ScoreFair/ScorePoor.
+val AudioEventTalk = Color(0xFF785EF0)
+val AudioEventSnore = Color(0xFFFFB000)
+val AudioEventCough = Color(0xFFDC267F)
