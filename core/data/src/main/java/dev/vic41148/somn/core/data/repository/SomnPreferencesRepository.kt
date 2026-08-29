@@ -53,6 +53,8 @@ class SomnPreferencesRepository @Inject constructor(
         val OVERSLEEP_THRESHOLD_MINUTES = intPreferencesKey("oversleep_threshold_minutes")
         val WAKE_VERIFICATION_ENABLED = booleanPreferencesKey("wake_verification_enabled")
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
+        /** Material You dynamic color on Android 12+, on by default so the theme stays as it was. */
+        val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
         /**
          * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO — the
          * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
@@ -198,6 +200,15 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateWakeVerificationWindowSeconds(seconds: Int) {
         context.dataStore.edit { it[PreferencesKeys.WAKE_VERIFICATION_WINDOW_SECONDS] = seconds }
+    }
+
+    /** THEME-01: whether Material You should tint the app from the wallpaper on Android 12+. */
+    val useDynamicColor: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.USE_DYNAMIC_COLOR] ?: true }
+
+    suspend fun updateUseDynamicColor(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.USE_DYNAMIC_COLOR] = enabled }
     }
 
     /**

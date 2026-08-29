@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import dev.vic41148.somn.app.navigation.SleepNavGraph
+import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.core.ui.battery.BatteryExemptionState
 import dev.vic41148.somn.core.ui.theme.SomnTheme
@@ -25,6 +26,7 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var profileRepository: UserProfileRepository
+    @Inject lateinit var preferencesRepository: SomnPreferencesRepository
 
     override fun onResume() {
         super.onResume()
@@ -46,7 +48,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SomnTheme {
+            val useDynamicColor by preferencesRepository.useDynamicColor
+                .collectAsState(initial = true)
+            SomnTheme(dynamicColor = useDynamicColor) {
                 val isOnboardingCompleted by profileRepository
                     .observeOnboardingCompleted()
                     .collectAsState(initial = null)

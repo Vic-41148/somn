@@ -107,6 +107,18 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
+        // Appearance (THEME-01)
+        SettingSection(title = "Appearance") {
+            SettingToggle(
+                title = "Match My Wallpaper",
+                subtitle = "Android 12+ only. Colors follow your wallpaper instead of Somn's hand-built theme.",
+                checked = settings.useDynamicColor,
+                onCheckedChange = { viewModel.updateUseDynamicColor(it) }
+            )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
         // Wake-Up Verification (WAKE-01/02)
         SettingSection(title = "Wake-Up Verification") {
             SettingToggle(

@@ -125,6 +125,9 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.wakeVerificationWindowSeconds) { state, seconds ->
             state.copy(wakeVerificationWindowSeconds = seconds)
         }
+        collectInto(preferencesRepository.useDynamicColor) { state, enabled ->
+            state.copy(useDynamicColor = enabled)
+        }
         collectInto(preferencesRepository.hemisphereOverride) { state, override ->
             state.copy(hemisphereOverride = override)
         }
@@ -165,6 +168,8 @@ class SettingsViewModel @Inject constructor(
         val oversleepThresholdMinutes: Int = 60,
         val wakeVerificationEnabled: Boolean = true,
         val wakeVerificationWindowSeconds: Int = 15,
+        /** THEME-01: whether Material You tints the app from the wallpaper on Android 12+. */
+        val useDynamicColor: Boolean = true,
         /** Which hemisphere seasonal analysis assumes; AUTO keeps the timezone heuristic. */
         val hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO,
         val snoreNudgeEnabled: Boolean = true,
@@ -245,6 +250,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateWakeVerificationWindowSeconds(seconds: Int) {
         viewModelScope.launch { preferencesRepository.updateWakeVerificationWindowSeconds(seconds) }
+    }
+
+    fun updateUseDynamicColor(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateUseDynamicColor(enabled) }
     }
 
     fun updateHemisphereOverride(override: HemisphereOverride) {
