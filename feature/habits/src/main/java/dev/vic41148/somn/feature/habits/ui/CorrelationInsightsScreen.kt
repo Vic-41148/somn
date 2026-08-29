@@ -150,14 +150,7 @@ fun CorrelationInsightsScreen(
 @Composable
 private fun CorrelationCard(result: CorrelationResult) {
     val barColor by animateColorAsState(
-        targetValue = when (result.strength) {
-            CorrelationStrength.NONE -> MaterialTheme.colorScheme.surfaceVariant
-            CorrelationStrength.MILD -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-            CorrelationStrength.MODERATE -> MaterialTheme.colorScheme.tertiary
-            CorrelationStrength.STRONG ->
-                if (result.isPositive) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.error
-        },
+        targetValue = barColorFor(result.strength, result.isPositive),
         label = "barColor"
     )
 
@@ -238,23 +231,50 @@ private fun CorrelationCard(result: CorrelationResult) {
     }
 }
 
+/**
+ * Diverging scale, direction-aware at every strength: positive correlations read as
+ * "helpful" (primary), negative as "undesirable" (error), with an alpha ramp so MILD
+ * reads clearly under MODERATE and STRONG. Matches the score-ring colour language.
+ */
+@Composable
+private fun barColorFor(strength: CorrelationStrength, isPositive: Boolean): Color = when (strength) {
+    CorrelationStrength.NONE -> MaterialTheme.colorScheme.surfaceVariant
+    CorrelationStrength.MILD -> directionColor(isPositive).copy(alpha = 0.4f)
+    CorrelationStrength.MODERATE -> directionColor(isPositive).copy(alpha = 0.7f)
+    CorrelationStrength.STRONG -> directionColor(isPositive)
+}
+
+@Composable
+private fun containerFor(isPositive: Boolean): Color =
+    if (isPositive) MaterialTheme.colorScheme.primaryContainer
+    else MaterialTheme.colorScheme.errorContainer
+
+@Composable
+private fun onContainerFor(isPositive: Boolean): Color =
+    if (isPositive) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onErrorContainer
+
+@Composable
+private fun directionColor(isPositive: Boolean): Color =
+    if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+
 @Composable
 private fun StrengthBadge(strength: CorrelationStrength, isPositive: Boolean) {
     val bgColor = when (strength) {
         CorrelationStrength.NONE -> MaterialTheme.colorScheme.surfaceVariant
-        CorrelationStrength.MILD -> MaterialTheme.colorScheme.secondaryContainer
-        CorrelationStrength.MODERATE -> MaterialTheme.colorScheme.tertiaryContainer
-        CorrelationStrength.STRONG ->
-            if (isPositive) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.errorContainer
+        CorrelationStrength.MILD ->
+            containerFor(isPositive).copy(alpha = 0.45f)
+        CorrelationStrength.MODERATE ->
+            containerFor(isPositive).copy(alpha = 0.7f)
+        CorrelationStrength.STRONG -> containerFor(isPositive)
     }
     val textColor = when (strength) {
         CorrelationStrength.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
-        CorrelationStrength.MILD -> MaterialTheme.colorScheme.onSecondaryContainer
-        CorrelationStrength.MODERATE -> MaterialTheme.colorScheme.onTertiaryContainer
-        CorrelationStrength.STRONG ->
-            if (isPositive) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onErrorContainer
+        CorrelationStrength.MILD ->
+            onContainerFor(isPositive).copy(alpha = 0.6f)
+        CorrelationStrength.MODERATE ->
+            onContainerFor(isPositive).copy(alpha = 0.8f)
+        CorrelationStrength.STRONG -> onContainerFor(isPositive)
     }
 
     Box(
