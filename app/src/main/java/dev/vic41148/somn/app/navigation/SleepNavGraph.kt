@@ -1,6 +1,10 @@
 package dev.vic41148.somn.app.navigation
 
 import androidx.activity.ComponentActivity
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -35,6 +39,7 @@ import dev.vic41148.somn.feature.alarm.ui.AlarmFiringScreen
 import dev.vic41148.somn.feature.alarm.ui.AlarmListScreen
 import dev.vic41148.somn.feature.analytics.ui.CircadianInsightsScreen
 import dev.vic41148.somn.feature.analytics.ui.HistoryScreen
+import dev.vic41148.somn.feature.analytics.ui.ManualSessionScreen
 import dev.vic41148.somn.feature.analytics.ui.SessionDetailScreen
 import dev.vic41148.somn.feature.analytics.ui.TrendsScreen
 import dev.vic41148.somn.feature.habits.ui.CorrelationInsightsScreen
@@ -67,6 +72,8 @@ private val bottomNavScreens = listOf(
     Screen.Settings
 )
 
+private val bottomNavRoutes = bottomNavScreens.map { it.route }.toSet()
+
 /** Routes where the bottom bar should be hidden. */
 private val hideNavRoutes = setOf(
     "onboarding",
@@ -79,6 +86,7 @@ private val hideNavRoutes = setOf(
     "correlation_insights",
     "circadian_insights",
     "trends",
+    "manual_session",
     "breathing_exercise",
     "cognitive_winddown",
     "adhd_cooldown"
@@ -167,7 +175,42 @@ fun SleepNavGraph(
             // rather than per-screen.
             modifier = Modifier
                 .padding(innerPadding)
-                .imePadding()
+                .imePadding(),
+            // Tab switches crossfade (siblings under one bar); detail pushes slide with the
+            // direction of travel (right-to-left in, left-to-right on pop) so the user can
+            // tell at a glance whether back returns to a tab or pops a stack.
+            enterTransition = {
+                val sliding = targetState.destination.route !in bottomNavRoutes &&
+                    initialState.destination.route !in bottomNavRoutes
+                if (sliding) slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    tween(280)
+                ) else fadeIn(tween(220))
+            },
+            exitTransition = {
+                val sliding = targetState.destination.route !in bottomNavRoutes &&
+                    initialState.destination.route !in bottomNavRoutes
+                if (sliding) slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Left,
+                    tween(280)
+                ) else fadeOut(tween(220))
+            },
+            popEnterTransition = {
+                val sliding = targetState.destination.route !in bottomNavRoutes &&
+                    initialState.destination.route !in bottomNavRoutes
+                if (sliding) slideIntoContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    tween(280)
+                ) else fadeIn(tween(220))
+            },
+            popExitTransition = {
+                val sliding = targetState.destination.route !in bottomNavRoutes &&
+                    initialState.destination.route !in bottomNavRoutes
+                if (sliding) slideOutOfContainer(
+                    AnimatedContentTransitionScope.SlideDirection.Right,
+                    tween(280)
+                ) else fadeOut(tween(220))
+            }
         ) {
             // Onboarding
             composable("onboarding") {
@@ -209,7 +252,17 @@ fun SleepNavGraph(
                     },
                     onNavigateToTrends = {
                         navController.navigate("trends")
+                    },
+                    onAddManualSession = {
+                        navController.navigate("manual_session")
                     }
+                )
+            }
+
+            composable("manual_session") {
+                ManualSessionScreen(
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() }
                 )
             }
 
