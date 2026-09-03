@@ -67,42 +67,51 @@ class AudioEventClassifier(
             if (zcr > maxZcr) {
                 maxZcr = zcr
             }
+            // Sustained loud audio (e.g. music, TV) never drops below the loud threshold, so the
+            // event would otherwise stay open forever and never be emitted -- a whole loud night
+            // yields zero events. Once the raw clip buffer is full, flush the accumulated run as a
+            // bounded event and restart, so continuous noise still produces periodic visible events.
+            if (currentBuffer.size >= maxBufferedSamples) {
+                return emitCurrentEvent(sessionId, buffer.size)
+            }
         } else {
             if (loudBufferCount > 0) {
-                // Event finished
-                val durationSec = (loudBufferCount * buffer.size.toDouble()) / AudioCollector.SAMPLE_RATE.toDouble()
-                val avgZcr = if (loudBufferCount > 0) (sumZcr / loudBufferCount).toInt() else 0
-                val outBuffer = currentBuffer.toShortArray()
-
-                val type = yamnetClassify?.invoke(outBuffer) ?: when {
-                    // Duration & ZCR heuristic classification (fallback when YAMNet is
-                    // disabled, or returned null for this buffer)
-                    durationSec < 0.8 && maxZcr < 1500 -> AudioEventType.COUGH
-                    maxZcr > 2000 || avgZcr > 1000 -> AudioEventType.TALK
-                    else -> AudioEventType.SNORE
-                }
-
-                val event = AudioEvent(
-                    sessionId = sessionId,
-                    timestampMillis = eventStartTime,
-                    durationSeconds = max(1, durationSec.toInt()),
-                    type = type,
-                    intensityDecibels = maxIntensity
-                )
-
-                loudBufferCount = 0
-                maxIntensity = 0
-                sumZcr = 0L
-                maxZcr = 0
-                currentBuffer.clear()
-
-                // Only return events > some min threshold to avoid noise
-                if (event.intensityDecibels > 50) {
-                    return Pair(event, outBuffer)
-                }
+                // Event finished (audio dropped back below the loud threshold)
+                return emitCurrentEvent(sessionId, buffer.size)
             }
         }
         return null
+    }
+
+    private fun emitCurrentEvent(sessionId: Long, bufferSize: Int): Pair<AudioEvent, ShortArray>? {
+        val durationSec = (loudBufferCount * bufferSize.toDouble()) / AudioCollector.SAMPLE_RATE.toDouble()
+        val avgZcr = if (loudBufferCount > 0) (sumZcr / loudBufferCount).toInt() else 0
+        val outBuffer = currentBuffer.toShortArray()
+
+        val type = yamnetClassify?.invoke(outBuffer) ?: when {
+            // Duration & ZCR heuristic classification (fallback when YAMNet is
+            // disabled, or returned null for this buffer)
+            durationSec < 0.8 && maxZcr < 1500 -> AudioEventType.COUGH
+            maxZcr > 2000 || avgZcr > 1000 -> AudioEventType.TALK
+            else -> AudioEventType.SNORE
+        }
+
+        val event = AudioEvent(
+            sessionId = sessionId,
+            timestampMillis = eventStartTime,
+            durationSeconds = max(1, durationSec.toInt()),
+            type = type,
+            intensityDecibels = maxIntensity
+        )
+
+        loudBufferCount = 0
+        maxIntensity = 0
+        sumZcr = 0L
+        maxZcr = 0
+        currentBuffer.clear()
+
+        // Only return events > some min threshold to avoid noise
+        return if (event.intensityDecibels > 50) Pair(event, outBuffer) else null
     }
 
     private fun calculateRMS(buffer: ShortArray): Double {
