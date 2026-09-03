@@ -297,7 +297,10 @@ fun SleepNavGraph(
                 SettingsScreen(
                     onNavigateToWindDownToolkit = { navController.navigate("wind_down") },
                     onNavigateToDataExport = { navController.navigate("data_export") },
-                    onNavigateToUpdates = { navController.navigate("updates") }
+                    onNavigateToUpdates = { navController.navigate("updates") },
+                    onNavigateToBreathing = { navController.navigate("breathing_exercise") },
+                    onNavigateToCognitiveWindDown = { navController.navigate("cognitive_winddown") },
+                    onNavigateToADHDCooldown = { navController.navigate("adhd_cooldown") }
                 )
             }
 

@@ -60,7 +60,10 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
     onNavigateToWindDownToolkit: () -> Unit = {},
     onNavigateToDataExport: () -> Unit = {},
-    onNavigateToUpdates: () -> Unit = {}
+    onNavigateToUpdates: () -> Unit = {},
+    onNavigateToBreathing: () -> Unit = {},
+    onNavigateToCognitiveWindDown: () -> Unit = {},
+    onNavigateToADHDCooldown: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
@@ -885,34 +888,27 @@ fun SettingsScreen(
 
         
 
-        // Wind-Down Toolkit now lives on its own screen - these are things the user *does*, not
-        // preferences to configure, so a single pointer row keeps the settings list from reading
-        // as promo spam. The toolkit screen carries the three exercises.
+        // Wind-Down Toolkit
         SettingSection(title = "Wind-Down Toolkit") {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.medium)
-                    .clickable(onClick = onNavigateToWindDownToolkit)
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Button(
+                onClick = onNavigateToBreathing,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Breathing, cognitive dump & ADHD cooldown",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Guided exercises to wind down for sleep",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("Breathing Exercise (4-7-8)")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onNavigateToCognitiveWindDown,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cognitive Dump")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onNavigateToADHDCooldown,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("ADHD Cooldown")
             }
         }
 
