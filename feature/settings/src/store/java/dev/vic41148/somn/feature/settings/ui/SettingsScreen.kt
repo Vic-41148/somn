@@ -2,58 +2,85 @@ package dev.vic41148.somn.feature.settings.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import zxingcpp.BarcodeReader
+import dev.vic41148.somn.core.domain.haptic.HapticsIntensity
 import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.HemisphereOverride
 import dev.vic41148.somn.core.domain.model.TrackingMode
+import dev.vic41148.somn.core.ui.haptic.LocalHaptics
 import dev.vic41148.somn.feature.settings.SettingsViewModel
 import java.util.concurrent.Executors
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
-    onNavigateToBreathing: () -> Unit = {},
-    onNavigateToCognitiveWindDown: () -> Unit = {},
-    onNavigateToADHDCooldown: () -> Unit = {}
+    onNavigateToWindDownToolkit: () -> Unit = {},
+    onNavigateToDataExport: () -> Unit = {},
+    onNavigateToUpdates: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
     val exportStatus by viewModel.exportStatus.collectAsState()
     val importStatus by viewModel.importStatus.collectAsState()
     val clipDeletionStatus by viewModel.clipDeletionStatus.collectAsState()
+    val haptics = LocalHaptics.current
+
+    // The raw-vibrator path bypasses the system's automatic touch-feedback gating, so when the
+    // OS-level toggle is off the user should know why some effects feel muted rather than wonder.
+    val systemTouchFeedbackEnabled = remember {
+        Settings.System.getInt(
+            context.contentResolver,
+            Settings.System.HAPTIC_FEEDBACK_ENABLED,
+            1
+        ) != 0
+    }
 
     // Async operation results (export/import/NAS test) used to be plain Text sitting in a long
-    // scrolling layout — easy to miss, never dismissed itself, no action. Snackbars instead.
+    // scrolling layout - easy to miss, never dismissed itself, no action. Snackbars instead.
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(exportStatus) {
         exportStatus?.let { snackbarHostState.showSnackbar(it) }
@@ -72,6 +99,10 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        // This screen sits inside the app-level Scaffold's NavHost, which already consumed the
+        // system-bar insets (innerPadding + imePadding). Re-applying them here double-pads the top
+        // (~90px) and pushes the whole screen down; see Notes in SleepNavGraph.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { scaffoldPadding ->
     Column(
@@ -79,7 +110,8 @@ fun SettingsScreen(
             .fillMaxSize()
             .padding(scaffoldPadding)
             .verticalScroll(rememberScrollState())
-            .padding(24.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
             text = "Settings",
@@ -87,102 +119,140 @@ fun SettingsScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
         // Sleep Target
         SettingSection(title = "Sleep Target") {
-            Text(
-                text = "${String.format("%.1f", settings.targetSleepHours)} hours",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Slider(
+            SliderWithValueLabel(
                 value = settings.targetSleepHours,
                 onValueChange = { viewModel.updateSleepTarget(it) },
                 valueRange = 5f..12f,
                 steps = 13,
+                valueLabel = String.format("%.1f hours", settings.targetSleepHours),
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        // Haptics - app-wide feedback master switch with intensity, a live preview so the user can
+        // feel the current combo without triggering a real event, and a note when the system-level
+        // toggle would mute some effects. Near the top because it affects the whole app, not a
+        // single feature.
+        SettingSection(title = "Haptics") {
+            SettingToggle(
+                title = "Haptic Feedback",
+                checked = settings.hapticsEnabled,
+                onCheckedChange = { viewModel.updateHapticsEnabled(it) }
+            )
+            Text(
+                text = "Feel a tap for toggles, confirmations, and completed background tasks.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!systemTouchFeedbackEnabled && settings.hapticsEnabled) {
+                Text(
+                    text = "System touch feedback is off - some effects may be muted. " +
+                        "Fix in phone settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            if (settings.hapticsEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Intensity",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                val intensityOptions = HapticsIntensity.entries
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    intensityOptions.forEachIndexed { index, intensity ->
+                        SegmentedButton(
+                            selected = settings.hapticsIntensity == intensity,
+                            onClick = {
+                                haptics.tick()
+                                viewModel.updateHapticsIntensity(intensity)
+                            },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = intensityOptions.size
+                            ),
+                            label = { Text(intensity.label) }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { haptics.preview() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Tap to feel it")
+                }
+            }
+        }
+
+        // Store-channel builds (F-Droid / IzzyOnDroid / Accrescent) ship no self-updater, so the
+        // Updates section is absent here. The onNavigateToUpdates parameter stays in the signature
+        // so the shared app navigation graph compiles against both flavor variants.
 
         // Appearance (THEME-01)
         SettingSection(title = "Appearance") {
             SettingToggle(
                 title = "Match My Wallpaper",
-                subtitle = "Android 12+ only. Colors follow your wallpaper instead of Somn's hand-built theme.",
                 checked = settings.useDynamicColor,
                 onCheckedChange = { viewModel.updateUseDynamicColor(it) }
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
         // Wake-Up Verification (WAKE-01/02)
         SettingSection(title = "Wake-Up Verification") {
             SettingToggle(
                 title = "Confirm You're Awake",
-                subtitle = "After dismissing, re-rings via CAPTCHA if you don't confirm in time",
                 checked = settings.wakeVerificationEnabled,
                 onCheckedChange = { viewModel.updateWakeVerificationEnabled(it) }
             )
             if (settings.wakeVerificationEnabled) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "${settings.wakeVerificationWindowSeconds}s to confirm",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Slider(
+                SliderWithValueLabel(
                     value = settings.wakeVerificationWindowSeconds.toFloat(),
                     onValueChange = { viewModel.updateWakeVerificationWindowSeconds(it.toInt()) },
                     valueRange = 5f..60f,
                     steps = 10,
+                    valueLabel = "${settings.wakeVerificationWindowSeconds}s to confirm",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
         // Anti-Snore Nudge
         SettingSection(title = "Anti-Snore Nudge") {
             SettingToggle(
                 title = "Vibrate on Snoring",
-                subtitle = "Gently vibrates the phone when snoring is detected (at most once every 3 minutes)",
                 checked = settings.snoreNudgeEnabled,
                 onCheckedChange = { viewModel.updateSnoreNudgeEnabled(it) }
             )
         }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
         // Sleep-talk recording retention. These clips are the most sensitive thing the app
         // stores, so the retention window is surfaced here rather than buried in a backup screen.
         SettingSection(title = "Sleep-Talk Recordings") {
             val retentionDays = settings.clipRetentionDays
             Text(
-                text = if (retentionDays <= 0) {
-                    "Kept until you delete them"
-                } else {
-                    "Deleted automatically after $retentionDays day${if (retentionDays == 1) "" else "s"}"
-                },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
                 text = "Somn saves a short audio clip when it detects you talking in your sleep. " +
                     "Set this to \"keep forever\" only if you want them to stay on the device indefinitely.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Slider(
+            Spacer(modifier = Modifier.height(8.dp))
+            SliderWithValueLabel(
                 value = retentionDays.toFloat(),
                 onValueChange = { viewModel.updateClipRetentionDays(it.toInt()) },
                 // 0 is the "keep forever" sentinel, so the slider's floor doubles as the opt-out.
                 valueRange = 0f..30f,
                 steps = 29,
+                valueLabel = if (retentionDays <= 0) "Kept until you delete them" else
+                    "Deleted after $retentionDays day${if (retentionDays == 1) "" else "s"}",
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -201,7 +271,7 @@ fun SettingsScreen(
                     text = {
                         Text(
                             "Every sleep-talk audio clip on this device will be permanently " +
-                                "deleted. Your sleep history and the events themselves are kept — " +
+                                "deleted. Your sleep history and the events themselves are kept - " +
                                 "only the audio goes. This cannot be undone."
                         )
                     },
@@ -222,45 +292,38 @@ fun SettingsScreen(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-        // Sensor Mode
+        // Tracking (sensor selection + standby control)
         SettingSection(title = "Sensor Mode") {
-            Text(
-                text = settings.sensorMode,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Accelerometer — phone on bed, low battery usage",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-        // Tracking Mode selector
-        SettingSection(title = "Movement Tracking Mode") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Accelerometer button
                 Button(
-                    onClick = { viewModel.updateTrackingMode(TrackingMode.ACCELEROMETER) },
+                    onClick = {
+                        haptics.tick()
+                        viewModel.updateTrackingMode(TrackingMode.ACCELEROMETER)
+                    },
                     modifier = Modifier.weight(1f),
                     colors = if (settings.trackingMode == TrackingMode.ACCELEROMETER)
                         ButtonDefaults.buttonColors()
                     else
                         ButtonDefaults.outlinedButtonColors()
                 ) {
-                    Text("Accelerometer", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "Accelerometer",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 // Sonar button
                 Button(
-                    onClick = { viewModel.updateTrackingMode(TrackingMode.SONAR) },
+                    onClick = {
+                        haptics.tick()
+                        viewModel.updateTrackingMode(TrackingMode.SONAR)
+                    },
                     modifier = Modifier.weight(1f),
                     colors = if (settings.trackingMode == TrackingMode.SONAR)
                         ButtonDefaults.buttonColors(
@@ -269,41 +332,44 @@ fun SettingsScreen(
                     else
                         ButtonDefaults.outlinedButtonColors()
                 ) {
-                    Text("Sonar (Beta)", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "Sonar (Beta)",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
             if (settings.trackingMode == TrackingMode.ACCELEROMETER) {
                 Text(
-                    text = "Accelerometer — phone on bed, low battery usage.",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "Accelerometer - phone on bed, low battery usage.",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 Text(
-                    text = "Sonar (Beta) — contactless, phone on nightstand. "
+                    text = "Sonar (Beta) - contactless, phone on nightstand. "
                         + "Uses speaker + mic continuously. Significantly higher battery drain.",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
                 Text(
                     text = "Pets and partners moving may affect accuracy. "
                         + "Test on physical device only.",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(4.dp))
+            SettingToggle(
+                title = "Auto Do Not Disturb",
+                checked = settings.dndEnabled,
+                onCheckedChange = { viewModel.updateDndEnabled(it) }
+            )
         }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-        SettingToggle(
-            title = "Auto Do Not Disturb",
-            subtitle = "Enable DND when tracking starts, disable on alarm",
-            checked = settings.dndEnabled,
-            onCheckedChange = { viewModel.updateDndEnabled(it) }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
         // Battery Threshold
         SettingSection(title = "Battery Threshold") {
@@ -317,16 +383,28 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Slider(
-                value = settings.batteryThreshold.toFloat(),
-                onValueChange = { viewModel.updateBatteryThreshold(it.toInt()) },
-                valueRange = 5f..30f,
-                steps = 4,
+            Spacer(modifier = Modifier.height(8.dp))
+            val batteryOptions = listOf(5, 10, 15, 20, 25, 30)
+            SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                batteryOptions.forEachIndexed { index, value ->
+                    SegmentedButton(
+                        selected = settings.batteryThreshold == value,
+                        onClick = {
+                            haptics.tick()
+                            viewModel.updateBatteryThreshold(value)
+                        },
+                        shape = if (index == 0) SegmentedButtonDefaults.itemShape(index = 0, count = batteryOptions.size)
+                        else if (index == batteryOptions.size - 1) SegmentedButtonDefaults.itemShape(index = batteryOptions.size - 1, count = batteryOptions.size)
+                        else SegmentedButtonDefaults.itemShape(index = index, count = batteryOptions.size),
+                        label = { Text("$value") }
+                    )
+                }
+            }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
         // Oversleep Threshold (SESS-03)
         SettingSection(title = "Oversleep Threshold") {
@@ -342,18 +420,23 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Slider(
+            Spacer(modifier = Modifier.height(8.dp))
+            // Small slider with the same floating-value style as "Sleep Target", but snapped to
+            // 30-minute steps (30m / 1h / 1h30 / 2h / 2h30 / 3h) so it stays compact. The value
+            // shown on the thumb repeats the header above, keeping units obvious.
+            SliderWithValueLabel(
                 value = settings.oversleepThresholdMinutes.toFloat(),
-                onValueChange = { viewModel.updateOversleepThresholdMinutes(it.toInt()) },
+                onValueChange = { viewModel.updateOversleepThresholdMinutes(it.roundToInt()) },
                 valueRange = 30f..180f,
                 steps = 4,
+                valueLabel = oversleepLabel(settings.oversleepThresholdMinutes),
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
-        // Seasonal Analysis — hemisphere override for the seasons used in circadian insights.
+        // Seasonal Analysis - hemisphere override for the seasons used in circadian insights.
         // The default AUTO uses the device-timezone heuristic; travelers near the equator or on
         // the wrong side of a timezone boundary can pin the correct hemisphere here.
         SettingSection(title = "Seasonal Analysis") {
@@ -368,20 +451,26 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { viewModel.updateHemisphereOverride(override) }
+                        .clickable {
+                            haptics.tick()
+                            viewModel.updateHemisphereOverride(override)
+                        }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
                         selected = settings.hemisphereOverride == override,
-                        onClick = { viewModel.updateHemisphereOverride(override) }
+                        onClick = {
+                            haptics.tick()
+                            viewModel.updateHemisphereOverride(override)
+                        }
                     )
                     Text(text = override.displayName, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
         // Alarm CAPTCHA
         SettingSection(title = "Alarm CAPTCHA") {
@@ -412,15 +501,24 @@ fun SettingsScreen(
             )
 
             tasks.forEach { (id, label) ->
+                val selected = settings.selectedCaptchaTaskId == id
+                val rowColor by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer
+                    else Color.Transparent,
+                    animationSpec = tween(180),
+                    label = "captchaRowColor"
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(rowColor)
                         .clickable { viewModel.updateCaptchaTask(id) }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
-                        selected = settings.selectedCaptchaTaskId == id,
+                        selected = selected,
                         onClick = { viewModel.updateCaptchaTask(id) }
                     )
                     Text(text = label, style = MaterialTheme.typography.bodyMedium)
@@ -463,260 +561,45 @@ fun SettingsScreen(
             }
         }
         
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
+        // Data export / backup / import is the one section that outgrew a card - pushing ~6 URLs,
+        // file pickers and destructive actions into a single scrolling group. Moved to its own
+        // screen; this row is just the pointer.
         SettingSection(title = "Data Export & Backup") {
-            val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-                if (uri != null) {
-                    val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                            android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                    context.contentResolver.takePersistableUriPermission(uri, flags)
-                    viewModel.updateBackupUri(uri.toString())
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable(onClick = onNavigateToDataExport)
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Backup, restore, export & import",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Backups, recovery key, CSV/JSON export, Sleep as Android import",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            }
-
-            Text(
-                text = "Backup Directory",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Button(
-                onClick = { launcher.launch(null) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors()
-            ) {
-                Icon(Icons.Default.Download, contentDescription = null)
-                Text(if (settings.backupUri != null) "  Change Directory" else "  Select Backup Directory")
-            }
-            if (settings.backupUri != null) {
-                Text(
-                    text = "Auto-backup enabled on alarm dismiss",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Button(
-                    onClick = { viewModel.performManualBackup() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Backup Now")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Recovery Key",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = if (settings.backupPassphraseSet) {
-                    "Backups are encrypted with your recovery key"
-                } else {
-                    "No recovery key set. Backups stay on this device only — off-site sync is " +
-                        "disabled, because an upload this phone can't outlive isn't a backup."
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = if (settings.backupPassphraseSet) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
-            )
-
-            var confirmReplaceKey by remember { mutableStateOf(false) }
-            Button(
-                onClick = {
-                    // Replacing a key orphans every backup written under the old one, so make the
-                    // destructive case an explicit second step.
-                    if (settings.backupPassphraseSet) confirmReplaceKey = true
-                    else viewModel.generateRecoveryKey()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors()
-            ) {
-                Text(if (settings.backupPassphraseSet) "Replace Recovery Key" else "Generate Recovery Key")
-            }
-
-            if (confirmReplaceKey) {
-                AlertDialog(
-                    onDismissRequest = { confirmReplaceKey = false },
-                    title = { Text("Replace recovery key?") },
-                    text = {
-                        Text(
-                            "Backups already written can only be opened with the current key. " +
-                                "Keep it somewhere safe, or you'll lose access to them."
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            confirmReplaceKey = false
-                            viewModel.generateRecoveryKey()
-                        }) { Text("Replace") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { confirmReplaceKey = false }) { Text("Cancel") }
-                    }
-                )
-            }
-
-            val newRecoveryKey by viewModel.newRecoveryKey.collectAsState()
-            newRecoveryKey?.let { key ->
-                AlertDialog(
-                    onDismissRequest = { viewModel.dismissRecoveryKey() },
-                    title = { Text("Save your recovery key") },
-                    text = {
-                        Column {
-                            Text(
-                                "This is shown once. Without it, an encrypted backup cannot be " +
-                                    "opened — not by you, and not by us."
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SelectionContainer {
-                                Text(
-                                    text = key,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { viewModel.dismissRecoveryKey() }) {
-                            Text("I've saved it")
-                        }
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            var pendingRestoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
-            val restoreLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.OpenDocument()
-            ) { uri -> if (uri != null) pendingRestoreUri = uri }
-
-            Text(
-                text = "Restore",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Button(
-                onClick = { restoreLauncher.launch(arrayOf("*/*")) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors()
-            ) {
-                Text("Restore From Backup File")
-            }
-
-            pendingRestoreUri?.let { uri ->
-                var passphrase by remember(uri) { mutableStateOf("") }
-                AlertDialog(
-                    onDismissRequest = { pendingRestoreUri = null },
-                    title = { Text("Restore database?") },
-                    text = {
-                        Column {
-                            Text(
-                                "This replaces all sleep data on this device. Enter your recovery " +
-                                    "key if the backup is encrypted; leave it blank if not."
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            OutlinedTextField(
-                                value = passphrase,
-                                onValueChange = { passphrase = it },
-                                label = { Text("Recovery key") },
-                                singleLine = true,
-                                visualTransformation = PasswordVisualTransformation()
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            viewModel.restoreDatabase(uri, passphrase.ifBlank { null })
-                            pendingRestoreUri = null
-                        }) { Text("Restore") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { pendingRestoreUri = null }) { Text("Cancel") }
-                    }
-                )
-            }
-
-            val restartRequired by viewModel.restartRequired.collectAsState()
-            if (restartRequired) {
-                Text(
-                    text = "Restore complete — fully close and reopen Somn to load the restored data.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Button(
-                onClick = { viewModel.exportData(context) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Download, contentDescription = null)
-                Text("  Export All Data (CSV)")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { viewModel.exportAllDataZip(context) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors()
-            ) {
-                Icon(Icons.Default.Download, contentDescription = null)
-                Text("  Export All Data (JSON + CSV, .zip)")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Import from Sleep as Android",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = "Best-effort — Sleep as Android's export format isn't officially documented, " +
-                    "so cycle/biological context, sleep stages, and audio events can't carry over.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-
-            val importLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.GetContent()
-            ) { uri ->
-                if (uri != null) {
-                    viewModel.importSleepAsAndroidFile(context, uri)
-                }
-            }
-            Button(
-                onClick = { importLauncher.launch("text/*") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors()
-            ) {
-                Text("Select sleep-export.csv")
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
         // NAS / Self-Hosted Backup
         SettingSection(title = "NAS Sync (Self-Hosted)") {
             SettingToggle(
                 title = "Enable NAS Sync",
-                subtitle = "Encrypt & upload clips + DB to your NAS",
                 checked = settings.nasEnabled,
                 onCheckedChange = { viewModel.updateNasEnabled(it) }
             )
@@ -724,7 +607,7 @@ fun SettingsScreen(
             if (settings.nasEnabled) {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Protocol — WebDAV is the only transport NasProtocol defines (REL-05). Kept as a
+                // Protocol - WebDAV is the only transport NasProtocol defines (REL-05). Kept as a
                 // labelled read-only row rather than a one-option picker so adding a second
                 // transport later is a UI change, not a re-layout.
                 Text(
@@ -755,17 +638,18 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Port + Path row
+                // Port + Path row. The port field keeps a local string state so clearing it to type a new
+                // value doesn't snap it back to the default via the repository flow's emission.
+                var nasPortInput by rememberSaveable { mutableStateOf(settings.nasPort.toString()) }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
-                        value = settings.nasPort.toString(),
+                        value = nasPortInput,
                         onValueChange = {
-                            viewModel.updateNasPort(
-                                it.toIntOrNull() ?: if (settings.nasUseHttps) 443 else 80
-                            )
+                            nasPortInput = it
+                            it.toIntOrNull()?.let { viewModel.updateNasPort(it) }
                         },
                         label = { Text("Port") },
                         singleLine = true,
@@ -785,9 +669,6 @@ fun SettingsScreen(
                 // Transport security is an explicit switch, not something inferred from the port.
                 SettingToggle(
                     title = "Use HTTPS",
-                    subtitle = "Encrypts the connection to your NAS. Without it your NAS username " +
-                        "and password travel over the network in the clear — and Android blocks " +
-                        "unencrypted connections anyway.",
                     checked = settings.nasUseHttps,
                     onCheckedChange = { viewModel.updateNasUseHttps(it) }
                 )
@@ -813,7 +694,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Password — write-only: encrypted via Android Keystore, never read back (REL-06)
+                // Password - write-only: encrypted via Android Keystore, never read back (REL-06)
                 var nasPasswordInput by remember { mutableStateOf("") }
                 OutlinedTextField(
                     value = nasPasswordInput,
@@ -859,7 +740,7 @@ fun SettingsScreen(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
         // Health Connect (HEALTH-01..04)
         SettingSection(title = "Health Connect") {
@@ -872,7 +753,6 @@ fun SettingsScreen(
 
             SettingToggle(
                 title = "Sync with Health Connect",
-                subtitle = "Read HR/HRV/SpO2/skin temp from wearables, write completed sessions back",
                 checked = settings.healthConnectEnabled,
                 onCheckedChange = { viewModel.updateHealthConnectEnabled(it) }
             )
@@ -902,15 +782,19 @@ fun SettingsScreen(
                 }
 
                 // HEALTH-04: writeSleepSession() silently skips a session whenever another source
-                // already wrote overlapping sleep data (dedup), and that skip is permanent — the
+                // already wrote overlapping sleep data (dedup), and that skip is permanent - the
                 // session's healthConnectRecordId stays null forever, so it'd otherwise never be
                 // surfaced anywhere. This count also includes sessions simply not synced yet, so
                 // it's worded as "haven't reached" rather than claiming they were all dedup-skipped.
                 if (settings.healthConnectStatus == HealthConnectStatus.AUTHORIZED && settings.healthConnectUnsyncedCount > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "${settings.healthConnectUnsyncedCount} session(s) haven't reached Health Connect yet — " +
-                            "either not synced, or another app already recorded overlapping sleep for that night.",
+                        text = if (settings.healthConnectUnsyncedCount == 1)
+                            "1 session hasn't reached Health Connect yet - " +
+                                "either not synced, or another app already recorded overlapping sleep for that night."
+                        else
+                            "${settings.healthConnectUnsyncedCount} sessions haven't reached Health Connect yet - " +
+                                "either not synced, or another app already recorded overlapping sleep for that night.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -918,49 +802,129 @@ fun SettingsScreen(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
         // Experimental: YAMNet audio classification (Task 14, AUDIO-01)
         SettingSection(title = "Experimental") {
+            val yamnetState by viewModel.yamnetModelState.collectAsState()
+
+            // Toggling ON is consent-gated: with the model already verified on disk it turns on
+            // immediately, otherwise the download consent dialog is raised first.
             SettingToggle(
                 title = "ML Audio Classification (YAMNet)",
-                subtitle = "Use an on-device ML model instead of the heuristic to detect snoring/coughing/talking. Not yet validated for accuracy — takes effect next tracking session.",
                 checked = settings.yamnetClassificationEnabled,
-                onCheckedChange = { viewModel.updateYamnetClassificationEnabled(it) }
+                onCheckedChange = { viewModel.onYamnetToggle(it) }
             )
+
+            when (val state = yamnetState) {
+                is SettingsViewModel.YamnetModelState.Idle -> {
+                    // Enabling the toggle above moves us to ConfirmingDownload. This hint covers
+                    // the leftover setting on a fresh install whose model was never downloaded.
+                    if (settings.yamnetClassificationEnabled) {
+                        Text(
+                            text = "Model not downloaded yet - switch it off and on to download.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                is SettingsViewModel.YamnetModelState.ConfirmingDownload -> {
+                    AlertDialog(
+                        onDismissRequest = { viewModel.dismissYamnetModelDialog() },
+                        title = { Text("Download ML model?") },
+                        text = {
+                            Text(
+                                "This downloads the ~4 MB YAMNet audio model once over the " +
+                                    "internet (HTTPS, checksum-verified). It then runs entirely " +
+                                    "on-device - audio never leaves your phone."
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { viewModel.confirmYamnetDownload() }) {
+                                Text("Download")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { viewModel.dismissYamnetModelDialog() }) {
+                                Text("Not now")
+                            }
+                        }
+                    )
+                }
+                is SettingsViewModel.YamnetModelState.Downloading -> {
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        LinearProgressIndicator(
+                            progress = { state.progress ?: 0f },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Downloading model...",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                is SettingsViewModel.YamnetModelState.Error -> {
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        Text(
+                            text = "Model download failed: ${state.message}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        TextButton(onClick = { viewModel.confirmYamnetDownload() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                is SettingsViewModel.YamnetModelState.Ready -> {
+                    // Model on disk - toggle alone is the whole surface.
+                }
+            }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        
 
-        // Wind-Down Toolkit
+        // Wind-Down Toolkit now lives on its own screen - these are things the user *does*, not
+        // preferences to configure, so a single pointer row keeps the settings list from reading
+        // as promo spam. The toolkit screen carries the three exercises.
         SettingSection(title = "Wind-Down Toolkit") {
-            Button(
-                onClick = onNavigateToBreathing,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable(onClick = onNavigateToWindDownToolkit)
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Breathing Exercise (4-7-8)")
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onNavigateToCognitiveWindDown,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Cognitive Dump")
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onNavigateToADHDCooldown,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("ADHD Cooldown")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Breathing, cognitive dump & ADHD cooldown",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Guided exercises to wind down for sleep",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // About
+        // About - version comes from the installed package (PackageInfo) so it always matches the
+        // channel actually installed (0.1.2 vs 0.1.2-store and future releases), never a stale
+        // hardcoded constant.
+        val appVersion = remember(context) {
+            runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+                .getOrNull() ?: ""
+        }
         Text(
-            text = "Somn v1.0.0",
+            text = "Somn v$appVersion",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1080,43 +1044,149 @@ internal fun SettingSection(
             color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(8.dp))
-        content()
+        OutlinedCard {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/**
+ * An M3 [Slider] with a live value callout floating above the thumb - replaces the old "label
+ * line above the slider" pattern, which read as two separate controls. Slot above the track is a
+ * fixed-height strip; the callout centers itself on the thumb via the same geometry the slider
+ * uses (thumb travels between one thumb-radius inset and width-inset).
+ */
+@Composable
+private fun SliderWithValueLabel(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    valueLabel: String,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val thumbRadius = with(density) { 10.dp.toPx() }
+    val fraction = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start))
+        .coerceIn(0f, 1f)
+
+    var stripWidthPx by remember { mutableIntStateOf(0) }
+    var labelWidthPx by remember { mutableIntStateOf(0) }
+    var labelHeightPx by remember { mutableIntStateOf(0) }
+
+    val haptics = LocalHaptics.current
+    var lastHapticTickValue by remember { mutableFloatStateOf(value) }
+    val stepSize = (valueRange.endInclusive - valueRange.start) / (steps + 1)
+
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .onSizeChanged { stripWidthPx = it.width }
+        ) {
+            Text(
+                text = valueLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .onSizeChanged {
+                        labelWidthPx = it.width
+                        labelHeightPx = it.height
+                    }
+                    .offset {
+                        val travelPx = stripWidthPx - 2f * thumbRadius
+                        val x = (thumbRadius + fraction * travelPx - labelWidthPx / 2f)
+                            .coerceIn(0f, (stripWidthPx - labelWidthPx).coerceAtLeast(0).toFloat())
+                        IntOffset(x.roundToInt(), -labelHeightPx / 2)
+                    }
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = { newValue ->
+                // Physical-image haptics: one subtle tick each time the drag crosses a step stop,
+                // so scrubbing between discrete options feels stepped, not continuous.
+                if (abs(newValue - lastHapticTickValue) >= stepSize) {
+                    lastHapticTickValue = newValue
+                    haptics.tick()
+                }
+                onValueChange(newValue)
+            },
+            valueRange = valueRange,
+            steps = steps,
+            modifier = Modifier.fillMaxWidth(),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
     }
 }
 
 @Composable
 private fun SettingToggle(
     title: String,
-    subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val haptics = LocalHaptics.current
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            // Only the Switch itself was clickable - the label row did nothing, so a tap aimed at
+            // the (wide) title silently missed. Make the whole row a toggle with a Switch role so
+            // TalkBack reads the switch state and both access paths toggle the same setting.
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = {
+                    haptics.tick()
+                    onCheckedChange(it)
+                }
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        // HapticFeedbackType only has LongPress/TextHandleMove in this Compose UI version
-        // (1.7.6, confirmed against the actual resolved jar) — no dedicated Toggle constant yet.
-        val haptics = LocalHapticFeedback.current
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+        // Visual-only switch - the Row's toggleable owns the interaction so row and switch share
+        // one click target instead of fighting for the same tap.
         Switch(
             checked = checked,
-            onCheckedChange = {
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                onCheckedChange(it)
-            }
+            onCheckedChange = null,
+            modifier = Modifier.clearAndSetSemantics {}
         )
     }
+}
+
+private val HapticsIntensity.label: String
+    get() = when (this) {
+        HapticsIntensity.LIGHT -> "Light"
+        HapticsIntensity.STANDARD -> "Standard"
+        HapticsIntensity.STRONG -> "Strong"
+    }
+
+// Oversleep pill labels: compact enough to stay single-line inside a six-way split on a 411dp
+// screen, but with units so the row reads like the battery one yet stays self-explanatory.
+// "1h30" = 1h 30m (minutes are the unit across the whole section, per the header above it).
+private fun oversleepLabel(minutes: Int): String = when (minutes) {
+    30 -> "30m"
+    60 -> "1h"
+    90 -> "1h30"
+    120 -> "2h"
+    150 -> "2h30"
+    180 -> "3h"
+    else -> "${minutes}m"
 }

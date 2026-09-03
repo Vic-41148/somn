@@ -181,6 +181,8 @@ class SettingsViewModel @Inject constructor(
         val selectedCaptchaTaskId: String = "math",
         val qrCodeValue: String? = null,
         val backupUri: String? = null,
+        /** Transient error shown when the user picks a backup directory that only grants temporary access. */
+        val backupDirectoryError: String? = null,
         /**
          * Whether a recovery passphrase exists. Without one, backups can only be written in the
          * clear locally and off-device sync is skipped entirely — an upload encrypted with the
@@ -306,6 +308,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.updateBackupUri(uri)
         }
+    }
+
+    fun updateBackupUriError(message: String) {
+        _settings.value = _settings.value.copy(backupDirectoryError = message)
     }
 
     /**

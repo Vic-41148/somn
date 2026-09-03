@@ -74,6 +74,8 @@ class SomnPreferencesRepository @Inject constructor(
          * pruning entirely — an explicit opt-in, because the default has to be one that forgets.
          */
         val CLIP_RETENTION_DAYS = intPreferencesKey("clip_retention_days")
+        val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
+        val HAPTICS_INTENSITY = stringPreferencesKey("haptics_intensity")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -277,6 +279,31 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateClipRetentionDays(days: Int) {
         context.dataStore.edit { it[PreferencesKeys.CLIP_RETENTION_DAYS] = days }
+    }
+
+    val hapticsEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.HAPTICS_ENABLED] ?: true }
+
+    suspend fun updateHapticsEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.HAPTICS_ENABLED] = enabled }
+    }
+
+    val hapticsIntensity: Flow<dev.vic41148.somn.core.domain.haptic.HapticsIntensity> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+            .map { prefs ->
+                try {
+                    dev.vic41148.somn.core.domain.haptic.HapticsIntensity.valueOf(
+                        prefs[PreferencesKeys.HAPTICS_INTENSITY] ?: "STANDARD"
+                    )
+                } catch (e: Exception) {
+                    dev.vic41148.somn.core.domain.haptic.HapticsIntensity.STANDARD
+                }
+            }
+
+    suspend fun updateHapticsIntensity(intensity: dev.vic41148.somn.core.domain.haptic.HapticsIntensity) {
+        context.dataStore.edit { it[PreferencesKeys.HAPTICS_INTENSITY] = intensity.name }
     }
 
     // ── NAS Preferences ──────────────────────────────────────────────

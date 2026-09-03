@@ -15,6 +15,7 @@ import dev.vic41148.somn.core.data.database.dao.TagDao
 import dev.vic41148.somn.core.data.database.dao.UserProfileDao
 import dev.vic41148.somn.core.data.database.dao.AudioEventDao
 import dev.vic41148.somn.core.data.database.dao.ExternalVitalsDao
+import dev.vic41148.somn.core.data.database.dao.AlarmEventDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -63,6 +64,9 @@ object DataModule {
 
     @Provides
     fun provideExternalVitalsDao(db: SleepDatabase): ExternalVitalsDao = db.externalVitalsDao()
+
+    @Provides
+    fun provideAlarmEventDao(db: SleepDatabase): AlarmEventDao = db.alarmEventDao()
 
     @Provides
     @Singleton

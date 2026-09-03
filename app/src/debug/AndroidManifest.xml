@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- DEBUG BUILD ONLY - merged by AGP at build time for debug variants; never ships in release.
+             Triggered via adb broadcast from seed.sh. -->
+        <receiver
+            android:name=".debug.DebugSeedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="dev.vic41148.somn.DEBUG_SEED_DATA" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

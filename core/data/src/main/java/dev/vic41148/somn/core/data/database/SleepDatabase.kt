@@ -19,6 +19,8 @@ import dev.vic41148.somn.core.data.database.entity.AudioEventEntity
 import dev.vic41148.somn.core.data.database.dao.AudioEventDao
 import dev.vic41148.somn.core.data.database.entity.ExternalVitalsEntity
 import dev.vic41148.somn.core.data.database.dao.ExternalVitalsDao
+import dev.vic41148.somn.core.data.database.entity.AlarmEventEntity
+import dev.vic41148.somn.core.data.database.dao.AlarmEventDao
 
 @Database(
     entities = [
@@ -30,9 +32,10 @@ import dev.vic41148.somn.core.data.database.dao.ExternalVitalsDao
         UserProfileEntity::class,
         HabitLogEntity::class,
         AudioEventEntity::class,
-        ExternalVitalsEntity::class
+        ExternalVitalsEntity::class,
+        AlarmEventEntity::class
     ],
-    version = 13,  // HEALTH-01/02/04: external_vitals table + healthConnectRecordId on sleep_sessions
+    version = 14,  // alarm_events table
     exportSchema = true
 )
 abstract class SleepDatabase : RoomDatabase() {
@@ -44,6 +47,7 @@ abstract class SleepDatabase : RoomDatabase() {
     abstract fun habitLogDao(): HabitLogDao
     abstract fun audioEventDao(): AudioEventDao
     abstract fun externalVitalsDao(): ExternalVitalsDao
+    abstract fun alarmEventDao(): AlarmEventDao
 
     companion object {
         const val DATABASE_NAME = "sleep_tracker.db"
