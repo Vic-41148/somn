@@ -32,11 +32,11 @@ jobs:
       # gradle.properties pins org.gradle.java.home to a local Arch path so the maintainer's
       # machine picks the right JDK. That path does not exist on a runner, so every Gradle
       # invocation here overrides it with the JDK actions/setup-java just installed.
-      - name: Assemble debug APK
-        run: ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+      - name: Assemble debug APK (standalone channel)
+        run: ./gradlew assembleStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+        run: ./gradlew testStandaloneDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
       # A transitive constraint (androidx.emoji2 -> foundation 1.9.0) once forced the app runtime
       # to a newer compose foundation than modules compiled against; FlowRow's changed signature
@@ -49,7 +49,7 @@ jobs:
       # README.md (and CONTRIBUTING.md) advertise a unit-test count that drifts the moment
       # anyone adds or removes a test, and nothing complains until a user notices the number is
       # wrong — the same doc-accuracy problem the emoji guardrail solves. Sum the tests="..."
-      # attributes from the testDebugUnitTest results this job just produced (a fresh checkout,
+      # attributes from the testStandaloneDebugUnitTest results this job just produced (a fresh checkout,
       # so no stale XMLs) and fail if either doc's number no longer matches the suite — or if
       # the count was removed from a doc altogether.
       - name: README test count matches the suite
@@ -58,7 +58,7 @@ jobs:
           # || true: with no XMLs on disk the grep chain exits 1 and, under the default
           # -o pipefail, the assignment would abort the step before any ::error:: is printed.
           # The substitution still captures awk's "0", so TOTAL degrades to a clear mismatch.
-          TOTAL=$(find . -path '*/build/test-results/testDebugUnitTest/TEST-*.xml' -print0 \
+          TOTAL=$(find . -path '*/build/test-results/testStandaloneDebugUnitTest/TEST-*.xml' -print0 \
             | xargs -0 grep -ho 'tests="[0-9]*"' 2>/dev/null \
             | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}') || true
           TOTAL=${TOTAL:-0}
@@ -80,7 +80,7 @@ jobs:
           exit "$FAIL"
 
       - name: Android Lint
-        run: ./gradlew lintDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+        run: ./gradlew lintStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
       - name: Upload test results
         if: always()
@@ -120,7 +120,7 @@ jobs:
       # them without a single line of our own code changing.
       - name: No Google Play Services on the release classpath
         run: |
-          ./gradlew :app:dependencies --configuration releaseRuntimeClasspath \
+          ./gradlew :app:dependencies --configuration standaloneReleaseRuntimeClasspath \
             -Dorg.gradle.java.home="$JAVA_HOME" -q > deps.txt
           if grep -qE 'play-services|com\.google\.android\.play|com\.google\.mlkit' deps.txt; then
             echo "::error::Google Play Services artifacts are back on the release classpath:"
@@ -134,9 +134,9 @@ jobs:
           # --rerun-tasks because the merger report is only rewritten when the task actually
           # runs. An UP-TO-DATE or cache-restored manifest task leaves a stale report on disk,
           # and a stale report would let this check pass against yesterday's dependency graph.
-          ./gradlew :app:processReleaseMainManifest --rerun-tasks \
+          ./gradlew :app:processStandaloneReleaseMainManifest --rerun-tasks \
             -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
-          MANIFEST=app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+          MANIFEST=app/build/intermediates/merged_manifest/standaloneRelease/processStandaloneReleaseMainManifest/AndroidManifest.xml
           REPORT=app/build/outputs/logs/manifest-merger-release-report.txt
 
           grep -q 'android.permission.INTERNET' core/data/src/main/AndroidManifest.xml \

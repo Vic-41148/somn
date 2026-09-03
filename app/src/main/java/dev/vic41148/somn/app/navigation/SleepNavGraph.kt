@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -33,9 +34,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.vic41148.somn.app.integration.UpdateIntegration
 import dev.vic41148.somn.feature.alarm.service.AlarmService
 import dev.vic41148.somn.feature.alarm.ui.AlarmEditScreen
 import dev.vic41148.somn.feature.alarm.ui.AlarmFiringScreen
+import dev.vic41148.somn.feature.alarm.ui.AlarmHistoryScreen
 import dev.vic41148.somn.feature.alarm.ui.AlarmListScreen
 import dev.vic41148.somn.feature.analytics.ui.CircadianInsightsScreen
 import dev.vic41148.somn.feature.analytics.ui.HistoryScreen
@@ -47,14 +50,16 @@ import dev.vic41148.somn.feature.habits.ui.DailyLogScreen
 import dev.vic41148.somn.feature.habits.ui.MedicationLogScreen
 import dev.vic41148.somn.feature.habits.ui.SleepDebtDetailScreen
 import dev.vic41148.somn.feature.onboarding.ui.OnboardingFlow
+import dev.vic41148.somn.feature.settings.ui.DataExportBackupScreen
 import dev.vic41148.somn.feature.settings.ui.SettingsScreen
 import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
 import dev.vic41148.somn.feature.tracking.ui.HomeScreen
 import dev.vic41148.somn.feature.tracking.ui.MorningReviewScreen
 import dev.vic41148.somn.feature.tracking.ui.TrackingScreen
+import dev.vic41148.somn.feature.winddown.ui.ADHDCooldownScreen
 import dev.vic41148.somn.feature.winddown.ui.BreathingExerciseScreen
 import dev.vic41148.somn.feature.winddown.ui.CognitiveWindDownScreen
-import dev.vic41148.somn.feature.winddown.ui.ADHDCooldownScreen
+import dev.vic41148.somn.feature.winddown.ui.WindDownToolkitScreen
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     data object Home : Screen("home", "Home", Icons.Default.Nightlight)
@@ -89,12 +94,16 @@ private val hideNavRoutes = setOf(
     "manual_session",
     "breathing_exercise",
     "cognitive_winddown",
-    "adhd_cooldown"
+    "adhd_cooldown",
+    "wind_down",
+    "alarm_history",
+    "data_export"
 )
 
 @Composable
 fun SleepNavGraph(
-    isOnboardingCompleted: Boolean
+    isOnboardingCompleted: Boolean,
+    updateIntegrations: Set<@JvmSuppressWildcards UpdateIntegration>
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -226,13 +235,23 @@ fun SleepNavGraph(
             // ---- Main tabs ----
 
             composable(Screen.Home.route) {
-                HomeScreen(
-                    onNavigateToTracking = { navController.navigate("tracking") },
-                    onNavigateToMorningReview = { sessionId ->
-                        navController.navigate("morning_review/$sessionId")
-                    },
-                    onNavigateToDebt = { navController.navigate("sleep_debt") }
-                )
+                Box {
+                    HomeScreen(
+                        onNavigateToTracking = { navController.navigate("tracking") },
+                        onNavigateToMorningReview = { sessionId ->
+                            navController.navigate("morning_review/$sessionId")
+                        },
+                        onNavigateToDebt = { navController.navigate("sleep_debt") }
+                    )
+                    // In-app update banner (standalone channel only). Rendered as an overlay so the
+                    // store channel, whose integration is a no-op composable, draws nothing here.
+                    updateIntegrations.forEach {
+                        it.HomeBanner(
+                            onOpenUpdates = { navController.navigate("updates") },
+                            onGoToBackup = { navController.navigate("data_export") }
+                        )
+                    }
+                }
             }
 
             composable(Screen.Habits.route) {
@@ -269,15 +288,16 @@ fun SleepNavGraph(
             composable(Screen.Alarms.route) {
                 AlarmListScreen(
                     onAddAlarm = { navController.navigate("alarm_edit/-1") },
-                    onEditAlarm = { alarm -> navController.navigate("alarm_edit/${alarm.id}") }
+                    onEditAlarm = { alarm -> navController.navigate("alarm_edit/${alarm.id}") },
+                    onHistory = { navController.navigate("alarm_history") }
                 )
             }
 
             composable(Screen.Settings.route) {
                 SettingsScreen(
-                    onNavigateToBreathing = { navController.navigate("breathing_exercise") },
-                    onNavigateToCognitiveWindDown = { navController.navigate("cognitive_winddown") },
-                    onNavigateToADHDCooldown = { navController.navigate("adhd_cooldown") }
+                    onNavigateToWindDownToolkit = { navController.navigate("wind_down") },
+                    onNavigateToDataExport = { navController.navigate("data_export") },
+                    onNavigateToUpdates = { navController.navigate("updates") }
                 )
             }
 
@@ -388,6 +408,34 @@ fun SleepNavGraph(
                 ADHDCooldownScreen(
                     onBack = { navController.popBackStack() }
                 )
+            }
+
+            // ---- Phase 6+: wind-down toolkit / alarm history / data export ----
+
+            composable("wind_down") {
+                WindDownToolkitScreen(
+                    onNavigateToBreathing = { navController.navigate("breathing_exercise") },
+                    onNavigateToCognitiveWindDown = { navController.navigate("cognitive_winddown") },
+                    onNavigateToADHDCooldown = { navController.navigate("adhd_cooldown") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("alarm_history") {
+                AlarmHistoryScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("data_export") {
+                DataExportBackupScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // Channel-scoped routes (updates screen only on standalone builds, no-op on store).
+            updateIntegrations.forEach {
+                it.registerUpdateRoutes(builder = this, onBack = { navController.popBackStack() })
             }
         }
     }

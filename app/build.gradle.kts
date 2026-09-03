@@ -56,6 +56,19 @@ android {
         }
     }
 
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+            // Debug/development builds default to the standalone channel with the full
+            // in-app updater (GitHub Releases + self-hosted repo) wired in.
+        }
+        create("store") {
+            dimension = "channel"
+            // F-Droid / IzzyOnDroid / Accrescent channel with the updater byte excluded.
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

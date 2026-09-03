@@ -14,8 +14,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,15 +37,27 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.Alarm
 import dev.vic41148.somn.feature.alarm.AlarmViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmListScreen(
     onAddAlarm: () -> Unit,
     onEditAlarm: (Alarm) -> Unit,
+    onHistory: () -> Unit = {},
     viewModel: AlarmViewModel = hiltViewModel()
 ) {
     val alarms by viewModel.alarms.collectAsState()
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Alarms") },
+                actions = {
+                    IconButton(onClick = onHistory) {
+                        Icon(Icons.Default.History, contentDescription = "Alarm history")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddAlarm,

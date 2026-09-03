@@ -18,7 +18,9 @@
 #   scripts/build-fdroid-repo.sh [--apk-dir DIR] [--repo-dir DIR]
 #
 #   --apk-dir   Directory holding the signed release APKs. Default:
-#               app/build/outputs/apk/release (after assembleRelease/CI).
+#               app/build/outputs/apk/store/release (after assembleStoreRelease/CI).
+#               The STORE channel is the F-Droid/Izzy build — it excludes the in-app
+#               updater, so it is the correct one for a self-hosted F-Droid mirror.
 #   --repo-dir  Where the F-Droid repo is materialized. Default: release-repo/
 #               (gitignored; upload its repo/ subdirectory to any static host).
 #
@@ -28,7 +30,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 
-APK_DIR="app/build/outputs/apk/release"
+APK_DIR="app/build/outputs/apk/store/release"
 REPO_DIR="release-repo"
 
 while [[ $# -gt 0 ]]; do

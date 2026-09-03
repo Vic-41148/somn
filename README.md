@@ -119,23 +119,28 @@ Open in Android Studio, sync Gradle, and run on a device or emulator (API 26+).
 Or build from command line:
 
 ```bash
-./gradlew assembleDebug
+./gradlew assembleStandaloneDebug
 ```
 
-The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
+The APK will be at `app/build/outputs/apk/standalone/debug/app-standalone-debug.apk`.
 
 > `gradle.properties` pins `org.gradle.java.home` to a local path. If your JDK 17 lives
 > elsewhere, override it per-invocation with `-Dorg.gradle.java.home="$JAVA_HOME"` rather
 > than editing the file.
 
+> Two `channel` flavors ship: `standalone` (default; self-updater reads GitHub Releases) and
+> `store` (F-Droid/Izzy; no updater code). The build tasks above use the `standalone` channel —
+> the default used for development and CI. To target the store channel, substitute
+> `standalone` with `store` throughout (e.g. `assembleStoreDebug`, `testStoreDebugUnitTest`).
+
 ### Tests
 
 ```bash
-./gradlew testDebugUnitTest   # 204 unit tests
-./gradlew lintDebug           # Android Lint
+./gradlew testStandaloneDebugUnitTest   # 219 unit tests (standalone channel)
+./gradlew lintStandaloneDebug           # Android Lint (standalone channel)
 ```
 
-CI runs `assembleDebug`, `testDebugUnitTest` and `lintDebug` on every push and PR to `main`
+CI runs `assembleStandaloneDebug`, `testStandaloneDebugUnitTest` and `lintStandaloneDebug` on every push and PR to `main`
 and `dev`, plus guardrails that fail the build if Google Play Services reappear on the release
 classpath, if the Auto Backup opt-out is dropped, if `INTERNET` starts being contributed by a
 module other than `:core:data`, if emoji appear in any tracked source or docs, or if this

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -76,6 +77,13 @@ class SomnPreferencesRepository @Inject constructor(
         val CLIP_RETENTION_DAYS = intPreferencesKey("clip_retention_days")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val HAPTICS_INTENSITY = stringPreferencesKey("haptics_intensity")
+        // ── In-app self-updater ───────────────────────────────────────
+        val UPDATE_AUTO_CHECK = booleanPreferencesKey("update_auto_check")
+        val UPDATE_CHECK_INTERVAL_DAYS = intPreferencesKey("update_check_interval_days")
+        val UPDATE_LAST_CHECKED_MS = longPreferencesKey("update_last_checked_ms")
+        val UPDATE_SKIPPED_VERSION = stringPreferencesKey("update_skipped_version")
+        val UPDATE_STAGED_RELEASE = stringPreferencesKey("update_staged_release")
+        val UPDATE_RESTORE_PROMPT_SHOWN = booleanPreferencesKey("update_restore_prompt_shown")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -410,5 +418,92 @@ class SomnPreferencesRepository @Inject constructor(
             ?: return null
         val encrypted = android.util.Base64.decode(encoded, android.util.Base64.NO_WRAP)
         return String(encryptionUtils.decryptBytes(encrypted), Charsets.UTF_8)
+    }
+
+    // ---- In-app self-updater preferences ----
+
+    val updateAutoCheck: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_AUTO_CHECK] ?: true }
+
+    suspend fun updateUpdateAutoCheck(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_AUTO_CHECK] = enabled }
+    }
+
+    val updateCheckIntervalDays: Flow<Int> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_CHECK_INTERVAL_DAYS] ?: 1 }
+
+    suspend fun updateUpdateCheckIntervalDays(days: Int) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_CHECK_INTERVAL_DAYS] = days }
+    }
+
+    val updateLastCheckedMs: Flow<Long> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_LAST_CHECKED_MS] ?: -1L }
+
+    suspend fun updateUpdateLastCheckedMs(ms: Long) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_LAST_CHECKED_MS] = ms }
+    }
+
+    val updateSkippedVersion: Flow<String> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_SKIPPED_VERSION] ?: "" }
+
+    suspend fun updateUpdateSkippedVersion(tag: String) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_SKIPPED_VERSION] = tag }
+    }
+
+    val updateStagedRelease: Flow<dev.vic41148.somn.core.domain.model.StagedRelease> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+            .map { prefs ->
+                prefs[PreferencesKeys.UPDATE_STAGED_RELEASE]?.let(::parseStagedRelease)
+                    ?: dev.vic41148.somn.core.domain.model.StagedRelease("", "", "", null, null, 0L)
+            }
+
+    suspend fun updateUpdateStagedRelease(release: dev.vic41148.somn.core.domain.model.StagedRelease?) {
+        context.dataStore.edit { prefs ->
+            if (release == null) {
+                prefs.remove(PreferencesKeys.UPDATE_STAGED_RELEASE)
+            } else {
+                prefs[PreferencesKeys.UPDATE_STAGED_RELEASE] = encodeStagedRelease(release)
+            }
+        }
+    }
+
+    val updateRestorePromptShown: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_RESTORE_PROMPT_SHOWN] ?: false }
+
+    suspend fun updateUpdateRestorePromptShown(shown: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_RESTORE_PROMPT_SHOWN] = shown }
+    }
+
+    private fun encodeStagedRelease(r: dev.vic41148.somn.core.domain.model.StagedRelease): String {
+        val json = org.json.JSONObject()
+        json.put("tag", r.tag)
+        json.put("versionName", r.versionName)
+        json.put("notes", r.notes)
+        r.apkUrl?.let { json.put("apkUrl", it) }
+        r.sha256?.let { json.put("sha256", it) }
+        json.put("atMs", r.atMs)
+        return json.toString()
+    }
+
+    private fun parseStagedRelease(raw: String): dev.vic41148.somn.core.domain.model.StagedRelease {
+        return try {
+            val json = org.json.JSONObject(raw)
+            dev.vic41148.somn.core.domain.model.StagedRelease(
+                tag = json.optString("tag", ""),
+                versionName = json.optString("versionName", ""),
+                notes = json.optString("notes", ""),
+                apkUrl = if (json.isNull("apkUrl")) null else json.optString("apkUrl", "").ifBlank { null },
+                sha256 = if (json.isNull("sha256")) null else json.optString("sha256", "").ifBlank { null },
+                atMs = json.optLong("atMs", 0L)
+            )
+        } catch (e: Exception) {
+            dev.vic41148.somn.core.domain.model.StagedRelease("", "", "", null, null, 0L)
+        }
     }
 }

@@ -89,8 +89,8 @@ if [ -z "$YES" ]; then
 fi
 
 echo "== [1/9] build latest debug APK"
-(cd "$PROJECT_ROOT" && ./gradlew assembleDebug --console=plain -q)
-APK="$PROJECT_ROOT/app/build/outputs/apk/debug/app-debug.apk"
+(cd "$PROJECT_ROOT" && ./gradlew assembleStandaloneDebug --console=plain -q)
+APK="$PROJECT_ROOT/app/build/outputs/apk/standalone/debug/app-standalone-debug.apk"
 [ -f "$APK" ] || { echo "APK not found: $APK"; exit 1; }
 
 echo "== [2/9] uninstall any existing Somn (data intentionally wiped — fabricated state only)"

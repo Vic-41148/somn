@@ -45,7 +45,8 @@ class SettingsViewModel @Inject constructor(
     private val importSleepAsAndroid: ImportSleepAsAndroidUseCase,
     private val calculateScore: CalculateSleepScoreUseCase,
     private val portableCrypto: PortableCrypto,
-    private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository
+    private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository,
+    private val yamnetModelRepository: dev.vic41148.somn.core.data.model.YamnetModelRepository
 ) : ViewModel() {
 
     /**
@@ -76,6 +77,12 @@ class SettingsViewModel @Inject constructor(
         }
         collectInto(preferencesRepository.yamnetClassificationEnabled) { state, enabled ->
             state.copy(yamnetClassificationEnabled = enabled)
+        }
+        collectInto(preferencesRepository.hapticsEnabled) { state, enabled ->
+            state.copy(hapticsEnabled = enabled)
+        }
+        collectInto(preferencesRepository.hapticsIntensity) { state, intensity ->
+            state.copy(hapticsIntensity = intensity)
         }
         collectInto(sleepRepository.observeUnsyncedToHealthConnectCount()) { state, count ->
             state.copy(healthConnectUnsyncedCount = count)
@@ -205,7 +212,11 @@ class SettingsViewModel @Inject constructor(
         /** HEALTH-04: completed sessions never written to Health Connect — unsynced or silently dedup-skipped. Only meaningful once healthConnectEnabled is true. */
         val healthConnectUnsyncedCount: Int = 0,
         /** Task 14 (AUDIO-01) — off by default. Experimental YAMNet audio classification, gated so it can be A/B'd against the existing ZCR heuristic. Not accuracy-validated (AUDIO-02) or battery-soak-tested (AUDIO-03). */
-        val yamnetClassificationEnabled: Boolean = false
+        val yamnetClassificationEnabled: Boolean = false,
+        /** App-wide haptics master switch + intensity, surfaced into state from DataStore. */
+        val hapticsEnabled: Boolean = true,
+        val hapticsIntensity: dev.vic41148.somn.core.domain.haptic.HapticsIntensity =
+            dev.vic41148.somn.core.domain.haptic.HapticsIntensity.STANDARD
     )
 
     private val _settings = MutableStateFlow(SettingsState())
@@ -216,6 +227,75 @@ class SettingsViewModel @Inject constructor(
 
     private val _clipDeletionStatus = MutableStateFlow<String?>(null)
     val clipDeletionStatus: StateFlow<String?> = _clipDeletionStatus.asStateFlow()
+
+    // ---- YAMNet model download state (AUDIO-01) ----
+
+    sealed interface YamnetModelState {
+        data object Idle : YamnetModelState
+        data object ConfirmingDownload : YamnetModelState
+        data class Downloading(val progress: Float?) : YamnetModelState
+        data class Error(val message: String) : YamnetModelState
+        data object Ready : YamnetModelState
+    }
+
+    private val _yamnetModelState = MutableStateFlow<YamnetModelState>(YamnetModelState.Idle)
+    val yamnetModelState: StateFlow<YamnetModelState> = _yamnetModelState.asStateFlow()
+
+    /**
+     * Consent-gated YAMNet toggle: enabling when the model is already on disk is immediate;
+     * otherwise it raises the download-consent dialog. Disabling always just flips the flag.
+     */
+    fun onYamnetToggle(enabled: Boolean) {
+        if (!enabled) {
+            viewModelScope.launch { preferencesRepository.updateYamnetClassificationEnabled(false) }
+            _yamnetModelState.value = YamnetModelState.Idle
+            return
+        }
+        viewModelScope.launch {
+            preferencesRepository.updateYamnetClassificationEnabled(true)
+            _yamnetModelState.value = if (yamnetModelRepository.isDownloaded()) {
+                YamnetModelState.Ready
+            } else {
+                YamnetModelState.ConfirmingDownload
+            }
+        }
+    }
+
+    fun dismissYamnetModelDialog() {
+        _yamnetModelState.value = if (yamnetModelRepository.isDownloaded()) {
+            YamnetModelState.Ready
+        } else {
+            YamnetModelState.Idle
+        }
+        viewModelScope.launch { preferencesRepository.updateYamnetClassificationEnabled(false) }
+    }
+
+    fun confirmYamnetDownload() {
+        _yamnetModelState.value = YamnetModelState.Downloading(progress = null)
+        viewModelScope.launch {
+            try {
+                yamnetModelRepository.download { downloaded, total ->
+                    _yamnetModelState.value = YamnetModelState.Downloading(
+                        progress = if (total > 0) downloaded.toFloat() / total.toFloat() else null
+                    )
+                }
+                _yamnetModelState.value = YamnetModelState.Ready
+                preferencesRepository.updateYamnetClassificationEnabled(true)
+            } catch (e: Exception) {
+                _yamnetModelState.value = YamnetModelState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    // ---- Haptics (app-wide master switch + intensity) ----
+
+    fun updateHapticsEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateHapticsEnabled(enabled) }
+    }
+
+    fun updateHapticsIntensity(intensity: dev.vic41148.somn.core.domain.haptic.HapticsIntensity) {
+        viewModelScope.launch { preferencesRepository.updateHapticsIntensity(intensity) }
+    }
 
     init {
         // Must run after _settings above is initialized: unlike the DataStore .collect{}

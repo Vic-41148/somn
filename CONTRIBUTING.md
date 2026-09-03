@@ -88,9 +88,9 @@ You don't have to write Kotlin to help:
 ```bash
 git clone https://github.com/Vic-41148/somn.git
 cd somn
-./gradlew assembleDebug          # debug APK
-./gradlew testDebugUnitTest      # unit tests
-./gradlew lintDebug              # Android Lint
+./gradlew assembleStandaloneDebug   # debug APK (standalone channel)
+./gradlew testStandaloneDebugUnitTest   # unit tests
+./gradlew lintStandaloneDebug       # Android Lint
 ```
 
 Open the project in Android Studio, sync Gradle, and run on your device.
@@ -121,8 +121,8 @@ git fetch upstream
 git checkout -b feature/my-feature upstream/dev
 
 # 3. Make your changes, then run the checks
-./gradlew testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME"
-./gradlew lintDebug -Dorg.gradle.java.home="$JAVA_HOME"
+./gradlew testStandaloneDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME"
+./gradlew lintStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME"
 
 # 4. Commit with a clear message (conventional commits preferred)
 git add .
@@ -178,7 +178,7 @@ Both `main` and `dev` are protected on GitHub:
 - **One approval is required** before a pull request from a non-admin can merge
   (the maintainer will review and merge it for you).
 - **CI must pass.** The following checks run on every PR and must be green:
-  - `Build, test & lint` — `assembleDebug`, unit tests, and Android Lint. The
+  - `Build, test & lint` — `assembleStandaloneDebug`, unit tests, and Android Lint. The
     unit-test step also fails if the test count advertised in this file or in
     README.md no longer matches the suite total
   - `Privacy guardrails` — automated checks that protect the privacy promises
@@ -215,10 +215,10 @@ When in doubt, match the surrounding code — consistency beats cleverness.
 Every pull request is expected to keep the test suite green:
 
 ```bash
-./gradlew testDebugUnitTest
+./gradlew testStandaloneDebugUnitTest
 ```
 
-The suite currently runs 204 unit tests — a number enforced by CI: if you add
+The suite currently runs 219 unit tests — a number enforced by CI: if you add
 or remove a test, update this line and the count in README.md in the same PR,
 or the build fails. If you add a feature, add tests for it — especially for
 pure logic like scoring, classification, and parsing. Pure functions with

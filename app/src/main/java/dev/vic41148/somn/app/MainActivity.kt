@@ -14,10 +14,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.vic41148.somn.app.integration.UpdateIntegration
 import dev.vic41148.somn.app.navigation.SleepNavGraph
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
+import dev.vic41148.somn.core.domain.haptic.HapticsManager
 import dev.vic41148.somn.core.ui.battery.BatteryExemptionState
+import dev.vic41148.somn.core.ui.haptic.ProvideHaptics
 import dev.vic41148.somn.core.ui.theme.SomnTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -27,6 +30,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var profileRepository: UserProfileRepository
     @Inject lateinit var preferencesRepository: SomnPreferencesRepository
+    @Inject lateinit var hapticsManager: HapticsManager
+    @Inject lateinit var updateIntegrations: Set<@JvmSuppressWildcards UpdateIntegration>
 
     override fun onResume() {
         super.onResume()
@@ -70,9 +75,15 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         else -> {
-                            SleepNavGraph(
-                                isOnboardingCompleted = isOnboardingCompleted ?: false
-                            )
+                            // Channel-scoped components that must render above the nav graph:
+                            // standalone wraps for haptics + shows the first-launch restore prompt.
+                            ProvideHaptics(delegate = hapticsManager) {
+                                SleepNavGraph(
+                                    isOnboardingCompleted = isOnboardingCompleted ?: false,
+                                    updateIntegrations = updateIntegrations
+                                )
+                                updateIntegrations.forEach { it.RestorePrompt() }
+                            }
                         }
                     }
                 }

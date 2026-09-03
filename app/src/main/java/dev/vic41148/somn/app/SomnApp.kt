@@ -7,6 +7,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
+import dev.vic41148.somn.app.integration.UpdateIntegration
+import dev.vic41148.somn.core.data.backup.LocalBackupWorker
 import dev.vic41148.somn.core.data.retention.ClipRetentionWorker
 import dev.vic41148.somn.core.notifications.WeeklyReportGenerator
 import java.time.DayOfWeek
@@ -24,10 +26,17 @@ class SomnApp : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var updateIntegrations: Set<@JvmSuppressWildcards UpdateIntegration>
+
     override fun onCreate() {
         super.onCreate()
         scheduleWeeklyReport()
         scheduleClipRetention()
+        scheduleLocalBackup()
+        // Channel-scoped integrations (in-app updater scheduling on standalone builds; no-op on
+        // store). Called after the base scheduling so we stay independent of app startup order.
+        updateIntegrations.forEach { it.onAppCreated(this) }
     }
 
     override val workManagerConfiguration: Configuration
@@ -67,6 +76,23 @@ class SomnApp : Application(), Configuration.Provider {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             ClipRetentionWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
+
+    /**
+     * Flavor-agnostic daily local backup. The worker itself no-ops until the user grants a backup
+     * folder, so initial scheduling before onboarding is harmless. KEEP (not UPDATE) because a
+     * daily cadence never needs re-derivation.
+     */
+    private fun scheduleLocalBackup() {
+        val request = PeriodicWorkRequestBuilder<LocalBackupWorker>(
+            LocalBackupWorker.INTERVAL_HOURS, TimeUnit.HOURS
+        ).build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            LocalBackupWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )

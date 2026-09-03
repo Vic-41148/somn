@@ -27,6 +27,16 @@ android {
     buildFeatures {
         compose = true
     }
+
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+        }
+        create("store") {
+            dimension = "channel"
+        }
+    }
 }
 
 dependencies {
