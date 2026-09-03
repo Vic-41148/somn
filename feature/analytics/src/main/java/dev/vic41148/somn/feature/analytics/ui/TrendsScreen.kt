@@ -12,17 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import dev.vic41148.somn.core.ui.theme.CycleFollicular
@@ -82,17 +73,36 @@ fun TrendsScreen(
                 return@Column
             }
 
-            // Metric selector (DATA-03) — one metric at a time, they don't share a scale.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Metric selector dropdown (DATA-03)
+            var expanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                TrendMetric.entries.forEach { metric ->
-                    FilterChip(
-                        selected = selectedMetric == metric,
-                        onClick = { viewModel.selectMetric(metric) },
-                        label = { Text(metric.displayName) }
-                    )
+                OutlinedTextField(
+                    value = selectedMetric.displayName,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Trend Metric") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    TrendMetric.entries.forEach { metric ->
+                        DropdownMenuItem(
+                            text = { Text(metric.displayName) },
+                            onClick = {
+                                viewModel.selectMetric(metric)
+                                expanded = false
+                            }
+                        )
+                    }
                 }
             }
 

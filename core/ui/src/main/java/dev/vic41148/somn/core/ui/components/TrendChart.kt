@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.max
 
 /** One data point in a [TrendLineChart] series — X is a wall-clock timestamp, not an index. */
 data class TrendPoint(val timestampMillis: Long, val value: Float)
@@ -58,8 +59,11 @@ fun TrendLineChart(
 
     val minX = allPoints.minOf { it.timestampMillis }
     val maxX = allPoints.maxOf { it.timestampMillis }
-    val minY = minOf(0f, allPoints.minOf { it.value })
-    val maxY = allPoints.maxOf { it.value }.let { if (it <= minY) minY + 1f else it }
+    val minVal = allPoints.minOf { it.value }
+    val maxVal = allPoints.maxOf { it.value }
+    val span = (maxVal - minVal).coerceAtLeast(1f)
+    val minY = if (minVal >= 0f) max(0f, minVal - span * 0.15f) else minVal - span * 0.15f
+    val maxY = maxVal + span * 0.15f
 
     // DATA-03: entrance animation — the chart used to draw fully formed in a single Canvas pass
     // with no motion at all. Bands (context) reach full opacity quickly; the line then draws in
