@@ -27,7 +27,7 @@ import kotlin.math.sqrt
  *   - AudioTrack and AudioRecord run on dedicated Java Threads to avoid
  *     coroutine dispatcher scheduling jitter that would degrade FFT accuracy.
  *   - A 60-second calibration window establishes a baseline amplitude at 19kHz.
- *     Null epochs are emitted during calibration — callers must handle null gracefully.
+ *     Null epochs are emitted during calibration - callers must handle null gracefully.
  *   - After calibration, each 30-second window is FFT-analysed and movement
  *     magnitude = deviation of 19kHz-band peak from baseline.
  *   - If SNR drops below threshold for 3 consecutive epochs, [fallbackRequired] fires.
@@ -101,7 +101,7 @@ class SonarCollector(private val context: Context) {
         try { audioTrack?.stop() } catch (_: Exception) {}
         try { audioRecord?.stop() } catch (_: Exception) {}
         // AudioTrack/AudioRecord.stop() unblocks a pending write()/read() on the emitter/recorder
-        // thread, but doesn't wait for that thread to actually exit its loop — calling release()
+        // thread, but doesn't wait for that thread to actually exit its loop - calling release()
         // immediately after, while that thread may still be mid-call on the same object, is a
         // documented crash risk. This fires on every SNR-triggered sonar→accelerometer fallback,
         // not just on session stop, so it's a real recurring risk, not a rare shutdown-only edge
@@ -172,7 +172,7 @@ class SonarCollector(private val context: Context) {
                 val elapsed  = nowMs - sessionStartMs
 
                 if (elapsed < CALIBRATION_MS) {
-                    // Calibration window — accumulate baseline, emit null epoch
+                    // Calibration window - accumulate baseline, emit null epoch
                     calibrationSamples.add(bandPeak)
                     _epochChannel.trySend(null)
                 } else {
@@ -183,7 +183,7 @@ class SonarCollector(private val context: Context) {
                         isCalibrating = false
                         _calibrationChannel.trySend(SonarCalibrationState.READY)
                         android.util.Log.i("SonarCollector",
-                            "Calibration done — baseline=${baselineAmplitude}")
+                            "Calibration done - baseline=${baselineAmplitude}")
                     }
 
                     synchronized(epochLock) {
@@ -221,7 +221,7 @@ class SonarCollector(private val context: Context) {
         val meanPeak  = peaks.average().toFloat()
         val deviation = abs(meanPeak - baselineAmplitude)
 
-        // SNR check — if mean peak is far below baseline the mic/speaker path is broken
+        // SNR check - if mean peak is far below baseline the mic/speaker path is broken
         val snr = if (baselineAmplitude > 0f) meanPeak / baselineAmplitude else 0f
         if (snr < SNR_THRESHOLD) {
             consecutiveLowSnrEpochs++
@@ -251,7 +251,7 @@ class SonarCollector(private val context: Context) {
         )
     }
 
-    /** Returns the peak amplitude in the [BAND_LOW_HZ]–[BAND_HIGH_HZ] band for one chunk. */
+    /** Returns the peak amplitude in the [BAND_LOW_HZ]-[BAND_HIGH_HZ] band for one chunk. */
     private fun extractBandPeak(chunk: FloatArray): Float {
         val n       = nextPow2(chunk.size)
         // JTransforms complex FFT requires interleaved re/im pairs

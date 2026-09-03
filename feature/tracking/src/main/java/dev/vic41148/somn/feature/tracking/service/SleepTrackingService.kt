@@ -19,6 +19,7 @@ import dev.vic41148.somn.core.audio.BreathingRateEstimator
 import dev.vic41148.somn.core.audio.SnoringNudgeController
 import dev.vic41148.somn.core.audio.SonarCollector
 import dev.vic41148.somn.core.audio.YamnetAudioClassifier
+import dev.vic41148.somn.core.data.model.YamnetModelRepository
 import dev.vic41148.somn.core.data.repository.AlarmRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
@@ -49,8 +50,8 @@ import javax.inject.Inject
  * Foreground service that manages the overnight sleep tracking session.
  *
  * Supports two movement sensor modes:
- *  - [TrackingMode.ACCELEROMETER] — phone accelerometer (default, low battery)
- *  - [TrackingMode.SONAR] — ultrasonic Doppler sonar (contactless, higher battery)
+ *  - [TrackingMode.ACCELEROMETER] - phone accelerometer (default, low battery)
+ *  - [TrackingMode.SONAR] - ultrasonic Doppler sonar (contactless, higher battery)
  *
  * The active mode is selected at session start via [ACTION_START] extras and
  * never switched mid-session (except automatic SNR-based fallback from sonar).
@@ -62,11 +63,12 @@ class SleepTrackingService : Service() {
     @Inject lateinit var alarmRepository: AlarmRepository
     @Inject lateinit var smartAlarmUseCase: SmartAlarmUseCase
     @Inject lateinit var preferencesRepository: SomnPreferencesRepository
+    @Inject lateinit var yamnetModelRepository: YamnetModelRepository
 
     private var snoreNudgeEnabled = true
 
     private val classifyStage = ClassifySleepStageUseCase()
-    // Rebuilt per-session in startTracking() once yamnetClassificationEnabled is read — starts
+    // Rebuilt per-session in startTracking() once yamnetClassificationEnabled is read - starts
     // ZCR-only so there's never a window where this is uninitialized.
     private var audioEventClassifier = AudioEventClassifier()
     private var yamnetClassifier: YamnetAudioClassifier? = null
@@ -84,20 +86,20 @@ class SleepTrackingService : Service() {
     // smoothStages() smooths epoch i against [i-1, i, i+1], so an epoch can't be persisted
     // until its successor has been classified. The latest raw epoch is held back and, on each
     // new epoch, the previous one is written smoothed against [prevprev, prev, current]. The
-    // final epoch has no successor and is flushed raw when tracking stops — matching
+    // final epoch has no successor and is flushed raw when tracking stops - matching
     // smoothStages()'s "first and last epochs are never replaced" semantics.
     //
     // Who flushes it: the ViewModel's stopTracking() writes it (via the [finalEpoch] companion
     // flow) in the normal user-stop path. The service itself only flushes asynchronously for the
     // non-ViewModel stop paths (smart-alarm early wake, onDestroy). It must NEVER flush with
-    // runBlocking on the main thread — that blocks main while Room queries from the ViewModel
+    // runBlocking on the main thread - that blocks main while Room queries from the ViewModel
     // coroutine are in flight, wedging Room's executors so every later query (including the
     // morning health alerts in notifyMorningAlerts) hangs forever.
     private var pendingRawEpoch: SleepEpoch? = null
     private var prevPrevStage: SleepStage? = null
     private var prevStage: SleepStage? = null
 
-    // True when this service instance is being stopped via ACTION_STOP — the ViewModel owns the
+    // True when this service instance is being stopped via ACTION_STOP - the ViewModel owns the
     // final-epoch flush in that path, so onDestroy must not race it by flushing too.
     private var stopViaActionStop = false
 
@@ -105,7 +107,7 @@ class SleepTrackingService : Service() {
     private val serviceScope = CoroutineScope(
         Dispatchers.IO + SupervisorJob() + CoroutineExceptionHandler { _, e ->
             // Any uncaught collector/loop failure (e.g. a Room write error mid-session) must
-            // degrade to a logged warning — never take the whole process down.
+            // degrade to a logged warning - never take the whole process down.
             android.util.Log.e("SleepTrackingService", "Uncaught tracking coroutine failure", e)
         }
     )
@@ -117,6 +119,7 @@ class SleepTrackingService : Service() {
 
     companion object {
         const val CHANNEL_ID      = "sleep_tracking_channel"
+        const val ALERT_CHANNEL_ID = "sleep_alerts_channel"
         const val NOTIFICATION_ID = 1001
         const val ACTION_START    = "dev.vic41148.somn.action.START_TRACKING"
         const val ACTION_STOP     = "dev.vic41148.somn.action.STOP_TRACKING"
@@ -156,7 +159,7 @@ class SleepTrackingService : Service() {
         val sonarCalibrationState: StateFlow<SonarCollector.SonarCalibrationState> =
             _sonarCalibrationState.asStateFlow()
 
-        /** True if the microphone failed to initialize this session — audio events/BRPM/snoring nudge won't fire. */
+        /** True if the microphone failed to initialize this session - audio events/BRPM/snoring nudge won't fire. */
         private val _audioRecordingFailed = MutableStateFlow(false)
         val audioRecordingFailed: StateFlow<Boolean> = _audioRecordingFailed.asStateFlow()
 
@@ -205,7 +208,7 @@ class SleepTrackingService : Service() {
                         startTracking(sessionId, mode)
                     } catch (e: Exception) {
                         // A failed foreground promotion or synchronous session-start error must
-                        // never take the whole app down with it — stop cleanly so the system
+                        // never take the whole app down with it - stop cleanly so the system
                         // doesn't kill the process for a service that started but never went
                         // foreground. The un-finished session is recovered later by REL-02's
                         // incomplete-session finalization. Coroutine-level failures launched by
@@ -218,7 +221,7 @@ class SleepTrackingService : Service() {
             }
             ACTION_STOP -> {
                 // The ViewModel's stopTracking() writes the held-back final epoch itself, so the
-                // service must not flush here — doing so with runBlocking on the main thread used
+                // service must not flush here - doing so with runBlocking on the main thread used
                 // to wedge Room's executors while the ViewModel ran concurrent queries. The flag
                 // tells onDestroy not to flush either, keeping the VM path fully deterministic.
                 stopViaActionStop = true
@@ -233,7 +236,7 @@ class SleepTrackingService : Service() {
     /**
      * Promotes the service to foreground using the correct [android.app.Service.startForeground]
      * overload for the running API level. The overload dispatch needs an explicit
-     * [Build.VERSION.SDK_INT] guard — lint's NewApi check can't prove the three-arg overload
+     * [Build.VERSION.SDK_INT] guard - lint's NewApi check can't prove the three-arg overload
      * (API 29+) is safe from a delegated value, so the two-arg path is taken below Q with an
      * SDK check. The type passed to the three-arg overload is computed by [startForegroundTypeForApi],
      * the single testable seam (locked in by StartForegroundBranchSelectionTest).
@@ -307,8 +310,17 @@ class SleepTrackingService : Service() {
                     } catch (e: Exception) {
                         false
                     }
-                    audioEventClassifier = if (useYamnet) {
-                        val classifier = YamnetAudioClassifier(this@SleepTrackingService)
+                    // YAMNet model is downloaded on demand (consent-gated in Settings), not bundled.
+                    // If the preference is on but the model has not been downloaded (fresh install,
+                    // storage cleared), degrade to the ZCR heuristic for the session rather than
+                    // failing the whole audio pipeline.
+                    val yamnetModelFile = if (useYamnet && yamnetModelRepository.isDownloaded()) {
+                        yamnetModelRepository.modelFile()
+                    } else {
+                        null
+                    }
+                    audioEventClassifier = if (yamnetModelFile != null) {
+                        val classifier = YamnetAudioClassifier(yamnetModelFile)
                         yamnetClassifier = classifier
                         AudioEventClassifier(yamnetClassify = classifier::classify)
                     } else {
@@ -326,7 +338,7 @@ class SleepTrackingService : Service() {
                 serviceScope.launch {
                     audioCollector.recordingFailed.collect {
                         android.util.Log.w("SleepTrackingService",
-                            "Microphone failed to initialize — session $sessionId will have no audio events/BRPM")
+                            "Microphone failed to initialize - session $sessionId will have no audio events/BRPM")
                         _audioRecordingFailed.value = true
                     }
                 }
@@ -363,7 +375,7 @@ class SleepTrackingService : Service() {
             }
         }
 
-        // Collect sonar epochs (null during calibration — skip those)
+        // Collect sonar epochs (null during calibration - skip those)
         collectionJob = serviceScope.launch {
             sonarCollector.epochFlow.collect { sonarEpoch ->
                 sonarEpoch ?: return@collect   // null = calibration window, skip
@@ -384,7 +396,7 @@ class SleepTrackingService : Service() {
         accelerometerCollector.start()
 
         // Phone-lifted → immediate AWAKE epoch. Written raw, bypassing the stage-smoothing
-        // buffer in handleEpoch() — a real lift is a strong signal, not single-epoch noise.
+        // buffer in handleEpoch() - a real lift is a strong signal, not single-epoch noise.
         // Note the skip it causes (skipNextEpoch below) can make the next smoothing window
         // non-consecutive (e.g. [E1, E2, E4]); harmless, mode-of-3 stays sane.
         serviceScope.launch {
@@ -426,7 +438,7 @@ class SleepTrackingService : Service() {
         )
 
         // Stage smoothing: the epoch before this one now has a successor, so it can be written
-        // — smoothed against [prevprev, prev, current]. The current epoch stays pending until
+        // - smoothed against [prevprev, prev, current]. The current epoch stays pending until
         // its own successor arrives.
         pendingRawEpoch?.let { prevEpoch ->
             val smoothedStage = classifyStage.smoothStages(
@@ -439,7 +451,7 @@ class SleepTrackingService : Service() {
         pendingRawEpoch = rawEpoch
         _finalEpoch.value = rawEpoch
 
-        // Smart alarm uses the raw current stage — it's the freshest signal available (the
+        // Smart alarm uses the raw current stage - it's the freshest signal available (the
         // current epoch has no successor to smooth against yet, so this is what the
         // pre-smoothing code would have used anyway).
         nextAlarmTimeMillis?.let { alarmTime ->
@@ -456,20 +468,24 @@ class SleepTrackingService : Service() {
         val result = audioEventClassifier.processBuffer(buffer, sessionId, System.currentTimeMillis())
         if (result != null) {
             var (event, rawBuffer) = result
-            if (event.type == dev.vic41148.somn.core.domain.model.AudioEventType.TALK) {
-                val dir = java.io.File(filesDir, "sleep_talk")
-                if (!dir.exists()) dir.mkdirs()
-                val wavFile = java.io.File(dir, "talk_${sessionId}_${event.timestampMillis}.wav")
-                kotlinx.coroutines.withContext(Dispatchers.IO) {
-                    writeWavFile(wavFile, rawBuffer, AudioCollector.SAMPLE_RATE)
-                    event = event.copy(clipPath = wavFile.absolutePath)
-                    sleepRepository.insertAudioEvent(event)
-                }
-            } else {
+            // Persist a playable WAV clip for every event type (not just talk) - the session
+            // detail audio player replays snore, cough, talk and anomaly clips from these files.
+            val clipDirName = when (event.type) {
+                dev.vic41148.somn.core.domain.model.AudioEventType.TALK -> "sleep_talk"
+                dev.vic41148.somn.core.domain.model.AudioEventType.SNORE -> "sleep_snore"
+                dev.vic41148.somn.core.domain.model.AudioEventType.COUGH -> "sleep_cough"
+                else -> "sleep_events"
+            }
+            val dir = java.io.File(filesDir, clipDirName)
+            if (!dir.exists()) dir.mkdirs()
+            val wavFile = java.io.File(dir, "${event.type.name.lowercase()}_${sessionId}_${event.timestampMillis}.wav")
+            kotlinx.coroutines.withContext(Dispatchers.IO) {
+                writeWavFile(wavFile, rawBuffer, AudioCollector.SAMPLE_RATE)
+                event = event.copy(clipPath = wavFile.absolutePath)
                 sleepRepository.insertAudioEvent(event)
-                if (event.type == dev.vic41148.somn.core.domain.model.AudioEventType.SNORE && snoreNudgeEnabled) {
-                    snoringNudgeController.nudge()
-                }
+            }
+            if (event.type == dev.vic41148.somn.core.domain.model.AudioEventType.SNORE && snoreNudgeEnabled) {
+                snoringNudgeController.nudge()
             }
         }
 
@@ -500,14 +516,14 @@ class SleepTrackingService : Service() {
         }
         startForegroundService(si)
         // Smart-alarm wake: no ViewModel stop path follows, so flush the final epoch here
-        // (async, best-effort — never block the main thread).
+        // (async, best-effort - never block the main thread).
         stopTracking(flushFinalEpochHere = true)
     }
 
     private fun fireLowBreathRateAlarm(brpm: Int) {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setContentTitle("Low Breath Rate Alert")
-            .setContentText("Your breathing rate dropped to $brpm brpm.")
+            .setContentText("Your breathing rate dropped to $brpm breaths per minute.")
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setAutoCancel(true)
@@ -555,7 +571,7 @@ class SleepTrackingService : Service() {
      * @param flushFinalEpochHere whether this caller flushes the held-back final epoch itself.
      *   The ViewModel's user-stop path sets this false and writes the epoch itself (deterministic
      *   ordering before it reads the epoch list back); fireSmartAlarm/onDestroy set it true and
-     *   flush asynchronously on the service scope. Never runBlocking on the main thread here —
+     *   flush asynchronously on the service scope. Never runBlocking on the main thread here -
      *   that wedged Room's executors during teardown and hung every later query.
      */
     private fun stopTracking(flushFinalEpochHere: Boolean = true) {
@@ -594,7 +610,18 @@ class SleepTrackingService : Service() {
         val channel = NotificationChannel(
             CHANNEL_ID, "Sleep Tracking", NotificationManager.IMPORTANCE_LOW
         ).apply { description = "Shows while tracking your sleep"; setShowBadge(false) }
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        // Breathing-rate alerts are time-sensitive and sound-bearing, so they get a dedicated
+        // high-importance channel - posting them on IMPORTANCE_LOW would mute the sound/heads-up
+        // no matter what priority the builder requests (the channel wins).
+        val alertChannel = NotificationChannel(
+            ALERT_CHANNEL_ID, "Sleep Alerts", NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Low breathing-rate and other urgent sleep alerts"
+            setShowBadge(false)
+        }
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(channel)
+        manager.createNotificationChannel(alertChannel)
     }
 
     private fun createNotification(): Notification {
@@ -612,21 +639,33 @@ class SleepTrackingService : Service() {
             openTrackingIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        // A foreground-service notification that can't stop the work it advertises strands the
+        // user until the timer runs out - expose the STOP action the service already handles.
+        val stopIntent = android.content.Intent(this, SleepTrackingService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            NOTIFICATION_ID + 1,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Sleep Tracking Active")
-            .setContentText("Monitoring your sleep… — tap to open")
+            .setContentText("Monitoring your sleep… - tap to open")
             .setSmallIcon(android.R.drawable.ic_menu_recent_history)
             .setOngoing(true).setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setContentIntent(contentIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
             .build()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        // When the stop came via ACTION_STOP, the ViewModel owns the final-epoch flush — flushing
+        // When the stop came via ACTION_STOP, the ViewModel owns the final-epoch flush - flushing
         // here too would clear finalEpoch and async-write while the ViewModel is mid-suspend,
         // reintroducing the race this fix eliminates. When the service is destroyed without an
         // ACTION_STOP (e.g. system-initiated), flush as best-effort like the old code did.
@@ -645,11 +684,11 @@ enum class TrackingState { IDLE, TRACKING, PAUSED }
  * on Android 14+ (the three-arg overload).
  *
  * Android 14+ (targetSdk 34+) enforces the mask at startForeground() time: claiming "health"
- * requires the BODY_SENSORS runtime permission and "microphone" requires RECORD_AUDIO — if a
+ * requires the BODY_SENSORS runtime permission and "microphone" requires RECORD_AUDIO - if a
  * claimed type's permission isn't held, the system throws SecurityException. BODY_SENSORS is only
  * granted if the user opted in during onboarding, so the mask must never assume it. When neither
  * permission is held, it falls back to the permission-free "specialUse" type (declared in the
- * manifest), so the service can still start — audio stays off because [SleepTrackingService]
+ * manifest), so the service can still start - audio stays off because [SleepTrackingService]
  * gates mic collection on RECORD_AUDIO separately.
  *
  * @return a bitwise OR of [ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE] and/or
@@ -663,7 +702,7 @@ internal fun foregroundServiceTypeMask(
     var type = 0
     if (recordAudioGranted) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
     if (bodySensorsGranted) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH
-    // No sensor permission held (user denied or revoked) — specialUse is the one declared
+    // No sensor permission held (user denied or revoked) - specialUse is the one declared
     // type that needs no runtime permission, so use it rather than crashing.
     if (type == 0) type = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
     return type
@@ -678,26 +717,26 @@ internal const val START_FOREGROUND_TWO_ARG = -1
 
 /**
  * Computes the type to pass to the three-arg [android.app.Service.startForeground] overload on
- * API 29+ — the single testable seam behind [SleepTrackingService.startTrackingForeground]'s
+ * API 29+ - the single testable seam behind [SleepTrackingService.startTrackingForeground]'s
  * SDK-conditional branch selection (locked in by StartForegroundBranchSelectionTest). The
  * two-arg-vs-three-arg overload dispatch itself is guarded by [Build.VERSION.SDK_INT] at the
  * call site, because lint's NewApi check requires an explicit SDK guard on the three-arg call.
  *
- *  - API 26-28 (below Q): returns [START_FOREGROUND_TWO_ARG] — the two-arg overload must be used.
+ *  - API 26-28 (below Q): returns [START_FOREGROUND_TWO_ARG] - the two-arg overload must be used.
  *    The call site dispatches the two-arg path via its own SDK_INT guard (lint's NewApi check
- *    requires it), so this branch is deliberately redundant — kept so the full decision table
+ *    requires it), so this branch is deliberately redundant - kept so the full decision table
  *    stays locked in by StartForegroundBranchSelectionTest. Do not remove it as "dead".
  *  - API 29-33 (Q..Tiramisu): returns 0, meaning "use the manifest-declared types". FGS types had
  *    no runtime-permission enforcement before API 34, so this can never throw for the type.
  *  - API 34+ (UpsideDownCake): returns the permission-derived mask from [foregroundServiceTypeMask]
- *    — only claiming types whose runtime permission is actually held, falling back to the
+ *    - only claiming types whose runtime permission is actually held, falling back to the
  *    permission-free "specialUse" type when none are granted.
  *
  * Android 14+ (targetSdk 34+) enforces the mask at startForeground() time: the two-arg overload
  * throws MissingForegroundServiceTypeException when the manifest declares multiple types, and the
  * three-arg overload throws SecurityException when a claimed type's runtime permission isn't held
  * ("health" requires BODY_SENSORS, "microphone" requires RECORD_AUDIO). BODY_SENSORS is only
- * granted if the user opted in during onboarding, so the service must never assume it — it must
+ * granted if the user opted in during onboarding, so the service must never assume it - it must
  * only ever claim the types it can prove it holds, falling back to the permission-free
  * "specialUse" type when none are granted.
  */

@@ -10,13 +10,13 @@ import org.junit.runner.RunWith
  * AUDIO-02: validates YAMNet's classification accuracy for snore/cough/talk against the existing
  * ZCR heuristic, on a labeled corpus, before YAMNet can replace the heuristic in production.
  *
- * Corpus layout — real recordings, any format the device's codecs can decode (mp3/m4a/wav/ogg),
+ * Corpus layout - real recordings, any format the device's codecs can decode (mp3/m4a/wav/ogg),
  * placed at:
  *
  *     core/audio/src/androidTest/assets/audio_corpus/<label>/ (one or more audio files, any extension)
  *
  * where `<label>` is one of `snore`, `cough`, `talk`, `silence`. Each file's *whole* content is
- * treated as one example of its folder's label — trim clips so they don't start with several
+ * treated as one example of its folder's label - trim clips so they don't start with several
  * seconds of something else. 5-15 seconds per clip, a handful per label, is enough to see whether
  * the mapping is directionally sound.
  *
@@ -25,7 +25,7 @@ import org.junit.runner.RunWith
  * Read the result with:
  *   adb logcat -d -s AudioAccuracyHarness:I
  *
- * If `audio_corpus/` is empty or missing, this reports that plainly and does nothing else — it is
+ * If `audio_corpus/` is empty or missing, this reports that plainly and does nothing else - it is
  * not a substitute for having real recordings.
  */
 @RunWith(AndroidJUnit4::class)
@@ -54,13 +54,13 @@ class AudioAccuracyHarnessTest {
         if (corpusLabels.isEmpty()) {
             android.util.Log.w(
                 TAG,
-                "No corpus found under assets/$CORPUS_ROOT/{${LABELS.joinToString(",")}} — " +
+                "No corpus found under assets/$CORPUS_ROOT/{${LABELS.joinToString(",")}} - " +
                     "nothing to validate. This is not a pass; AUDIO-02 needs real clips added there."
             )
             return
         }
 
-        val yamnetClassifier = YamnetAudioClassifier(context)
+        val yamnetClassifier = YamnetAudioClassifier(YamnetTestData.modelFile(context))
         val predictions = mutableListOf<Prediction>()
 
         try {
@@ -97,7 +97,7 @@ class AudioAccuracyHarnessTest {
         }
 
         if (predictions.isEmpty()) {
-            android.util.Log.w(TAG, "Corpus folders existed but every file failed to decode — no results")
+            android.util.Log.w(TAG, "Corpus folders existed but every file failed to decode - no results")
             return
         }
 
@@ -119,8 +119,8 @@ class AudioAccuracyHarnessTest {
     }
 
     /**
-     * Feeds the clip through a fresh [AudioEventClassifier] in 1-second buffers — the same size
-     * [AudioCollector] uses live — then appends one silent buffer so a clip that stays loud right to
+     * Feeds the clip through a fresh [AudioEventClassifier] in 1-second buffers - the same size
+     * [AudioCollector] uses live - then appends one silent buffer so a clip that stays loud right to
      * the end still closes out its final event (the classifier only emits on a loud-to-quiet
      * transition; without this, a clip with no trailing silence would never report anything).
      */

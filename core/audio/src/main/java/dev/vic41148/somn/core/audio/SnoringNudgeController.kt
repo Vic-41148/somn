@@ -14,7 +14,7 @@ class SnoringNudgeController(private val context: Context) {
     companion object {
         /**
          * Continuous snoring produces a new classified SNORE event roughly once per breath
-         * (every few seconds) — nudge() had no rate limiting at all, so a single snoring bout
+         * (every few seconds) - nudge() had no rate limiting at all, so a single snoring bout
          * would vibrate the phone almost continuously all night instead of the intended
          * occasional "gentle nudge." A cooldown gives each nudge a real chance to work (person
          * shifts position/quiets down) before nudging again if snoring is still ongoing.

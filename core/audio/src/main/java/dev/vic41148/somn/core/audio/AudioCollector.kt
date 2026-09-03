@@ -23,7 +23,7 @@ class AudioCollector(private val context: Context) {
     private val _audioFlow = MutableSharedFlow<ShortArray>(extraBufferCapacity = 10)
     val audioFlow: Flow<ShortArray> = _audioFlow.asSharedFlow()
 
-    /** Fires if [start] fails to initialize the microphone — otherwise a night's worth of audio events silently never happens with no signal to the rest of the app. */
+    /** Fires if [start] fails to initialize the microphone - otherwise a night's worth of audio events silently never happens with no signal to the rest of the app. */
     private val _recordingFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val recordingFailed: Flow<Unit> = _recordingFailed.asSharedFlow()
 

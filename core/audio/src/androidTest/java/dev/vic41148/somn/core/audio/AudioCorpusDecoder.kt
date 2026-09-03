@@ -8,13 +8,13 @@ import java.nio.ByteOrder
 import kotlin.math.roundToInt
 
 /**
- * Decodes an arbitrary audio asset (mp3, m4a, wav, ogg — whatever the device's codecs support) to
+ * Decodes an arbitrary audio asset (mp3, m4a, wav, ogg - whatever the device's codecs support) to
  * mono 16kHz PCM16, which is what both [AudioEventClassifier]/[AudioCollector] and
  * [YamnetAudioClassifier] assume.
  *
  * Exists only for [AudioAccuracyHarnessTest] (AUDIO-02): a labeled corpus is realistically recorded
  * on a phone's own voice-memo app, whatever format that happens to export, not hand-converted to a
- * specific PCM container — MediaCodec's job is normally exactly this kind of format normalization.
+ * specific PCM container - MediaCodec's job is normally exactly this kind of format normalization.
  */
 object AudioCorpusDecoder {
 
@@ -99,7 +99,7 @@ object AudioCorpusDecoder {
         }
     }
 
-    /** Linear interpolation — accurate enough for classification input, not for playback quality. */
+    /** Linear interpolation - accurate enough for classification input, not for playback quality. */
     private fun resample(input: ShortArray, fromRate: Int, toRate: Int): ShortArray {
         if (input.isEmpty() || fromRate == toRate) return input
         val ratio = toRate.toDouble() / fromRate.toDouble()

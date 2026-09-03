@@ -40,7 +40,7 @@ class AccelerometerCollector(context: Context) : SensorEventListener {
     val liftEvents: Flow<LiftEvent> = liftEventChannel.receiveAsFlow()
 
     // registerListener() with no Handler dispatches onSensorChanged on the calling thread's
-    // Looper — for a foreground service that's the main thread, so a whole night of 10Hz
+    // Looper - for a foreground service that's the main thread, so a whole night of 10Hz
     // accelerometer callbacks would otherwise contend with the UI thread whenever the app is
     // in the foreground. A dedicated background thread keeps sensor processing off it.
     private var handlerThread: HandlerThread? = null

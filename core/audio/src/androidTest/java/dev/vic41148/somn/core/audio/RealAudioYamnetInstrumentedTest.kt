@@ -11,12 +11,12 @@ import org.junit.runner.RunWith
 /**
  * TEMPORARY, manual-only check for Task 14's real acceptance criterion: "verified by manual
  * testing with real audio (e.g. deliberately snoring/coughing/talking near the phone during a
- * test session) — not that it's more accurate than the heuristic, just that it functions."
+ * test session) - not that it's more accurate than the heuristic, just that it functions."
  *
  * [YamnetAudioClassifierInstrumentedTest] only proves the interpreter runs on synthetic tones.
  * This records ~10 seconds of real mic input in YAMNet-sized windows and logs each window's top
  * class, so a person can talk/cough/fake-snore at the phone during the run and read the result
- * off logcat. Not a pass/fail test — there is nothing to assert without a labeled recording, which
+ * off logcat. Not a pass/fail test - there is nothing to assert without a labeled recording, which
  * is exactly what AUDIO-02 (still open) will add.
  *
  * RECORD_AUDIO is a runtime-dangerous permission, so grant it to the test APK before running:
@@ -50,12 +50,12 @@ class RealAudioYamnetInstrumentedTest {
             AudioFormat.ENCODING_PCM_16BIT,
             maxOf(minBufferSize, YamnetAudioClassifier.WINDOW_SAMPLE_COUNT * 2)
         )
-        val classifier = YamnetAudioClassifier(context)
+        val classifier = YamnetAudioClassifier(YamnetTestData.modelFile(context))
 
         try {
             check(audioRecord.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord failed to initialize" }
             audioRecord.startRecording()
-            android.util.Log.i(TAG, "=== Recording started — talk / cough / fake-snore now ===")
+            android.util.Log.i(TAG, "=== Recording started - talk / cough / fake-snore now ===")
 
             val window = ShortArray(YamnetAudioClassifier.WINDOW_SAMPLE_COUNT)
             for (i in 1..WINDOW_COUNT) {

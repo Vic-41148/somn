@@ -1,46 +1,43 @@
 package dev.vic41148.somn.core.audio
 
-import android.content.Context
 import dev.vic41148.somn.core.domain.model.AudioEventType
 import org.tensorflow.lite.Interpreter
+import java.io.File
+import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
 /**
- * On-device audio classification via YAMNet (AudioSet-trained TFLite model bundled at
- * `assets/yamnet.tflite`), as an alternative to [AudioEventClassifier]'s ZCR heuristic
- * (AUDIO-01 first pass — see TASKS.md Task 14).
+ * On-device audio classification via YAMNet (AudioSet-trained TFLite model), as an alternative to
+ * [AudioEventClassifier]'s ZCR heuristic (AUDIO-01 first pass - see TASKS.md Task 14).
+ *
+ * The model is NOT bundled in the APK anymore - it is downloaded on first use, consent-gated, and
+ * checksum-verified into `context.filesDir` by `core:data`'s YamnetModelRepository (store-channel
+ * policy plus a ~4MB reduction on every download). Load here from the on-disk [modelFile].
  *
  * YAMNet expects 16kHz mono, ~0.975s windows (15,600 samples). [AudioCollector.SAMPLE_RATE]
- * is already 16000, so no resampling is needed — only windowing/padding.
+ * is already 16000, so no resampling is needed - only windowing/padding.
  *
  * Not validated for accuracy against a real audio corpus (AUDIO-02) and not soak-tested for
- * battery/thermal impact (AUDIO-03) — those are explicitly separate, still-open follow-ups.
+ * battery/thermal impact (AUDIO-03) - those are explicitly separate, still-open follow-ups.
  * This class only proves inference runs and produces a classification.
  */
-class YamnetAudioClassifier(context: Context) {
+class YamnetAudioClassifier(modelFile: File) {
 
     private val interpreter: Interpreter
 
     init {
-        val assetFileDescriptor = context.assets.openFd(MODEL_ASSET_NAME)
-        val modelBuffer: MappedByteBuffer = assetFileDescriptor.use { afd ->
-            FileInputStreamCompat(afd).use { stream ->
-                stream.channel.map(
-                    FileChannel.MapMode.READ_ONLY,
-                    afd.startOffset,
-                    afd.declaredLength
-                )
-            }
+        val modelBuffer: MappedByteBuffer = RandomAccessFile(modelFile, "r").use { raf ->
+            raf.channel.map(FileChannel.MapMode.READ_ONLY, 0, raf.length())
         }
         interpreter = Interpreter(modelBuffer)
     }
 
     /**
      * Classifies one audio buffer. Returns null if the buffer is silent/empty, or if the
-     * top-scoring class isn't one [YamnetLabels] maps to a Somn [AudioEventType] — callers
+     * top-scoring class isn't one [YamnetLabels] maps to a Somn [AudioEventType] - callers
      * should treat null as "no opinion", not as a negative result, and may fall back to
      * another signal (e.g. the ZCR heuristic).
      */
@@ -58,7 +55,7 @@ class YamnetAudioClassifier(context: Context) {
         return YamnetLabels.classNameToAudioEventType(className)
     }
 
-    /** Raw top-scoring class name/score from the most recent [classify] call — exposed only for logging/debugging (e.g. the on-device smoke test), not used in the classification decision itself. */
+    /** Raw top-scoring class name/score from the most recent [classify] call - exposed only for logging/debugging (e.g. the on-device smoke test), not used in the classification decision itself. */
     var lastTopClassName: String? = null
         private set
     var lastTopScore: Float = 0f
@@ -69,13 +66,14 @@ class YamnetAudioClassifier(context: Context) {
     }
 
     companion object {
-        const val MODEL_ASSET_NAME = "yamnet.tflite"
+        /** On-disk model file name (filesDir-relative), shared with [dev.vic41148.somn.core.data.model.YamnetModelRepository]. */
+        const val MODEL_FILE_NAME = "yamnet.tflite"
         const val WINDOW_SAMPLE_COUNT = 15_600 // ~0.975s @ 16kHz, YAMNet's expected input size
 
         /**
          * Converts 16-bit PCM samples to YAMNet's expected input: a single [-1, 1] normalized
          * Float32 window of exactly [WINDOW_SAMPLE_COUNT] samples. Longer buffers are truncated
-         * to the first window; shorter ones are zero-padded. Pure function — testable without
+         * to the first window; shorter ones are zero-padded. Pure function - testable without
          * TFLite or a device.
          */
         fun toYamnetInput(buffer: ShortArray): Array<FloatArray> {
@@ -88,13 +86,5 @@ class YamnetAudioClassifier(context: Context) {
         }
 
         private const val SHORT_TO_FLOAT_SCALE = 32768f
-    }
-}
-
-/** Thin wrapper so [android.content.res.AssetFileDescriptor]'s FileDescriptor can be closed via `use{}`. */
-private class FileInputStreamCompat(afd: android.content.res.AssetFileDescriptor) : AutoCloseable {
-    val channel: FileChannel = java.io.FileInputStream(afd.fileDescriptor).channel
-    override fun close() {
-        channel.close()
     }
 }

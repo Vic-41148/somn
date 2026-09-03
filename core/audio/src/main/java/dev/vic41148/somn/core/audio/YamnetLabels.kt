@@ -27,7 +27,7 @@ object YamnetLabels {
     )
 
     /**
-     * Other sleep-relevant but not-cleanly-categorized breathing/vocal sounds — surfaced as
+     * Other sleep-relevant but not-cleanly-categorized breathing/vocal sounds - surfaced as
      * ANOMALY rather than silently dropped, since gasping/wheezing during sleep is exactly the
      * kind of event this feature exists to catch.
      */
@@ -37,7 +37,7 @@ object YamnetLabels {
 
     /**
      * Maps a YAMNet class name to Somn's [AudioEventType], or null if the class isn't one
-     * this feature cares about (e.g. "Silence", "Music", "Vehicle") — callers should fall back
+     * this feature cares about (e.g. "Silence", "Music", "Vehicle") - callers should fall back
      * to another signal (e.g. the existing ZCR heuristic) rather than treat null as ANOMALY.
      */
     fun classNameToAudioEventType(className: String): AudioEventType? = when (className) {

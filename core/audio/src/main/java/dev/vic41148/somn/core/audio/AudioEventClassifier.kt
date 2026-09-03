@@ -10,9 +10,9 @@ import kotlin.math.sqrt
  * Classifies audio buffers into AudioEvent items.
  * Uses Zero-Crossing Rate (ZCR) alongside duration for classification.
  *
- * @param yamnetClassify optional YAMNet-backed classifier (Task 14, AUDIO-01) — when provided,
+ * @param yamnetClassify optional YAMNet-backed classifier (Task 14, AUDIO-01) - when provided,
  * the finished event's audio is classified by YAMNet first; the ZCR heuristic below only runs
- * as a fallback when YAMNet returns null (silence, or a class this feature doesn't map — see
+ * as a fallback when YAMNet returns null (silence, or a class this feature doesn't map - see
  * [YamnetLabels.classNameToAudioEventType]). Kept as a plain lambda rather than a direct
  * [YamnetAudioClassifier] dependency so this class stays Android/TFLite-free and unit-testable.
  */
