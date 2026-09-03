@@ -52,6 +52,10 @@ class SleepRepository @Inject constructor(
         sessionDao.update(session.toEntity())
     }
 
+    suspend fun insertManualSession(session: SleepSession) {
+        sessionDao.insert(session.toEntity())
+    }
+
     suspend fun deleteSession(session: SleepSession) {
         val events = getAudioEvents(session.id)
         events.forEach { event ->

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
@@ -58,6 +59,7 @@ fun HistoryScreen(
     onSessionClick: (Long) -> Unit,
     onNavigateToCircadian: () -> Unit,
     onNavigateToTrends: () -> Unit,
+    onAddManualSession: () -> Unit,
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val allSessions by viewModel.sessions.collectAsState()
@@ -92,18 +94,22 @@ fun HistoryScreen(
     androidx.compose.material3.Scaffold(
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
-            if (selectedIds.isNotEmpty()) {
-                androidx.compose.material3.TopAppBar(
-                    title = { Text("${selectedIds.size} Selected") },
-                    navigationIcon = {
+            androidx.compose.material3.TopAppBar(
+                title = {
+                    Text(if (selectedIds.isNotEmpty()) "${selectedIds.size} Selected" else "History")
+                },
+                navigationIcon = {
+                    if (selectedIds.isNotEmpty()) {
                         IconButton(onClick = { viewModel.clearBulkSelection() }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Clear"
                             )
                         }
-                    },
-                    actions = {
+                    }
+                },
+                actions = {
+                    if (selectedIds.isNotEmpty()) {
                         IconButton(onClick = { viewModel.deleteSelectedSessions() }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
@@ -116,9 +122,16 @@ fun HistoryScreen(
                                 contentDescription = "Export"
                             )
                         }
+                    } else {
+                        IconButton(onClick = onAddManualSession) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add manual entry"
+                            )
+                        }
                     }
-                )
-            }
+                }
+            )
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {

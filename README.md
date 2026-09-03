@@ -131,7 +131,7 @@ The APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 ### Tests
 
 ```bash
-./gradlew testDebugUnitTest   # 193 unit tests
+./gradlew testDebugUnitTest   # 204 unit tests
 ./gradlew lintDebug           # Android Lint
 ```
 
