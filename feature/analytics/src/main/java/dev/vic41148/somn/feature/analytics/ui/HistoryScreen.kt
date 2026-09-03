@@ -135,26 +135,46 @@ fun HistoryScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            // Session type filter chips (SESS-02) — lets users view naps/commute/shift separately.
+            // Session type filter dropdown
             if (allSessions.isNotEmpty()) {
-                Row(
+                var expanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    FilterChip(
-                        selected = selectedTypeFilter == null,
-                        onClick = { selectedTypeFilter = null },
-                        label = { Text("All") }
+                    OutlinedTextField(
+                        value = selectedTypeFilter?.displayName ?: "All Sessions",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Filter by Session Type") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
                     )
-                    SessionType.entries.forEach { type ->
-                        FilterChip(
-                            selected = selectedTypeFilter == type,
-                            onClick = { selectedTypeFilter = type },
-                            label = { Text(type.displayName) }
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("All Sessions") },
+                            onClick = {
+                                selectedTypeFilter = null
+                                expanded = false
+                            }
                         )
+                        SessionType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.displayName) },
+                                onClick = {
+                                    selectedTypeFilter = type
+                                    expanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }

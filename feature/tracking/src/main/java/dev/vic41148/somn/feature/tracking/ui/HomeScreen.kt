@@ -22,9 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,6 +49,7 @@ import dev.vic41148.somn.feature.habits.HabitViewModel
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 import dev.vic41148.somn.feature.tracking.service.TrackingState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToTracking: () -> Unit,
@@ -158,18 +157,36 @@ fun HomeScreen(
         var selectedSessionType by remember {
             mutableStateOf(dev.vic41148.somn.core.domain.model.SessionType.MAIN_SLEEP)
         }
+        var expanded by remember { mutableStateOf(false) }
         AnimatedVisibility(visible = trackingState == TrackingState.IDLE, enter = fadeIn(), exit = fadeOut()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                dev.vic41148.somn.core.domain.model.SessionType.entries.forEach { type ->
-                    androidx.compose.material3.FilterChip(
-                        selected = selectedSessionType == type,
-                        onClick = { selectedSessionType = type },
-                        label = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.weight(1f)
-                    )
+                OutlinedTextField(
+                    value = selectedSessionType.displayName,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Session Type") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    dev.vic41148.somn.core.domain.model.SessionType.entries.forEach { type ->
+                        DropdownMenuItem(
+                            text = { Text(type.displayName) },
+                            onClick = {
+                                selectedSessionType = type
+                                expanded = false
+                            }
+                        )
+                    }
                 }
             }
         }
