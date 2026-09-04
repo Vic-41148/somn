@@ -6,11 +6,15 @@ import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
+import dev.vic41148.somn.core.domain.usecase.ReportSummary
+import dev.vic41148.somn.core.domain.usecase.summarizeSessions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +27,27 @@ class AnalyticsViewModel @Inject constructor(
 
     val sessions = sleepRepository.observeCompletedSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Report range in days; null = all history. Defaults to 30 so the header reads as "recent". */
+    private val _rangeDays = MutableStateFlow<Int?>(30)
+    val rangeDays: StateFlow<Int?> = _rangeDays.asStateFlow()
+
+    fun selectRange(days: Int?) {
+        _rangeDays.value = days
+    }
+
+    /** Sessions inside the selected range, newest first — drives both the header stats and the list. */
+    val rangedSessions: StateFlow<List<SleepSession>> = combine(sessions, rangeDays) { list, days ->
+        if (days == null) list
+        else {
+            val cutoff = System.currentTimeMillis() - days * 24 * 60 * 60 * 1000L
+            list.filter { it.startTimeMillis >= cutoff }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Aggregate stats for the selected range; null = empty range, caller shows empty state. */
+    val summary: StateFlow<ReportSummary?> = rangedSessions.map { summarizeSessions(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _selectedSession = MutableStateFlow<SleepSession?>(null)
     val selectedSession: StateFlow<SleepSession?> = _selectedSession.asStateFlow()

@@ -42,9 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.DebtLevel
 import dev.vic41148.somn.core.domain.model.SleepDebt
+import dev.vic41148.somn.core.domain.usecase.formatDurationShort
+import dev.vic41148.somn.core.domain.usecase.summarizeSessions
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
+import dev.vic41148.somn.core.ui.components.StatRing
+import dev.vic41148.somn.core.ui.theme.scoreColor
 import dev.vic41148.somn.feature.habits.HabitViewModel
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 import dev.vic41148.somn.feature.tracking.service.TrackingState
@@ -63,7 +67,13 @@ fun HomeScreen(
     val trackingState by viewModel.trackingState.collectAsState()
     val lastSession by viewModel.lastSession.collectAsState()
     val lastScore by viewModel.lastScore.collectAsState()
+    val recentSessions by viewModel.recentSessions.collectAsState()
     val sleepDebt by habitViewModel.sleepDebt.collectAsState()
+    // 7-day rollup for the rings — same math History's header uses, so the numbers agree.
+    val weekSummary = remember(recentSessions) {
+        val cutoff = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
+        summarizeSessions(recentSessions.filter { it.startTimeMillis >= cutoff })
+    }
 
     Column(
         modifier = Modifier
@@ -326,6 +336,36 @@ fun HomeScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+        }
+
+        // This week — per-stat rings so each stat's current state reads at a glance.
+        weekSummary?.let { summary ->
+            Spacer(modifier = Modifier.height(16.dp))
+            SleepCard(title = "This Week") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatRing(
+                        label = "Score",
+                        value = "${summary.avgScore}",
+                        fraction = summary.avgScore / 100f,
+                        color = scoreColor(summary.avgScore)
+                    )
+                    StatRing(
+                        label = "Sleep",
+                        value = formatDurationShort(summary.avgDurationMinutes),
+                        fraction = (summary.avgDurationMinutes / 480f).coerceIn(0f, 1f),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    StatRing(
+                        label = "Efficiency",
+                        value = "${summary.avgEfficiencyPercent}%",
+                        fraction = summary.avgEfficiencyPercent / 100f,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
         }
 

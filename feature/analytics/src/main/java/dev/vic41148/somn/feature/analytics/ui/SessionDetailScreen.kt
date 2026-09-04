@@ -3,6 +3,7 @@ package dev.vic41148.somn.feature.analytics.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -111,33 +112,26 @@ fun SessionDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Metrics
+            // Metrics — uniform 3-column grid so every stat reads at the same weight.
             SleepCard(title = "Sleep Metrics") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    val hours = session.sleepDurationMinutes / 60
-                    val mins = session.sleepDurationMinutes % 60
-                    MetricChip(label = "Duration", value = "${hours}h ${mins}m")
-                    MetricChip(label = "In Bed", value = "${session.timeInBedMinutes / 60}h ${session.timeInBedMinutes % 60}m")
+                val hours = session.sleepDurationMinutes / 60
+                val mins = session.sleepDurationMinutes % 60
+                MetricGridRow {
+                    MetricChip(label = "Duration", value = "${hours}h ${mins}m", modifier = Modifier.weight(1f))
+                    MetricChip(label = "In Bed", value = "${session.timeInBedMinutes / 60}h ${session.timeInBedMinutes % 60}m", modifier = Modifier.weight(1f))
+                    MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%", modifier = Modifier.weight(1f))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%")
-                    MetricChip(label = "Onset", value = "${session.sleepOnsetMinutes}min")
+                MetricGridRow {
+                    MetricChip(label = "Onset", value = "${session.sleepOnsetMinutes}min", modifier = Modifier.weight(1f))
+                    MetricChip(label = "Deep", value = "${session.deepSleepPercent.toInt()}%", modifier = Modifier.weight(1f))
+                    MetricChip(label = "REM", value = "${session.remSleepPercent.toInt()}%", modifier = Modifier.weight(1f))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    MetricChip(label = "Deep", value = "${session.deepSleepPercent.toInt()}%")
-                    MetricChip(label = "Light", value = "${session.lightSleepPercent.toInt()}%")
-                    MetricChip(label = "Wakes", value = "${session.wakeEvents}")
+                MetricGridRow {
+                    MetricChip(label = "Light", value = "${session.lightSleepPercent.toInt()}%", modifier = Modifier.weight(1f))
+                    MetricChip(label = "Wakes", value = "${session.wakeEvents}", modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
 
@@ -297,6 +291,19 @@ fun SessionDetailScreen(
             }
         }
     }
+}
+
+/**
+ * One row of the metrics grid — SpaceEvenly used to leave the same gutters the old rows had,
+ * weights keep the chips equal width.
+ */
+@Composable
+private fun MetricGridRow(content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        content = content
+    )
 }
 
 /**

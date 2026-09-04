@@ -9,13 +9,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import dev.vic41148.somn.core.ui.theme.CycleFollicular
 import dev.vic41148.somn.core.ui.theme.CycleLuteal
 import dev.vic41148.somn.core.ui.theme.CycleMenstrual
@@ -31,7 +34,13 @@ import dev.vic41148.somn.core.ui.components.TrendBand
 import dev.vic41148.somn.core.ui.components.TrendLineChart
 import dev.vic41148.somn.core.ui.components.TrendPoint
 import dev.vic41148.somn.feature.analytics.TrendMetric
+import dev.vic41148.somn.feature.analytics.TrendStats
 import dev.vic41148.somn.feature.analytics.TrendsViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private val trendDateFormat = SimpleDateFormat("d MMM", Locale.getDefault())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,8 +48,10 @@ fun TrendsScreen(
     onBack: () -> Unit,
     viewModel: TrendsViewModel = hiltViewModel()
 ) {
-    val sessions by viewModel.sessions.collectAsState()
+    val sessions by viewModel.rangedSessions.collectAsState()
     val selectedMetric by viewModel.selectedMetric.collectAsState()
+    val rangeDays by viewModel.rangeDays.collectAsState()
+    val stats by viewModel.trendStats.collectAsState()
     val cyclePhaseRuns by viewModel.cyclePhaseRuns.collectAsState()
     val deepSleepTargetPercent by viewModel.deepSleepTargetPercent.collectAsState()
     val deepTarget = deepSleepTargetPercent
@@ -108,7 +119,18 @@ fun TrendsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            SleepCard(title = selectedMetric.displayName) {
+            TrendRangeRow(
+                selectedDays = rangeDays,
+                onSelect = { viewModel.selectRange(it) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            stats?.let { TrendStatsCard(stats = it, metric = selectedMetric) }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SleepCard(title = "${selectedMetric.displayName} · ${stats?.nights ?: sessions.size} nights") {
                 val points = sessions.map {
                     TrendPoint(it.startTimeMillis, viewModel.valueFor(it, selectedMetric))
                 }
@@ -139,7 +161,12 @@ fun TrendsScreen(
                     series = listOf(points),
                     lineColors = listOf(MaterialTheme.colorScheme.primary),
                     bands = bands,
-                    height = 220.dp
+                    height = 220.dp,
+                    yLabel = { value -> formatAxisValue(value, selectedMetric) },
+                    xLabels = listOf(
+                        trendDateFormat.format(Date(sessions.first().startTimeMillis)),
+                        trendDateFormat.format(Date(sessions.last().startTimeMillis))
+                    )
                 )
                 if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
                     Text(
@@ -159,6 +186,81 @@ fun TrendsScreen(
     }
 }
 
+private fun formatAxisValue(value: Float, metric: TrendMetric): String = when (metric) {
+    TrendMetric.SCORE -> "${value.toInt()}"
+    TrendMetric.DURATION_HOURS -> "${value.toInt()}h"
+    TrendMetric.EFFICIENCY -> "${value.toInt()}%"
+    TrendMetric.DEEP_PERCENT -> "${value.toInt()}%"
+    TrendMetric.REM_PERCENT -> "${value.toInt()}%"
+}
+
+@Composable
+private fun TrendRangeRow(
+    selectedDays: Int?,
+    onSelect: (Int?) -> Unit
+) {
+    val options = listOf(7 to "Week", 30 to "Month", 90 to "3 mo", null to "All")
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { (days, label) ->
+            FilterChip(
+                selected = selectedDays == days,
+                onClick = { onSelect(days) },
+                label = { Text(label) }
+            )
+        }
+    }
+}
+
+/** Headline numbers above the chart — the screen used to show a bare line with no values. */
+@Composable
+private fun TrendStatsCard(stats: TrendStats, metric: TrendMetric) {
+    SleepCard(title = "Now vs average") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            TrendMiniStat(value = stats.current, label = "Latest")
+            TrendMiniStat(value = stats.average, label = "Average")
+            TrendMiniStat(value = stats.best, label = "Best")
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = stats.delta,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (stats.deltaPositive) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = "Change",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendMiniStat(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
 /** DATA-04: low-alpha so the band reads as context behind the line, not a competing focal color. */
 private fun MenstrualCyclePhase.toBandColor(): Color = when (this) {
     MenstrualCyclePhase.MENSTRUAL -> CycleMenstrual.copy(alpha = 0.18f)

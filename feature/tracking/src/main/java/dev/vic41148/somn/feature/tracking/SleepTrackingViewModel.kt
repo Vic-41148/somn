@@ -66,6 +66,10 @@ class SleepTrackingViewModel @Inject constructor(
     val activeSession = sleepRepository.observeActiveSession()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /** Completed sessions for the Home "This week" rings — same source History summarizes. */
+    val recentSessions: StateFlow<List<SleepSession>> = sleepRepository.observeCompletedSessions()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         checkIncompleteSession()
         loadLastSession()

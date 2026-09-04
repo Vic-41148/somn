@@ -39,9 +39,13 @@ import androidx.compose.material3.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.SessionType
 import dev.vic41148.somn.core.ui.components.ColorLegendItem
+import dev.vic41148.somn.core.ui.components.SleepCard
+import dev.vic41148.somn.core.ui.components.StatRing
 import dev.vic41148.somn.core.ui.theme.ScoreTier
 import dev.vic41148.somn.core.ui.theme.scoreColor
 import dev.vic41148.somn.core.domain.model.SleepSession
+import dev.vic41148.somn.core.domain.usecase.ReportSummary
+import dev.vic41148.somn.core.domain.usecase.formatDurationShort
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,10 +67,13 @@ fun HistoryScreen(
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val allSessions by viewModel.sessions.collectAsState()
+    val rangedSessions by viewModel.rangedSessions.collectAsState()
+    val summary by viewModel.summary.collectAsState()
+    val rangeDays by viewModel.rangeDays.collectAsState()
     var selectedTypeFilter by remember { mutableStateOf<SessionType?>(null) }
-    val sessions = remember(allSessions, selectedTypeFilter) {
-        if (selectedTypeFilter == null) allSessions
-        else allSessions.filter { it.sessionType == selectedTypeFilter }
+    val sessions = remember(rangedSessions, selectedTypeFilter) {
+        if (selectedTypeFilter == null) rangedSessions
+        else rangedSessions.filter { it.sessionType == selectedTypeFilter }
     }
     val selectedIds by viewModel.selectedSessionIds.collectAsState()
     val exportProgress by viewModel.exportProgress.collectAsState()
@@ -135,6 +142,23 @@ fun HistoryScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
+            // Range selector — stats header and list both follow this.
+            ReportRangeRow(
+                selectedDays = rangeDays,
+                onSelect = { viewModel.selectRange(it) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            // Summary header: the actual "report" — averages, streak and best over the range.
+            summary?.let {
+                SummaryCard(
+                    summary = it,
+                    rangeLabel = rangeLabel(rangeDays),
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // Session type filter dropdown
             if (allSessions.isNotEmpty()) {
                 var expanded by remember { mutableStateOf(false) }
@@ -188,7 +212,11 @@ fun HistoryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (allSessions.isEmpty()) "No sleep data yet" else "No ${selectedTypeFilter?.displayName} sessions yet",
+                        text = when {
+                            allSessions.isEmpty() -> "No sleep data yet"
+                            rangedSessions.isEmpty() -> "No sessions in this range — try a wider range"
+                            else -> "No ${selectedTypeFilter?.displayName} sessions yet"
+                        },
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -253,6 +281,100 @@ fun HistoryScreen(
                 }
             }
         }
+    }
+}
+
+private fun rangeLabel(days: Int?): String = when (days) {
+    7 -> "Last 7 days"
+    30 -> "Last 30 days"
+    90 -> "Last 90 days"
+    else -> "All time"
+}
+
+@Composable
+private fun ReportRangeRow(
+    selectedDays: Int?,
+    onSelect: (Int?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf(7 to "Week", 30 to "Month", 90 to "3 mo", null to "All")
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        options.forEach { (days, label) ->
+            FilterChip(
+                selected = selectedDays == days,
+                onClick = { onSelect(days) },
+                label = { Text(label) }
+            )
+        }
+    }
+}
+
+/** Header "report": average rings plus streak/best/total so the screen answers the question. */
+@Composable
+private fun SummaryCard(
+    summary: ReportSummary,
+    rangeLabel: String,
+    modifier: Modifier = Modifier
+) {
+    SleepCard(title = rangeLabel, modifier = modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatRing(
+                label = "Avg score",
+                value = "${summary.avgScore}",
+                fraction = summary.avgScore / 100f,
+                color = scoreColor(summary.avgScore)
+            )
+            StatRing(
+                label = "Avg sleep",
+                value = formatDurationShort(summary.avgDurationMinutes),
+                fraction = (summary.avgDurationMinutes / 480f).coerceIn(0f, 1f),
+                color = MaterialTheme.colorScheme.primary
+            )
+            StatRing(
+                label = "Efficiency",
+                value = "${summary.avgEfficiencyPercent}%",
+                fraction = summary.avgEfficiencyPercent / 100f,
+                color = MaterialTheme.colorScheme.tertiary
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            SummaryMiniStat(value = "${summary.nights}", label = "Nights")
+            SummaryMiniStat(value = "${summary.streakNights}", label = "Night streak")
+            SummaryMiniStat(value = "${summary.bestScore}", label = "Best score")
+            SummaryMiniStat(
+                value = (if (summary.scoreDelta >= 0) "+" else "") + "${summary.scoreDelta}",
+                label = "Trend"
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryMiniStat(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

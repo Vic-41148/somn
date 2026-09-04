@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -14,8 +15,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
@@ -52,7 +58,11 @@ fun TrendLineChart(
     height: Dp = 180.dp,
     lineColors: List<Color> = emptyList(),
     bands: List<TrendBand> = emptyList(),
-    strokeWidthDp: Dp = 3.dp
+    strokeWidthDp: Dp = 3.dp,
+    /** Formats a Y value for the axis labels — callers pass metric-aware formatting. */
+    yLabel: (Float) -> String = { it.toInt().toString() },
+    /** [first, last] date captions drawn under the chart's left/right edges. */
+    xLabels: List<String> = emptyList()
 ) {
     val allPoints = series.flatten()
     if (allPoints.isEmpty()) return
@@ -80,11 +90,21 @@ fun TrendLineChart(
     // screen for any real amount of trend data.
     val sortedSeries = remember(series) { series.map { it.sortedBy { point -> point.timestampMillis } } }
 
+    val textMeasurer = rememberTextMeasurer()
+    val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
     ) {
+        val labelStyle = TextStyle(color = axisColor, fontSize = 11.sp)
+        // Reserve room for the Y labels on the left and date captions at the bottom.
+        val yGutter = 40.dp.toPx()
+        val xGutter = if (xLabels.isNotEmpty()) 18.dp.toPx() else 0f
+        val plotWidth = (size.width - yGutter).coerceAtLeast(1f)
+        val plotHeight = (size.height - xGutter).coerceAtLeast(1f)
         val xSpan = (maxX - minX).coerceAtLeast(1L).toFloat()
         val ySpan = (maxY - minY).coerceAtLeast(0.0001f)
         val animatedProgress = progress.value
@@ -93,10 +113,48 @@ fun TrendLineChart(
         val bandAlpha = (animatedProgress / 0.35f).coerceIn(0f, 1f)
 
         fun xFor(timestampMillis: Long): Float =
-            ((timestampMillis - minX).toFloat() / xSpan) * size.width
+            yGutter + ((timestampMillis - minX).toFloat() / xSpan) * plotWidth
 
         fun yFor(value: Float): Float =
-            size.height - ((value - minY) / ySpan) * size.height
+            plotHeight - ((value - minY) / ySpan) * plotHeight
+
+        // Horizontal gridlines + Y labels at min/mid/max so the line's scale reads at a glance.
+        // Previously the chart drew a bare line with no scale at all — a 47-to-36 drop looked
+        // identical to a 90-to-85 one.
+        val gridValues = listOf(minY, (minY + maxY) / 2f, maxY)
+        for (gridValue in gridValues) {
+            val y = yFor(gridValue)
+            drawLine(
+                color = gridColor,
+                start = Offset(x = yGutter, y = y),
+                end = Offset(x = size.width, y = y),
+                strokeWidth = 1.dp.toPx()
+            )
+            val measured = textMeasurer.measure(text = yLabel(gridValue), style = labelStyle)
+            drawText(
+                textLayoutResult = measured,
+                topLeft = Offset(x = 0f, y = (y - measured.size.height / 2f).coerceIn(0f, plotHeight))
+            )
+        }
+
+        // Date captions under the left/right edges.
+        if (xLabels.isNotEmpty()) {
+            val first = textMeasurer.measure(text = xLabels.first(), style = labelStyle)
+            drawText(
+                textLayoutResult = first,
+                topLeft = Offset(x = yGutter, y = plotHeight + 4.dp.toPx())
+            )
+            if (xLabels.size > 1) {
+                val last = textMeasurer.measure(text = xLabels.last(), style = labelStyle)
+                drawText(
+                    textLayoutResult = last,
+                    topLeft = Offset(
+                        x = (size.width - last.size.width).coerceAtLeast(yGutter),
+                        y = plotHeight + 4.dp.toPx()
+                    )
+                )
+            }
+        }
 
         // Cycle-phase (or other) background bands, drawn first so the line renders on top.
         for (band in bands) {
@@ -106,8 +164,8 @@ fun TrendLineChart(
                 val top = minOf(yTop, yBottom)
                 drawRect(
                     color = band.color.copy(alpha = band.color.alpha * bandAlpha),
-                    topLeft = Offset(x = 0f, y = top),
-                    size = Size(width = size.width, height = abs(yBottom - yTop))
+                    topLeft = Offset(x = yGutter, y = top),
+                    size = Size(width = plotWidth, height = abs(yBottom - yTop))
                 )
                 continue
             }
@@ -117,7 +175,7 @@ fun TrendLineChart(
             drawRect(
                 color = band.color.copy(alpha = band.color.alpha * bandAlpha),
                 topLeft = Offset(x = left, y = 0f),
-                size = Size(width = right - left, height = size.height)
+                size = Size(width = right - left, height = plotHeight)
             )
         }
 

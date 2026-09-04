@@ -7,6 +7,7 @@ import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.core.domain.model.MenstrualCyclePhase
 import dev.vic41148.somn.core.domain.model.SleepSession
+import dev.vic41148.somn.core.domain.usecase.formatDurationShort
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,15 @@ enum class TrendMetric(val displayName: String) {
     REM_PERCENT("REM Sleep")
 }
 
+/** One metric's headline numbers for the selected range — null when fewer than 2 sessions. */
+data class TrendStats(
+    val current: String,
+    val average: String,
+    val best: String,
+    val delta: String,
+    val deltaPositive: Boolean,
+    val nights: Int
+)
 /** DATA-04: a run of consecutive days in the same menstrual cycle phase, in wall-clock millis. [startMillis, endMillis). */
 data class CyclePhaseRun(val phase: MenstrualCyclePhase, val startMillis: Long, val endMillis: Long)
 
@@ -72,6 +82,57 @@ class TrendsViewModel @Inject constructor(
     fun selectMetric(metric: TrendMetric) {
         _selectedMetric.value = metric
     }
+
+    /** Report range in days; null = all history. */
+    private val _rangeDays = MutableStateFlow<Int?>(90)
+    val rangeDays: StateFlow<Int?> = _rangeDays.asStateFlow()
+
+    fun selectRange(days: Int?) {
+        _rangeDays.value = days
+    }
+
+    /** Sessions inside the selected range, oldest first for charting. */
+    val rangedSessions: StateFlow<List<SleepSession>> = combine(sessions, rangeDays) { list, days ->
+        val filtered = if (days == null) list
+        else {
+            val cutoff = System.currentTimeMillis() - days * 24 * 60 * 60 * 1000L
+            list.filter { it.startTimeMillis >= cutoff }
+        }
+        filtered.sortedBy { it.startTimeMillis }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Headline numbers for the selected metric + range; null when fewer than 2 sessions. */
+    val trendStats: StateFlow<TrendStats?> = combine(rangedSessions, _selectedMetric) { list, metric ->
+        if (list.size < 2) return@combine null
+        val values = list.map { valueFor(it, metric) }
+        val current = values.last()
+        val avg = values.average().toFloat()
+        val best = values.max()
+        val delta = current - values.first()
+        TrendStats(
+            current = formatTrendValue(current, metric),
+            average = formatTrendValue(avg, metric),
+            best = formatTrendValue(best, metric),
+            delta = (if (delta >= 0) "+" else "") + formatTrendValue(delta, metric, signed = true),
+            deltaPositive = delta >= 0,
+            nights = list.size
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private fun formatTrendValue(value: Float, metric: TrendMetric, signed: Boolean = false): String =
+        when (metric) {
+            TrendMetric.SCORE -> "${value.toInt()}"
+            TrendMetric.DURATION_HOURS -> {
+                val mins = (value * 60).toInt()
+                val sign = if (signed && mins > 0) "+" else ""
+                val abs = kotlin.math.abs(mins)
+                val body = formatDurationShort(abs)
+                if (mins < 0) "-$body" else "$sign$body"
+            }
+            TrendMetric.EFFICIENCY -> "${value.toInt()}%"
+            TrendMetric.DEEP_PERCENT -> "${value.toInt()}%"
+            TrendMetric.REM_PERCENT -> "${value.toInt()}%"
+        }
 
     fun valueFor(session: SleepSession, metric: TrendMetric): Float = when (metric) {
         TrendMetric.SCORE -> session.sleepScore.toFloat()
