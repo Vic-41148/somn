@@ -63,6 +63,7 @@ fun HistoryScreen(
     onSessionClick: (Long) -> Unit,
     onNavigateToCircadian: () -> Unit,
     onNavigateToTrends: () -> Unit,
+    onNavigateToVitals: () -> Unit = {},
     onAddManualSession: () -> Unit,
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
@@ -283,9 +284,17 @@ fun HistoryScreen(
                 item {
                     androidx.compose.material3.Button(
                         onClick = onNavigateToCircadian,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                     ) {
                         Text("View Circadian Insights")
+                    }
+                }
+                item {
+                    androidx.compose.material3.Button(
+                        onClick = onNavigateToVitals,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)
+                    ) {
+                        Text("View Vitals")
                     }
                 }
             }

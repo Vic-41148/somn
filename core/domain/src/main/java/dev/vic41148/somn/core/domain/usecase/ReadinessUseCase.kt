@@ -76,11 +76,15 @@ fun assessReadiness(
     sessions: List<SleepSession>,
     debt: SleepDebt?,
     vitals: VitalsDeviation? = null,
-    nowMillis: Long = System.currentTimeMillis()
+    nowMillis: Long = System.currentTimeMillis(),
+    /** Rest Mode boundary: sick nights leave the window entirely. */
+    excludeSinceMillis: Long? = null
 ): ReadinessResult? {
     val cutoff = nowMillis - WINDOW_DAYS * 24 * 60 * 60 * 1000L
-    val window = sessions.filter { it.isCompleted && it.startTimeMillis >= cutoff }
-        .sortedBy { it.startTimeMillis }
+    val window = sessions.filter {
+        it.isCompleted && it.startTimeMillis >= cutoff &&
+            (excludeSinceMillis == null || it.startTimeMillis < excludeSinceMillis)
+    }.sortedBy { it.startTimeMillis }
     if (window.isEmpty()) return null
     val last = window.last()
 

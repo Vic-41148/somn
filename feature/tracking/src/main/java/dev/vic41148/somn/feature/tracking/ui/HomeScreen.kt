@@ -79,13 +79,16 @@ fun HomeScreen(
     val readinessVitals by viewModel.readinessVitals.collectAsState()
     val sleepDebt by habitViewModel.sleepDebt.collectAsState()
     // Morning verdict — same inputs as History's header plus vitals, so numbers agree.
-    val readiness = remember(recentSessions, sleepDebt, readinessVitals) {
-        assessReadiness(recentSessions, sleepDebt, readinessVitals)
+    // restModeSince excludes sick nights from every baseline (R2 Rest Mode).
+    val restModeSince by viewModel.restModeSince.collectAsState()
+    val restMode = restModeSince != null
+    val readiness = remember(recentSessions, sleepDebt, readinessVitals, restModeSince) {
+        assessReadiness(recentSessions, sleepDebt, readinessVitals, excludeSinceMillis = restModeSince)
     }
     // Outlook sentence — strongest settled correlation + debt-plan hint, template-built.
     val recoveryPlan by habitViewModel.recoveryPlan.collectAsState()
     val correlationReport by habitViewModel.correlationReport.collectAsState()
-    val outlook = remember(readiness, sleepDebt, correlationReport, recoveryPlan) {
+    val outlook = remember(readiness, sleepDebt, correlationReport, recoveryPlan, restMode) {
         val topInsight = correlationReport?.availableCorrelations
             ?.maxByOrNull { kotlin.math.abs(it.correlation) }?.insight
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
@@ -94,7 +97,8 @@ fun HomeScreen(
             debt = sleepDebt,
             correlationInsight = topInsight,
             recoveryMinutesHint = recoveryPlan?.additionalMinutesPerNight?.takeIf { it > 0 },
-            isMorning = hour in 4..16
+            isMorning = hour in 4..16,
+            restMode = restMode
         )
     }
     // 7-day rollup for the rings — same math History's header uses, so the numbers agree.
@@ -319,6 +323,7 @@ fun HomeScreen(
             MorningReadyCard(
                 readiness = readiness,
                 hasAnySessions = recentSessions.isNotEmpty(),
+                restMode = restMode,
                 onRingClick = onNavigateToTrends
             )
 
@@ -462,6 +467,7 @@ fun HomeScreen(
 private fun MorningReadyCard(
     readiness: ReadinessResult?,
     hasAnySessions: Boolean,
+    restMode: Boolean,
     onRingClick: () -> Unit
 ) {
     Spacer(modifier = Modifier.height(16.dp))
@@ -489,6 +495,15 @@ private fun MorningReadyCard(
             "Take it easy — rest beats training today."
     }
     SleepCard(title = "Morning Ready") {
+        if (restMode) {
+            Text(
+                text = "Rest Mode is on — sick nights aren't counting.",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically

@@ -48,6 +48,10 @@ interface SleepSessionDao {
     @Query("SELECT * FROM sleep_sessions WHERE isCompleted = 1 AND startTimeMillis >= :fromMillis ORDER BY startTimeMillis DESC")
     suspend fun getSessionsSince(fromMillis: Long): List<SleepSessionEntity>
 
+    /** R2 per-category purge: completed sessions older than the cutoff, oldest first. */
+    @Query("SELECT * FROM sleep_sessions WHERE isCompleted = 1 AND startTimeMillis < :cutoffMillis ORDER BY startTimeMillis ASC")
+    suspend fun getSessionsOlderThan(cutoffMillis: Long): List<SleepSessionEntity>
+
     @Query(
         "SELECT * FROM sleep_sessions WHERE isCompleted = 1 AND sessionType = 'MAIN_SLEEP' " +
             "AND startTimeMillis >= :fromMillis ORDER BY startTimeMillis DESC"

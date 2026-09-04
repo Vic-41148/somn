@@ -58,6 +58,8 @@ class SomnPreferencesRepository @Inject constructor(
         val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
         /** R1: Morning Ready verdict + Today outlook cards on Home, on by default. */
         val SHOW_READINESS_CARD = booleanPreferencesKey("show_readiness_card")
+        /** R2 Rest Mode start timestamp. Absent = off; sick nights on/after this leave baselines. */
+        val REST_MODE_SINCE = longPreferencesKey("rest_mode_since")
         /**
          * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO — the
          * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
@@ -230,6 +232,18 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateShowReadinessCard(enabled: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.SHOW_READINESS_CARD] = enabled }
+    }
+
+    /** R2: Rest Mode boundary, null when off. Set = now, clear = remove the key. */
+    val restModeSince: Flow<Long?> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.REST_MODE_SINCE] }
+
+    suspend fun setRestModeSince(sinceMillis: Long?) {
+        context.dataStore.edit {
+            if (sinceMillis == null) it.remove(PreferencesKeys.REST_MODE_SINCE)
+            else it[PreferencesKeys.REST_MODE_SINCE] = sinceMillis
+        }
     }
 
     /**

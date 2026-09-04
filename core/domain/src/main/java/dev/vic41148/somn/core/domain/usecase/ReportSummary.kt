@@ -24,8 +24,14 @@ data class ReportSummary(
 )
 
 /** Null when there is nothing to summarize — callers render their empty state instead. */
-fun summarizeSessions(sessions: List<SleepSession>): ReportSummary? {
-    val completed = sessions.filter { it.isCompleted }
+fun summarizeSessions(
+    sessions: List<SleepSession>,
+    /** Rest Mode boundary: nights on/after this are sick nights, not signal. */
+    excludeSinceMillis: Long? = null
+): ReportSummary? {
+    val completed = sessions.filter {
+        it.isCompleted && (excludeSinceMillis == null || it.startTimeMillis < excludeSinceMillis)
+    }
     if (completed.isEmpty()) return null
     val byTime = completed.sortedBy { it.startTimeMillis }
     return ReportSummary(
@@ -37,13 +43,19 @@ fun summarizeSessions(sessions: List<SleepSession>): ReportSummary? {
         avgRemPercent = completed.map { it.remSleepPercent }.average().toInt(),
         bestScore = completed.maxOf { it.sleepScore },
         scoreDelta = byTime.last().sleepScore - byTime.first().sleepScore,
-        streakNights = currentStreak(completed),
+        streakNights = currentStreak(completed, excludeSinceMillis),
         totalSleepMinutes = completed.sumOf { it.sleepDurationMinutes }
     )
 }
 
-fun currentStreak(sessions: List<SleepSession>): Int {
-    val days = sessions.filter { it.isCompleted }
+fun currentStreak(
+    sessions: List<SleepSession>,
+    /** Rest Mode boundary: nights on/after this neither extend nor break the streak. */
+    excludeSinceMillis: Long? = null
+): Int {
+    val days = sessions.filter {
+        it.isCompleted && (excludeSinceMillis == null || it.startTimeMillis < excludeSinceMillis)
+    }
         .map {
             Instant.ofEpochMilli(it.startTimeMillis).atZone(ZoneId.systemDefault()).toLocalDate()
         }

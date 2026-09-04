@@ -78,6 +78,10 @@ class SleepTrackingViewModel @Inject constructor(
     val showReadinessCard: StateFlow<Boolean> = preferencesRepository.showReadinessCard
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    /** R2 Rest Mode boundary, null when off — sick nights leave every baseline. */
+    val restModeSince: StateFlow<Long?> = preferencesRepository.restModeSince
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     /**
      * Last-night wearable deltas vs the user's own 14-day median, for the readiness
      * verdict. Null while loading; `VitalsDeviation()` (no data) when Health Connect

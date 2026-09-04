@@ -77,6 +77,19 @@ class SleepRepository @Inject constructor(
         return sessionDao.getById(id)?.toDomain()
     }
 
+    /**
+     * R2 per-category purge: deletes completed sessions older than the cutoff via
+     * [deleteSession], so clip files, audio rows go explicitly and epochs/vitals/tags
+     * follow their FK cascades — same path as single-session delete, no orphans.
+     *
+     * @return how many sessions were deleted.
+     */
+    suspend fun deleteSessionsOlderThan(cutoffMillis: Long): Int {
+        val old = sessionDao.getSessionsOlderThan(cutoffMillis)
+        old.forEach { deleteSession(it.toDomain()) }
+        return old.size
+    }
+
     /** Emits the session whenever its row changes — the review screen keys its data on this, never the shared lastSession flow. */
     fun observeSession(id: Long): Flow<SleepSession?> {
         return sessionDao.observeById(id).map { it?.toDomain() }

@@ -134,6 +134,27 @@ fun SettingsScreen(
             )
         }
 
+        // R2 Rest Mode — sick/injured nights stop counting: streak freezes, sick
+        // nights leave baselines and correlations, Outlook switches to recovery copy.
+        SettingSection(title = "Recovery") {
+            SettingToggle(
+                title = "Rest Mode",
+                checked = settings.restModeSince != null,
+                onCheckedChange = { viewModel.setRestMode(it) }
+            )
+            Text(
+                text = if (settings.restModeSince != null) {
+                    "On — nights logged now won't move your streak or baselines. " +
+                        "Turn it off when you're back and counting resumes."
+                } else {
+                    "Turn on while sick or injured so bad nights don't poison " +
+                        "your streak, baselines, or correlations."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         // Haptics - app-wide feedback master switch with intensity, a live preview so the user can
         // feel the current combo without triggering a real event, and a note when the system-level
         // toggle would mute some effects. Near the top because it affects the whole app, not a
@@ -293,6 +314,81 @@ fun SettingsScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { confirmingClipDeletion = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+        }
+
+        // R2 per-category purge — Oura-style selective deletion without an account to
+        // delete. Each category confirms separately; each reports through the shared
+        // deletion status snackbar.
+        SettingSection(title = "Delete Data") {
+            var confirmingHabitPurge by remember { mutableStateOf(false) }
+            OutlinedButton(
+                onClick = { confirmingHabitPurge = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Clear all habit logs")
+            }
+            if (confirmingHabitPurge) {
+                AlertDialog(
+                    onDismissRequest = { confirmingHabitPurge = false },
+                    title = { Text("Clear habit logs?") },
+                    text = {
+                        Text(
+                            "Every caffeine, alcohol, exercise, stress and medication " +
+                                "entry will be permanently deleted. Sleep sessions are kept. " +
+                                "This cannot be undone."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmingHabitPurge = false
+                            viewModel.purgeHabitLogs()
+                        }) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmingHabitPurge = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            var confirmingOldSessionPurge by remember { mutableStateOf(false) }
+            OutlinedButton(
+                onClick = { confirmingOldSessionPurge = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Delete sessions older than 90 days")
+            }
+            if (confirmingOldSessionPurge) {
+                AlertDialog(
+                    onDismissRequest = { confirmingOldSessionPurge = false },
+                    title = { Text("Delete old sessions?") },
+                    text = {
+                        Text(
+                            "Completed sessions older than 90 days will be permanently " +
+                                "deleted, with their audio clips, epochs and vitals. " +
+                                "This cannot be undone."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmingOldSessionPurge = false
+                            viewModel.purgeOldSessions()
+                        }) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmingOldSessionPurge = false }) {
                             Text("Cancel")
                         }
                     }

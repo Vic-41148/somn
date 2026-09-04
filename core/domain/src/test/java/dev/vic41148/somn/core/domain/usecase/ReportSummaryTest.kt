@@ -87,4 +87,21 @@ class ReportSummaryTest {
         assertThat(formatDurationShort(45)).isEqualTo("45m")
         assertThat(formatDurationShort(432)).isEqualTo("7h 12m")
     }
+
+    @Test
+    fun `rest-mode nights neither extend nor break the streak`() {
+        val today = LocalDate.now()
+        val zone = ZoneId.systemDefault()
+        fun millis(date: LocalDate) =
+            date.atTime(23, 0).atZone(zone).toInstant().toEpochMilli()
+        // 4 consecutive nights; the newest falls inside Rest Mode and must vanish
+        // from the math instead of extending the streak to 4.
+        val sessions = listOf(3, 2, 1, 0).map { daysAgo ->
+            sessionOn(today.minusDays(daysAgo.toLong()))
+        }
+        val restSince = today.atTime(23, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val frozen = summarizeSessions(sessions, excludeSinceMillis = restSince)!!
+        assertThat(frozen.streakNights).isEqualTo(3)
+        assertThat(frozen.nights).isEqualTo(3)
+    }
 }

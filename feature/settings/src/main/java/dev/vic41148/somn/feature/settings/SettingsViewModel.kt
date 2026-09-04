@@ -36,6 +36,7 @@ import androidx.work.WorkManager
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
+    private val habitLogRepository: dev.vic41148.somn.core.data.repository.HabitLogRepository,
     private val preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository,
     private val backupRepository: BackupRepository,
     private val exportCsv: ExportCsvUseCase,
@@ -138,6 +139,9 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.showReadinessCard) { state, enabled ->
             state.copy(showReadinessCard = enabled)
         }
+        collectInto(preferencesRepository.restModeSince) { state, since ->
+            state.copy(restModeSince = since)
+        }
         collectInto(preferencesRepository.hemisphereOverride) { state, override ->
             state.copy(hemisphereOverride = override)
         }
@@ -182,6 +186,8 @@ class SettingsViewModel @Inject constructor(
         val useDynamicColor: Boolean = true,
         /** R1: whether the Morning Ready verdict + Today outlook cards show on Home. */
         val showReadinessCard: Boolean = true,
+        /** R2: Rest Mode start timestamp, null when off. */
+        val restModeSince: Long? = null,
         /** Which hemisphere seasonal analysis assumes; AUTO keeps the timezone heuristic. */
         val hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO,
         val snoreNudgeEnabled: Boolean = true,
@@ -347,6 +353,15 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateShowReadinessCard(enabled) }
     }
 
+    /** R2: entering Rest Mode stamps now; leaving clears the boundary. */
+    fun setRestMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setRestModeSince(
+                if (enabled) System.currentTimeMillis() else null
+            )
+        }
+    }
+
     fun updateHemisphereOverride(override: HemisphereOverride) {
         viewModelScope.launch { preferencesRepository.updateHemisphereOverride(override) }
     }
@@ -373,6 +388,35 @@ class SettingsViewModel @Inject constructor(
 
     fun clearClipDeletionStatus() {
         _clipDeletionStatus.value = null
+    }
+
+    /** R2 per-category purge: forgets every habit log. Standalone table, no cascades. */
+    fun purgeHabitLogs() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                habitLogRepository.clearAll()
+                "Cleared all habit logs"
+            } catch (e: Exception) {
+                "Failed to clear habit logs: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * R2 per-category purge: deletes completed sessions older than 90 days through the
+     * same [SleepRepository.deleteSession] path as single deletes, so clips, audio rows,
+     * epochs, vitals and tags all follow their normal cleanup — no orphans.
+     */
+    fun purgeOldSessions() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                val cutoff = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000
+                val deleted = sleepRepository.deleteSessionsOlderThan(cutoff)
+                "Deleted $deleted session${if (deleted == 1) "" else "s"} older than 90 days"
+            } catch (e: Exception) {
+                "Failed to delete old sessions: ${e.message}"
+            }
+        }
     }
 
     fun updateTrackingMode(mode: TrackingMode) {

@@ -19,11 +19,17 @@ fun buildOutlook(
     correlationInsight: String?,
     /** Extra sleep minutes/night from the debt recovery plan, when one exists. */
     recoveryMinutesHint: Int? = null,
-    isMorning: Boolean = true
+    isMorning: Boolean = true,
+    /** Rest Mode: the math stays honest, the voice switches to recovery framing. */
+    restMode: Boolean = false
 ): String {
     if (readiness == null) {
         return if (isMorning) "Track tonight and tomorrow starts with a plan."
         else "Wind down early tonight — your future morning self says thanks."
+    }
+    if (restMode && isMorning) {
+        return "Rest Mode is on — only rest counts today. " +
+            "Nights logged now won't move your streak or baselines."
     }
     val debtWord = when {
         debt == null -> null

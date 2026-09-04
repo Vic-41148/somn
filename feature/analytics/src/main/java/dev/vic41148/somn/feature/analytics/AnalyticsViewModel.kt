@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,11 +23,16 @@ import javax.inject.Inject
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
-    private val exportCsv: ExportCsvUseCase
+    private val exportCsv: ExportCsvUseCase,
+    preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 ) : ViewModel() {
 
     val sessions = sleepRepository.observeCompletedSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** R2 Rest Mode boundary, null when off — sick nights leave the summary math. */
+    val restModeSince: StateFlow<Long?> = preferencesRepository.restModeSince
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /** Report range in days; null = all history. Defaults to 30 so the header reads as "recent". */
     private val _rangeDays = MutableStateFlow<Int?>(30)
@@ -46,8 +52,28 @@ class AnalyticsViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Aggregate stats for the selected range; null = empty range, caller shows empty state. */
-    val summary: StateFlow<ReportSummary?> = rangedSessions.map { summarizeSessions(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val summary: StateFlow<ReportSummary?> = combine(rangedSessions, restModeSince) { list, since ->
+        summarizeSessions(list, since)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * R2 vitals dashboard: latest snapshot plus 14-day history, loaded off the main
+     * thread. Null while loading; empty list = no wearable data, screen explains.
+     */
+    val vitalFlags: StateFlow<List<dev.vic41148.somn.core.domain.usecase.VitalFlag>?> =
+        sessions.mapLatest { list ->
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                val cutoff = System.currentTimeMillis() - 14 * 24 * 60 * 60 * 1000L
+                val window = list.filter { it.isCompleted && it.startTimeMillis >= cutoff }
+                    .sortedBy { it.startTimeMillis }
+                if (window.isEmpty()) return@withContext emptyList()
+                val snaps = window.mapNotNull { session ->
+                    runCatching { sleepRepository.getExternalVitals(session.id) }.getOrNull()
+                }.filter { it.hasAnyData }
+                if (snaps.isEmpty()) return@withContext emptyList()
+                dev.vic41148.somn.core.domain.usecase.flagVitals(snaps.last(), snaps)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _selectedSession = MutableStateFlow<SleepSession?>(null)
     val selectedSession: StateFlow<SleepSession?> = _selectedSession.asStateFlow()

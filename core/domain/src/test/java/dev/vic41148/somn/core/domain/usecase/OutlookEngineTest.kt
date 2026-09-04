@@ -61,4 +61,11 @@ class OutlookEngineTest {
         val s = buildOutlook(readiness(ReadinessZone.STEADY), null, null, null, isMorning = false)
         assertThat(s).contains("consistent bedtime")
     }
+
+    @Test
+    fun `rest mode reframes the morning copy`() {
+        val s = buildOutlook(readiness(ReadinessZone.READY), debt(), null, isMorning = true, restMode = true)
+        assertThat(s).contains("Rest Mode is on")
+        assertThat(s).contains("streak")
+    }
 }
