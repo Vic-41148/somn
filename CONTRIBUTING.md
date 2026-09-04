@@ -89,7 +89,7 @@ You don't have to write Kotlin to help:
 git clone https://github.com/Vic-41148/somn.git
 cd somn
 ./gradlew assembleStandaloneDebug   # debug APK (standalone channel)
-./gradlew testStandaloneDebugUnitTest   # unit tests
+./gradlew testStandaloneDebugUnitTest testDebugUnitTest   # full unit-test suite (213)
 ./gradlew lintStandaloneDebug       # Android Lint
 ```
 
@@ -121,7 +121,7 @@ git fetch upstream
 git checkout -b feature/my-feature upstream/dev
 
 # 3. Make your changes, then run the checks
-./gradlew testStandaloneDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME"
+./gradlew testStandaloneDebugUnitTest testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME"
 ./gradlew lintStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME"
 
 # 4. Commit with a clear message (conventional commits preferred)
@@ -215,10 +215,10 @@ When in doubt, match the surrounding code — consistency beats cleverness.
 Every pull request is expected to keep the test suite green:
 
 ```bash
-./gradlew testStandaloneDebugUnitTest
+./gradlew testStandaloneDebugUnitTest testDebugUnitTest
 ```
 
-The suite currently runs 219 unit tests — a number enforced by CI: if you add
+The suite currently runs 213 unit tests — a number enforced by CI: if you add
 or remove a test, update this line and the count in README.md in the same PR,
 or the build fails. If you add a feature, add tests for it — especially for
 pure logic like scoring, classification, and parsing. Pure functions with

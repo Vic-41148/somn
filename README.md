@@ -136,11 +136,11 @@ The APK will be at `app/build/outputs/apk/standalone/debug/app-standalone-debug.
 ### Tests
 
 ```bash
-./gradlew testStandaloneDebugUnitTest   # 219 unit tests (standalone channel)
+./gradlew testStandaloneDebugUnitTest testDebugUnitTest   # 213 unit tests (full suite)
 ./gradlew lintStandaloneDebug           # Android Lint (standalone channel)
 ```
 
-CI runs `assembleStandaloneDebug`, `testStandaloneDebugUnitTest` and `lintStandaloneDebug` on every push and PR to `main`
+CI runs `assembleStandaloneDebug`, `testStandaloneDebugUnitTest testDebugUnitTest` and `lintStandaloneDebug` on every push and PR to `main`
 and `dev`, plus guardrails that fail the build if Google Play Services reappear on the release
 classpath, if the Auto Backup opt-out is dropped, if `INTERNET` starts being contributed by a
 module other than `:core:data`, if emoji appear in any tracked source or docs, or if this

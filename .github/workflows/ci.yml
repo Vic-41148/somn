@@ -35,8 +35,13 @@ jobs:
       - name: Assemble debug APK (standalone channel)
         run: ./gradlew assembleStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
+      # Runs BOTH the flavored-module suite (testStandaloneDebugUnitTest) and the non-flavored
+      # modules' suite (testDebugUnitTest). core:domain/core:ui/core:health are deliberately kept
+      # on compileSdk 35 without the channel dimension, so their unit tests only exist under
+      # testDebugUnitTest — running just testStandaloneDebugUnitTest would silently skip the whole
+      # domain layer and over-report coverage.
       - name: Run unit tests
-        run: ./gradlew testStandaloneDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+        run: ./gradlew testStandaloneDebugUnitTest testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
       # A transitive constraint (androidx.emoji2 -> foundation 1.9.0) once forced the app runtime
       # to a newer compose foundation than modules compiled against; FlowRow's changed signature
@@ -49,19 +54,41 @@ jobs:
       # README.md (and CONTRIBUTING.md) advertise a unit-test count that drifts the moment
       # anyone adds or removes a test, and nothing complains until a user notices the number is
       # wrong — the same doc-accuracy problem the emoji guardrail solves. Sum the tests="..."
-      # attributes from the testStandaloneDebugUnitTest results this job just produced (a fresh checkout,
-      # so no stale XMLs) and fail if either doc's number no longer matches the suite — or if
-      # the count was removed from a doc altogether.
+      # attributes from the results this job just produced (a fresh checkout, so no stale XMLs)
+      # and fail if either doc's number no longer matches the suite — or if the count was removed
+      # from a doc altogether.
+      #
+      # The suite spans two task result trees because the module set is split by the channel
+      # flavor dimension: flavored modules report under testStandaloneDebugUnitTest, while the
+      # non-flavored core modules (domain/ui/health) report under testDebugUnitTest. To avoid
+      # double-counting a flavored module's src/test (present in BOTH trees), each module's
+      # testDebugUnitTest results are only counted when that module produces no standalone tree.
       - name: README test count matches the suite
         run: |
           set -euo pipefail
-          # || true: with no XMLs on disk the grep chain exits 1 and, under the default
-          # -o pipefail, the assignment would abort the step before any ::error:: is printed.
-          # The substitution still captures awk's "0", so TOTAL degrades to a clear mismatch.
-          TOTAL=$(find . -path '*/build/test-results/testStandaloneDebugUnitTest/TEST-*.xml' -print0 \
+          # || true keeps the assignment from aborting under -o pipefail when no XMLs exist.
+          STANDALONE=$(find . -path '*/build/test-results/testStandaloneDebugUnitTest/TEST-*.xml' -print0 \
             | xargs -0 grep -ho 'tests="[0-9]*"' 2>/dev/null \
             | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}') || true
-          TOTAL=${TOTAL:-0}
+          STANDALONE=${STANDALONE:-0}
+          NONFLAVORED=0
+          while IFS= read -r dir; do
+            module=${dir#./}
+            module=${module%/build/test-results/testDebugUnitTest}
+            # Skip flavored modules — their src/test tests are already in STANDALONE. A module
+            # is "flavored" only if its standalone tree produced real result files. Gradle makes
+            # the testStandaloneDebugUnitTest directory for EVERY module (even no-channel ones,
+            # as a NO-SOURCE task), so an empty dir must not count as flavored.
+            sa_xmls=$(find "$module/build/test-results/testStandaloneDebugUnitTest" \
+              -name 'TEST-*.xml' 2>/dev/null | wc -l)
+            [ "$sa_xmls" -gt 0 ] && continue
+            for f in "$dir"/TEST-*.xml; do
+              [ -f "$f" ] || continue
+              t=$(grep -o 'tests="[0-9]*"' "$f" | head -1 | grep -o '[0-9]*')
+              NONFLAVORED=$((NONFLAVORED + t))
+            done
+          done < <(find . -type d -path '*/build/test-results/testDebugUnitTest')
+          TOTAL=$((STANDALONE + NONFLAVORED))
           # Anchored to the claim lines so prose that repeats "N unit tests" can't double-match;
           # tail -1 keeps the last (real) claim if the docs are ever edited to repeat it.
           README_CLAIMED=$(grep -oE '# [0-9]+ unit tests' README.md | grep -oE '[0-9]+' | tail -1 || true)
@@ -137,7 +164,7 @@ jobs:
           ./gradlew :app:processStandaloneReleaseMainManifest --rerun-tasks \
             -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
           MANIFEST=app/build/intermediates/merged_manifest/standaloneRelease/processStandaloneReleaseMainManifest/AndroidManifest.xml
-          REPORT=app/build/outputs/logs/manifest-merger-release-report.txt
+          REPORT=app/build/outputs/logs/manifest-merger-standalone-release-report.txt
 
           grep -q 'android.permission.INTERNET' core/data/src/main/AndroidManifest.xml \
             || { echo "::error::core/data no longer declares INTERNET — NAS sync would fail"; exit 1; }
