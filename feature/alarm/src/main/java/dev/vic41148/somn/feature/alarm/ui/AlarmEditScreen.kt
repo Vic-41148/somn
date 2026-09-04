@@ -42,12 +42,22 @@ fun AlarmEditScreen(
     }
 
         var repeatDays by remember { mutableStateOf<Set<Int>>(emptySet()) }
-        
+
+        // Hoisted to screen level, outside AnimatedVisibility. rememberTimePickerState used
+        // to live inside the AnimatedVisibility content, so the dial's state (including its
+        // needle-animation clock) was tied to the enter/exit subcomposition — after tapping
+        // AM/PM and dragging, the needle froze while the time still moved. It survives now.
+        val timePickerState = rememberTimePickerState(initialHour = 7, initialMinute = 0)
+
         LaunchedEffect(editingAlarm) {
             editingAlarm?.let {
                 label = it.label
                 wakeWindow = it.wakeWindowMinutes.toFloat()
                 repeatDays = it.repeatDays
+                // The picker used to snapshot editingAlarm?.hour at first composition (null →
+                // 7:00) and never sync, so editing an alarm always opened showing 7:00 AM.
+                timePickerState.hour = it.hour
+                timePickerState.minute = it.minute
                 isInitialized = true
             }
         }
@@ -71,16 +81,13 @@ fun AlarmEditScreen(
                 enter = fadeIn(tween(300)) +
                     scaleIn(initialScale = 0.98f, animationSpec = tween(300))
             ) {
-                val timePickerState = rememberTimePickerState(
-                    initialHour = editingAlarm?.hour ?: 7,
-                    initialMinute = editingAlarm?.minute ?: 0
-                )
-
         // The save button used to be the last child of an unscrollable Column. A Material3
         // TimePicker dial alone is ~300dp, and with the day chips, label field and wake-window
         // slider above it the button sat past the bottom of the screen on a normal phone — laid
         // out, clipped, and completely unreachable, so an alarm could never actually be saved.
-        // The scrollable region now holds the form and the button is pinned outside it.
+        // The dial now sits FIXED above the scroll region with the button pinned below it: a
+        // verticalScroll parent used to steal the dial's circular drags (vertical components
+        // scroll the form instead of moving the needle), which froze the needle animation.
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -88,23 +95,24 @@ fun AlarmEditScreen(
                 .padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
             Text(
                 text = if (alarmId > 0) "Edit Alarm" else "New Alarm",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             TimePicker(state = timePickerState)
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
             // Repeat Days
             Text(
@@ -114,9 +122,14 @@ fun AlarmEditScreen(
                 modifier = Modifier.align(Alignment.Start)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
+            // FlowRow, not a squeezed SpaceEvenly row — seven chips at minimum touch width
+            // overflow a 360dp screen once padding and font scale are accounted for.
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                maxItemsInEachRow = 7
             ) {
                 val days = listOf(
                     java.util.Calendar.MONDAY to "M",

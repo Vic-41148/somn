@@ -2,8 +2,11 @@ package dev.vic41148.somn.feature.tracking.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.ui.components.ColorLegendItem
 import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.core.ui.components.MetricChip
+import dev.vic41148.somn.core.ui.components.PillRow
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
 import dev.vic41148.somn.core.ui.theme.StageAwake
@@ -201,22 +205,16 @@ fun MorningReviewScreen(
 
         // Key metrics
         SleepCard(title = "Sleep Stats") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
+            PillRow {
                 val hours = session.sleepDurationMinutes / 60
                 val mins = session.sleepDurationMinutes % 60
-                MetricChip(label = "Duration", value = "${hours}h ${mins}m")
-                MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%")
+                MetricChip(label = "Duration", value = "${hours}h ${mins}m", modifier = Modifier.weight(1f).fillMaxHeight())
+                MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                MetricChip(label = "Deep Sleep", value = "${session.deepSleepPercent.toInt()}%")
-                MetricChip(label = "Wake Events", value = "${session.wakeEvents}")
+            PillRow {
+                MetricChip(label = "Deep Sleep", value = "${session.deepSleepPercent.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
+                MetricChip(label = "Wake Events", value = "${session.wakeEvents}", modifier = Modifier.weight(1f).fillMaxHeight())
             }
         }
 
@@ -225,26 +223,25 @@ fun MorningReviewScreen(
         // Audio Events
         if (audioEvents.isNotEmpty()) {
             SleepCard(title = "Audio Events") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
+                PillRow {
                     val snoreCount = audioEvents.count { it.type == AudioEventType.SNORE }
                     val coughCount = audioEvents.count { it.type == AudioEventType.COUGH }
                     val talkCount = audioEvents.count { it.type == AudioEventType.TALK }
-                    MetricChip(label = "Snoring", value = "$snoreCount events")
-                    MetricChip(label = "Coughs", value = "$coughCount events")
-                    MetricChip(label = "Talking", value = "$talkCount events")
+                    MetricChip(label = "Snoring", value = "$snoreCount", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "Coughs", value = "$coughCount", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "Talking", value = "$talkCount", modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Mood rating
+        // Mood rating — FlowRow so five labels ("Exhausted"…) wrap instead of squeezing.
         SleepCard(title = "How do you feel?") {
-            Row(
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val moods = listOf("Exhausted" to 1, "Tired" to 2, "Okay" to 3, "Good" to 4, "Great" to 5)
                 moods.forEach { (label, value) ->

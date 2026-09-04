@@ -3,6 +3,7 @@ package dev.vic41148.somn.core.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -44,7 +46,9 @@ fun StatRing(
     modifier: Modifier = Modifier,
     size: Dp = 84.dp,
     strokeWidth: Dp = 9.dp,
-    sublabel: String? = null
+    sublabel: String? = null,
+    /** When set, the ring becomes a button announcing "Show details for <label>". */
+    onClick: (() -> Unit)? = null
 ) {
     var target by remember { mutableFloatStateOf(0f) }
     val animated by animateFloatAsState(
@@ -56,7 +60,13 @@ fun StatRing(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
+        modifier = if (onClick != null) {
+            modifier.clickable(
+                onClickLabel = "Show details for $label",
+                role = Role.Button,
+                onClick = onClick
+            )
+        } else modifier
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size)) {
             Canvas(modifier = Modifier.size(size)) {

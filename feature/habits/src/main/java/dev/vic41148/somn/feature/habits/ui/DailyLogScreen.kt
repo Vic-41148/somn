@@ -505,20 +505,44 @@ private fun TimeSliders(
 
 @Composable
 private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
+    // Card carries the section tint and a leading type icon now. It used to be a bare
+    // `surface` card with text only — on dark theme surface is near-identical to the
+    // background, so entries read as loose floating text with a stray X beside them.
+    val (icon, tint) = when (log.entry) {
+        is HabitEntry.Caffeine -> Icons.Default.Coffee to MaterialTheme.colorScheme.tertiary
+        is HabitEntry.Alcohol -> Icons.Default.LocalBar to MaterialTheme.colorScheme.secondary
+        is HabitEntry.Exercise -> Icons.Default.DirectionsRun to MaterialTheme.colorScheme.primary
+        is HabitEntry.Stress -> Icons.Default.SentimentVeryDissatisfied to MaterialTheme.colorScheme.error
+        is HabitEntry.Medication -> Icons.Default.Medication to MaterialTheme.colorScheme.primary
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.15f))
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = log.entry.summary(),
                 style = MaterialTheme.typography.bodyMedium,
@@ -542,11 +566,14 @@ private fun HabitEntry.summary(): String = when (this) {
     is HabitEntry.Alcohol -> "${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Exercise -> "${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Stress -> when (level) {
-        1 -> "Very calm"
-        2 -> "Calm"
-        3 -> "Neutral stress"
-        4 -> "Stressed"
-        5 -> "Very stressed"
+        // Every other entry names its own type ("Coffee", "Run", …) — a bare "Calm"
+        // read as a stray label next to the delete button. Stress has no time (it is
+        // an end-of-day rating), so the type name carries the context instead.
+        1 -> "Stress: Very calm"
+        2 -> "Stress: Calm"
+        3 -> "Stress: Neutral"
+        4 -> "Stress: Stressed"
+        5 -> "Stress: Very stressed"
         else -> "Stress level $level"
     }
     is HabitEntry.Medication -> "$name $dose at ${timeOfDay.format(timeFormatter)}"

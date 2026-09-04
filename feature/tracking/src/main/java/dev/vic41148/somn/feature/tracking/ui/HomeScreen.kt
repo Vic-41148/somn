@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,7 +21,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Nightlight
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -45,6 +48,7 @@ import dev.vic41148.somn.core.domain.model.SleepDebt
 import dev.vic41148.somn.core.domain.usecase.formatDurationShort
 import dev.vic41148.somn.core.domain.usecase.summarizeSessions
 import dev.vic41148.somn.core.ui.components.MetricChip
+import dev.vic41148.somn.core.ui.components.PillRow
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
 import dev.vic41148.somn.core.ui.components.StatRing
@@ -59,6 +63,7 @@ fun HomeScreen(
     onNavigateToTracking: () -> Unit,
     onNavigateToMorningReview: (Long) -> Unit,
     onNavigateToDebt: () -> Unit = {},
+    onNavigateToTrends: () -> Unit = {},
     trackingMode: dev.vic41148.somn.core.domain.model.TrackingMode = dev.vic41148.somn.core.domain.model.TrackingMode.ACCELEROMETER,
     viewModel: SleepTrackingViewModel = hiltViewModel(),
     habitViewModel: HabitViewModel = hiltViewModel()
@@ -101,6 +106,11 @@ fun HomeScreen(
         // revoke this after an OTA, which kills overnight tracking without any user-visible error.
         val isBatteryExempted by dev.vic41148.somn.core.ui.battery.BatteryExemptionState.isExempted.collectAsState()
         var batteryBannerDismissed by remember { mutableStateOf(false) }
+        // Some OEMs (Samsung, Xiaomi, Huawei) enforce a separate "autostart" restriction on
+        // top of standard battery optimization — exposed as the gear icon, not a third row.
+        val oemIntent = remember {
+            dev.vic41148.somn.core.ui.battery.BatteryExemptionState.oemBackgroundRestrictionIntent(context)
+        }
         AnimatedVisibility(
             visible = !isBatteryExempted && !batteryBannerDismissed,
             enter = fadeIn(),
@@ -108,53 +118,76 @@ fun HomeScreen(
         ) {
             Column {
                 Spacer(modifier = Modifier.height(16.dp))
-                SleepCard(
-                    title = "Battery Optimization Is On",
-                    containerColor = MaterialTheme.colorScheme.errorContainer
+                // Compact single-row banner. This used to be a full SleepCard with three
+                // stacked action rows (~300dp tall) that pushed the moon button and every
+                // stat below the fold — a warning is glanceable, not a screen.
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = MaterialTheme.shapes.large
                 ) {
-                    Text(
-                        text = "Your phone may stop tracking overnight because battery optimization " +
-                            "is restricting Somn in the background.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    // Some OEMs (Samsung, Xiaomi, Huawei) also enforce a separate "autostart"/
-                    // background-activity restriction on top of standard battery optimization —
-                    // this is a genuinely optional second step, not a replacement for the direct
-                    // exemption dialog "Fix" triggers below.
-                    val oemIntent = remember {
-                        dev.vic41148.somn.core.ui.battery.BatteryExemptionState.oemBackgroundRestrictionIntent(context)
-                    }
-                    // Kept on its own row, right-aligned: three actions competing for one row on a
-                    // phone-width card squeezed "Fix" down to an unreadable, near-invisible sliver
-                    // when this shared a row with Dismiss and Fix (the longest label of the three).
-                    if (oemIntent != null) {
+                    // M3 banner shape: text block first with full width, actions on their
+                    // own row underneath. Side-by-side buttons squeezed the label into
+                    // ellipsis ("Battery optimizati…"), which defeats a warning.
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // The warning icon doubles as the OEM-settings entry point
+                            // (Samsung / Xiaomi / Huawei enforce a separate autostart
+                            // restriction): a fourth trailing action squeezed the label,
+                            // so the gear lives here instead of in the action row.
+                            if (oemIntent != null) {
+                                IconButton(onClick = { context.startActivity(oemIntent) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = "Device settings",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Battery optimization is on",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    text = "Overnight tracking may stop.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                            IconButton(onClick = { batteryBannerDismissed = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
-                            androidx.compose.material3.TextButton(onClick = {
-                                context.startActivity(oemIntent)
+                            TextButton(onClick = {
+                                context.startActivity(
+                                    dev.vic41148.somn.core.ui.battery.BatteryExemptionState.buildFixIntent(context)
+                                )
                             }) {
-                                Text("Also check device settings")
+                                Text("Fix")
                             }
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        androidx.compose.material3.TextButton(onClick = { batteryBannerDismissed = true }) {
-                            Text("Dismiss")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        androidx.compose.material3.Button(onClick = {
-                            context.startActivity(
-                                dev.vic41148.somn.core.ui.battery.BatteryExemptionState.buildFixIntent(context)
-                            )
-                        }) {
-                            Text("Fix")
                         }
                     }
                 }
@@ -292,21 +325,21 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
+                    PillRow {
                         MetricChip(
                             label = "Efficiency",
-                            value = "${session.sleepEfficiency.toInt()}%"
+                            value = "${session.sleepEfficiency.toInt()}%",
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                         MetricChip(
                             label = "Deep",
-                            value = "${session.deepSleepPercent.toInt()}%"
+                            value = "${session.deepSleepPercent.toInt()}%",
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                         MetricChip(
                             label = "Wakes",
-                            value = "${session.wakeEvents}"
+                            value = "${session.wakeEvents}",
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
 
@@ -351,19 +384,22 @@ fun HomeScreen(
                         label = "Score",
                         value = "${summary.avgScore}",
                         fraction = summary.avgScore / 100f,
-                        color = scoreColor(summary.avgScore)
+                        color = scoreColor(summary.avgScore),
+                        onClick = onNavigateToTrends
                     )
                     StatRing(
                         label = "Sleep",
                         value = formatDurationShort(summary.avgDurationMinutes),
                         fraction = (summary.avgDurationMinutes / 480f).coerceIn(0f, 1f),
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        onClick = onNavigateToTrends
                     )
                     StatRing(
                         label = "Efficiency",
                         value = "${summary.avgEfficiencyPercent}%",
                         fraction = summary.avgEfficiencyPercent / 100f,
-                        color = MaterialTheme.colorScheme.tertiary
+                        color = MaterialTheme.colorScheme.tertiary,
+                        onClick = onNavigateToTrends
                     )
                 }
             }

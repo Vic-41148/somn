@@ -141,142 +141,151 @@ fun HistoryScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+        // One LazyColumn for the whole screen. The header (range, summary, filter) used to
+        // sit in a fixed Column above a nested list, so the top half of the screen never
+        // scrolled and the list fought for the remaining space — everything scrolls as one
+        // now, the way a report should read.
+        var filterExpanded by remember { mutableStateOf(false) }
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             // Range selector — stats header and list both follow this.
-            ReportRangeRow(
-                selectedDays = rangeDays,
-                onSelect = { viewModel.selectRange(it) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            item {
+                ReportRangeRow(
+                    selectedDays = rangeDays,
+                    onSelect = { viewModel.selectRange(it) }
+                )
+            }
 
             // Summary header: the actual "report" — averages, streak and best over the range.
-            summary?.let {
-                SummaryCard(
-                    summary = it,
-                    rangeLabel = rangeLabel(rangeDays),
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            // Each ring opens Trends, where the same numbers are broken down per metric.
+            summary?.let { report ->
+                item {
+                    SummaryCard(
+                        summary = report,
+                        rangeLabel = rangeLabel(rangeDays),
+                        onRingClick = onNavigateToTrends
+                    )
+                }
             }
 
             // Session type filter dropdown
             if (allSessions.isNotEmpty()) {
-                var expanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = selectedTypeFilter?.displayName ?: "All Sessions",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Filter by Session Type") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                item {
+                    ExposedDropdownMenuBox(
+                        expanded = filterExpanded,
+                        onExpandedChange = { filterExpanded = !filterExpanded },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("All Sessions") },
-                            onClick = {
-                                selectedTypeFilter = null
-                                expanded = false
-                            }
+                        OutlinedTextField(
+                            value = selectedTypeFilter?.displayName ?: "All Sessions",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Filter by Session Type") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
                         )
-                        SessionType.entries.forEach { type ->
+                        ExposedDropdownMenu(
+                            expanded = filterExpanded,
+                            onDismissRequest = { filterExpanded = false }
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(type.displayName) },
+                                text = { Text("All Sessions") },
                                 onClick = {
-                                    selectedTypeFilter = type
-                                    expanded = false
+                                    selectedTypeFilter = null
+                                    filterExpanded = false
                                 }
                             )
+                            SessionType.entries.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.displayName) },
+                                    onClick = {
+                                        selectedTypeFilter = type
+                                        filterExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
 
             if (sessions.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = when {
-                            allSessions.isEmpty() -> "No sleep data yet"
-                            rangedSessions.isEmpty() -> "No sessions in this range — try a wider range"
-                            else -> "No ${selectedTypeFilter?.displayName} sessions yet"
-                        },
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = when {
+                                allSessions.isEmpty() -> "No sleep data yet"
+                                rangedSessions.isEmpty() -> "No sessions in this range — try a wider range"
+                                else -> "No ${selectedTypeFilter?.displayName} sessions yet"
+                            },
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 if (exportProgress != null) {
-                    androidx.compose.material3.LinearProgressIndicator(
-                        progress = { exportProgress!! },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
                     item {
-                        // Score tier colors — the same ramp each row's score digit renders,
-                        // spelled out once so the list reads as one system.
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            ScoreTier.entries.forEach { tier ->
-                                ColorLegendItem(color = scoreColor(tier.minScore), label = tier.label)
-                            }
-                        }
-                    }
-                    items(sessions, key = { it.id }) { session ->
-                        val isSelected = selectedIds.contains(session.id)
-                        SessionRow(
-                            session = session,
-                            isSelected = isSelected,
-                            onLongClick = { viewModel.toggleSelection(session.id) },
-                            onClick = {
-                                if (selectedIds.isNotEmpty()) {
-                                    viewModel.toggleSelection(session.id)
-                                } else {
-                                    onSessionClick(session.id)
-                                }
-                            }
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { exportProgress!! },
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
-                    item {
-                        androidx.compose.material3.Button(
-                            onClick = onNavigateToTrends,
-                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-                        ) {
-                            Text("View Trends")
+                }
+
+                item {
+                    // Score tier colors — the same ramp each row's score digit renders,
+                    // spelled out once so the list reads as one system.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        ScoreTier.entries.forEach { tier ->
+                            ColorLegendItem(color = scoreColor(tier.minScore), label = tier.label)
                         }
                     }
-                    item {
-                        androidx.compose.material3.Button(
-                            onClick = onNavigateToCircadian,
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)
-                        ) {
-                            Text("View Circadian Insights")
+                }
+                items(sessions, key = { it.id }) { session ->
+                    val isSelected = selectedIds.contains(session.id)
+                    SessionRow(
+                        session = session,
+                        isSelected = isSelected,
+                        onLongClick = { viewModel.toggleSelection(session.id) },
+                        onClick = {
+                            if (selectedIds.isNotEmpty()) {
+                                viewModel.toggleSelection(session.id)
+                            } else {
+                                onSessionClick(session.id)
+                            }
                         }
+                    )
+                }
+                item {
+                    androidx.compose.material3.Button(
+                        onClick = onNavigateToTrends,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                    ) {
+                        Text("View Trends")
+                    }
+                }
+                item {
+                    androidx.compose.material3.Button(
+                        onClick = onNavigateToCircadian,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)
+                    ) {
+                        Text("View Circadian Insights")
                     }
                 }
             }
@@ -319,6 +328,7 @@ private fun ReportRangeRow(
 private fun SummaryCard(
     summary: ReportSummary,
     rangeLabel: String,
+    onRingClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     SleepCard(title = rangeLabel, modifier = modifier) {
@@ -330,19 +340,22 @@ private fun SummaryCard(
                 label = "Avg score",
                 value = "${summary.avgScore}",
                 fraction = summary.avgScore / 100f,
-                color = scoreColor(summary.avgScore)
+                color = scoreColor(summary.avgScore),
+                onClick = onRingClick
             )
             StatRing(
                 label = "Avg sleep",
                 value = formatDurationShort(summary.avgDurationMinutes),
                 fraction = (summary.avgDurationMinutes / 480f).coerceIn(0f, 1f),
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                onClick = onRingClick
             )
             StatRing(
                 label = "Efficiency",
                 value = "${summary.avgEfficiencyPercent}%",
                 fraction = summary.avgEfficiencyPercent / 100f,
-                color = MaterialTheme.colorScheme.tertiary
+                color = MaterialTheme.colorScheme.tertiary,
+                onClick = onRingClick
             )
         }
         Spacer(modifier = Modifier.height(12.dp))

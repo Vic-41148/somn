@@ -3,7 +3,8 @@ package dev.vic41148.somn.feature.analytics.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.ui.components.Hypnogram
 import dev.vic41148.somn.core.ui.components.MetricChip
+import dev.vic41148.somn.core.ui.components.PillRow
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
 import dev.vic41148.somn.core.domain.model.AudioEventType
@@ -116,21 +118,21 @@ fun SessionDetailScreen(
             SleepCard(title = "Sleep Metrics") {
                 val hours = session.sleepDurationMinutes / 60
                 val mins = session.sleepDurationMinutes % 60
-                MetricGridRow {
-                    MetricChip(label = "Duration", value = "${hours}h ${mins}m", modifier = Modifier.weight(1f))
-                    MetricChip(label = "In Bed", value = "${session.timeInBedMinutes / 60}h ${session.timeInBedMinutes % 60}m", modifier = Modifier.weight(1f))
-                    MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%", modifier = Modifier.weight(1f))
+                PillRow {
+                    MetricChip(label = "Duration", value = "${hours}h ${mins}m", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "In Bed", value = "${session.timeInBedMinutes / 60}h ${session.timeInBedMinutes % 60}m", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                MetricGridRow {
-                    MetricChip(label = "Onset", value = "${session.sleepOnsetMinutes}min", modifier = Modifier.weight(1f))
-                    MetricChip(label = "Deep", value = "${session.deepSleepPercent.toInt()}%", modifier = Modifier.weight(1f))
-                    MetricChip(label = "REM", value = "${session.remSleepPercent.toInt()}%", modifier = Modifier.weight(1f))
+                PillRow {
+                    MetricChip(label = "Onset", value = "${session.sleepOnsetMinutes}min", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "Deep", value = "${session.deepSleepPercent.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "REM", value = "${session.remSleepPercent.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                MetricGridRow {
-                    MetricChip(label = "Light", value = "${session.lightSleepPercent.toInt()}%", modifier = Modifier.weight(1f))
-                    MetricChip(label = "Wakes", value = "${session.wakeEvents}", modifier = Modifier.weight(1f))
+                PillRow {
+                    MetricChip(label = "Light", value = "${session.lightSleepPercent.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "Wakes", value = "${session.wakeEvents}", modifier = Modifier.weight(1f).fillMaxHeight())
                     Spacer(modifier = Modifier.weight(1f))
                 }
             }
@@ -163,16 +165,13 @@ fun SessionDetailScreen(
             // Audio Events Summary
             if (audioEvents.isNotEmpty()) {
                 SleepCard(title = "Audio Events") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
+                    PillRow {
                         val snoreCount = audioEvents.count { it.type == AudioEventType.SNORE }
                         val coughCount = audioEvents.count { it.type == AudioEventType.COUGH }
                         val talkCount = audioEvents.count { it.type == AudioEventType.TALK }
-                        MetricChip(label = "Snoring", value = "$snoreCount events")
-                        MetricChip(label = "Coughs", value = "$coughCount events")
-                        MetricChip(label = "Talking", value = "$talkCount events")
+                        MetricChip(label = "Snoring", value = "$snoreCount", modifier = Modifier.weight(1f).fillMaxHeight())
+                        MetricChip(label = "Coughs", value = "$coughCount", modifier = Modifier.weight(1f).fillMaxHeight())
+                        MetricChip(label = "Talking", value = "$talkCount", modifier = Modifier.weight(1f).fillMaxHeight())
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -241,34 +240,28 @@ fun SessionDetailScreen(
                         vitals.sourceApp?.let { resolveAppLabel(context, it) }
                     }
                     SleepCard(title = "Vitals" + (sourceLabel?.let { " · $it" } ?: "")) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
+                        PillRow {
                             vitals.avgHeartRateBpm?.let {
-                                MetricChip(label = "Avg HR", value = "${it.toInt()} bpm")
+                                MetricChip(label = "Avg HR", value = "${it.toInt()} bpm", modifier = Modifier.weight(1f).fillMaxHeight())
                             }
                             vitals.restingHeartRateBpm?.let {
-                                MetricChip(label = "Resting HR", value = "${it.toInt()} bpm")
+                                MetricChip(label = "Resting HR", value = "${it.toInt()} bpm", modifier = Modifier.weight(1f).fillMaxHeight())
                             }
                             vitals.avgHeartRateVariabilityMs?.let {
-                                MetricChip(label = "HRV", value = "${it.toInt()} ms")
+                                MetricChip(label = "HRV", value = "${it.toInt()} ms", modifier = Modifier.weight(1f).fillMaxHeight())
                             }
                         }
                         if (vitals.avgSpo2Percent != null || vitals.avgSkinTemperatureCelsius != null) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
+                            PillRow {
                                 vitals.avgSpo2Percent?.let {
-                                    MetricChip(label = "SpO2", value = "${it.toInt()}%")
+                                    MetricChip(label = "SpO2", value = "${it.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
                                 }
                                 vitals.minSpo2Percent?.let {
-                                    MetricChip(label = "Min SpO2", value = "${it.toInt()}%")
+                                    MetricChip(label = "Min SpO2", value = "${it.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
                                 }
                                 vitals.avgSkinTemperatureCelsius?.let {
-                                    MetricChip(label = "Skin Temp", value = "${"%.1f".format(it)}°C")
+                                    MetricChip(label = "Skin Temp", value = "${"%.1f".format(it)}°C", modifier = Modifier.weight(1f).fillMaxHeight())
                                 }
                             }
                         }
@@ -294,19 +287,7 @@ fun SessionDetailScreen(
 }
 
 /**
- * One row of the metrics grid — SpaceEvenly used to leave the same gutters the old rows had,
- * weights keep the chips equal width.
- */
-@Composable
-private fun MetricGridRow(content: @Composable RowScope.() -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        content = content
-    )
-}
-
-/**
+ * Resolves a Health Connect data-origin package name (e.g. "com.fitbit.FitbitMobile") to the
  * Resolves a Health Connect data-origin package name (e.g. "com.fitbit.FitbitMobile") to the
  * app's display label (e.g. "Fitbit"), falling back to the raw package name if it isn't
  * installed/resolvable — never crashes on an unresolvable package.
