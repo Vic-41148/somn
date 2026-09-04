@@ -72,23 +72,20 @@ jobs:
             | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}') || true
           STANDALONE=${STANDALONE:-0}
           NONFLAVORED=0
-          while IFS= read -r dir; do
-            module=${dir#./}
-            module=${module%/build/test-results/testDebugUnitTest}
-            # Skip flavored modules — their src/test tests are already in STANDALONE. A module
-            # is "flavored" only if its standalone tree produced real result files. Gradle makes
-            # the testStandaloneDebugUnitTest directory for EVERY module (even no-channel ones,
-            # as a NO-SOURCE task), so an empty dir must not count as flavored.
-            sa_xmls=$(find "$module/build/test-results/testStandaloneDebugUnitTest" \
-              -name 'TEST-*.xml' 2>/dev/null | wc -l)
-            [ "$sa_xmls" -gt 0 ] && continue
-            for f in "$dir"/TEST-*.xml; do
+          # core:domain / core:ui / core:health are deliberately kept on compileSdk 35 with no
+          # channel flavor, so their unit tests only exist under testDebugUnitTest. They are listed
+          # explicitly here rather than auto-detected: Gradle creates a (usually empty)
+          # testStandaloneDebugUnitTest results dir for EVERY module, so any dir-based heuristic
+          # for "has a flavor" is unreliable. Keep this list in sync with those build files.
+          for module in core/domain core/ui core/health; do
+            for f in "$module"/build/test-results/testDebugUnitTest/TEST-*.xml; do
               [ -f "$f" ] || continue
               t=$(grep -o 'tests="[0-9]*"' "$f" | head -1 | grep -o '[0-9]*')
               NONFLAVORED=$((NONFLAVORED + t))
             done
-          done < <(find . -type d -path '*/build/test-results/testDebugUnitTest')
+          done
           TOTAL=$((STANDALONE + NONFLAVORED))
+          echo "Test suite: standalone=$STANDALONE non-flavored=$NONFLAVORED total=$TOTAL"
           # Anchored to the claim lines so prose that repeats "N unit tests" can't double-match;
           # tail -1 keeps the last (real) claim if the docs are ever edited to repeat it.
           README_CLAIMED=$(grep -oE '# [0-9]+ unit tests' README.md | grep -oE '[0-9]+' | tail -1 || true)
