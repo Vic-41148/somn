@@ -187,6 +187,20 @@ class AnalyticsViewModel @Inject constructor(
             }.map { it.name }.distinct()
         }
 
+    /** R4: all tags for the Session Detail picker, seeded with the default taxonomy. */
+    val allTags = tagRepository.observeAllTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun observeSessionTags(sessionId: Long) = tagRepository.observeTagsForSession(sessionId)
+
+    fun toggleSessionTag(sessionId: Long, tagId: Long, attached: Boolean) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { tagRepository.ensureDefaultTags() }
+            if (attached) tagRepository.removeTagFromSession(sessionId, tagId)
+            else tagRepository.addTagToSession(sessionId, tagId)
+        }
+    }
+
     fun exportAllSessions() {
         viewModelScope.launch {
             val allSessions = sessions.value

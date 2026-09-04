@@ -28,6 +28,10 @@ interface TagDao {
     @Query("SELECT * FROM tags ORDER BY category ASC, name ASC")
     fun observeAll(): Flow<List<TagEntity>>
 
+    /** R4: one-shot name list for idempotent default-taxonomy seeding. */
+    @Query("SELECT name FROM tags")
+    suspend fun getAllNames(): List<String>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSessionTag(sessionTag: SessionTagEntity)
 

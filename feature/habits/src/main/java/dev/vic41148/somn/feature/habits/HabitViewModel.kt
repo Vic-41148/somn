@@ -5,13 +5,20 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.vic41148.somn.core.data.repository.HabitLogRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
+import dev.vic41148.somn.core.data.repository.TagRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.core.domain.model.HabitEntry
 import dev.vic41148.somn.core.domain.model.HabitLog
 import dev.vic41148.somn.core.domain.model.RecoveryPlan
 import dev.vic41148.somn.core.domain.model.SleepDebt
+import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.usecase.CorrelationReport
 import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
+import dev.vic41148.somn.core.domain.usecase.ShiftFlag
+import dev.vic41148.somn.core.domain.usecase.TagImpact
+import dev.vic41148.somn.core.domain.usecase.TaggedNight
+import dev.vic41148.somn.core.domain.usecase.detectShifts
+import dev.vic41148.somn.core.domain.usecase.tagImpact
 import dev.vic41148.somn.core.domain.usecase.SleepDebtUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +35,7 @@ class HabitViewModel @Inject constructor(
     private val habitLogRepository: HabitLogRepository,
     private val sleepRepository: SleepRepository,
     private val userProfileRepository: UserProfileRepository,
+    private val tagRepository: TagRepository,
     private val sleepDebtUseCase: SleepDebtUseCase,
     private val correlationUseCase: CorrelationUseCase
 ) : ViewModel() {
@@ -57,6 +65,14 @@ class HabitViewModel @Inject constructor(
     private val _correlationReport = MutableStateFlow<CorrelationReport?>(null)
     val correlationReport: StateFlow<CorrelationReport?> = _correlationReport.asStateFlow()
 
+    /** R4: proactive shift flags — empty is the common case, no news is no cards. */
+    private val _shiftFlags = MutableStateFlow<List<ShiftFlag>>(emptyList())
+    val shiftFlags: StateFlow<List<ShiftFlag>> = _shiftFlags.asStateFlow()
+
+    /** R4: tag presence as binary predictors next to the big-four habits. */
+    private val _tagImpacts = MutableStateFlow<List<TagImpact>>(emptyList())
+    val tagImpacts: StateFlow<List<TagImpact>> = _tagImpacts.asStateFlow()
+
     // --- Loading / error ---
 
     private val _isLoading = MutableStateFlow(false)
@@ -71,6 +87,10 @@ class HabitViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            // R4 taxonomy: idempotent, so cold-start seeding is safe for existing users.
+            runCatching { tagRepository.ensureDefaultTags() }
+        }
         loadDebtAndCorrelations()
     }
 
@@ -94,13 +114,47 @@ class HabitViewModel @Inject constructor(
                     _sleepDebt.value = debtAndPlan.first
                     _recoveryPlan.value = debtAndPlan.second
 
-                    _correlationReport.value = correlationUseCase.calculate(sessions, habitLogs)
+                    // R4: correlations run over a 90-night settled window beside the
+                    // 7-night early read — same engine, wider sample, maturity-labeled.
+                    val wideSessions = sleepRepository.getRecentMainSleepSessions(100)
+                    _correlationReport.value = correlationUseCase.calculate(wideSessions, habitLogs)
+                    _shiftFlags.value = kotlinx.coroutines.withContext(
+                        kotlinx.coroutines.Dispatchers.Default
+                    ) {
+                        detectShifts(wideSessions, habitLogs)
+                    }
+                    _tagImpacts.value = kotlinx.coroutines.withContext(
+                        kotlinx.coroutines.Dispatchers.Default
+                    ) {
+                        computeTagImpacts(wideSessions)
+                    }
                     _isLoading.value = false
                 }
             } catch (e: Exception) {
                 _isLoading.value = false
             }
         }
+    }
+
+    /** Groups the last 90 completed nights by tag and runs each through [tagImpact]. */
+    private suspend fun computeTagImpacts(sessions: List<SleepSession>): List<TagImpact> {
+        val nights = sessions.filter { it.isCompleted }.sortedBy { it.startTimeMillis }.takeLast(90)
+        if (nights.isEmpty()) return emptyList()
+        val tagsBySession = nights.associate { session ->
+            session.id to runCatching { tagRepository.getTagsForSession(session.id) }
+                .getOrDefault(emptyList()).map { it.name }.toSet()
+        }
+        return tagsBySession.values.flatten().distinct().mapNotNull { tagName ->
+            tagImpact(
+                tagName,
+                nights.map { session ->
+                    TaggedNight(
+                        tagged = tagsBySession[session.id]?.contains(tagName) == true,
+                        score = session.sleepScore
+                    )
+                }
+            )
+        }.sortedByDescending { kotlin.math.abs(it.taggedAvgScore - it.untaggedAvgScore) }
     }
 
     // ---- Actions ----

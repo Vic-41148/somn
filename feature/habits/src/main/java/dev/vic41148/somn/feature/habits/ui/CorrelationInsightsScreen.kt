@@ -44,6 +44,9 @@ import dev.vic41148.somn.core.domain.usecase.CorrelationConfidence
 import dev.vic41148.somn.core.domain.usecase.CorrelationResult
 import dev.vic41148.somn.core.domain.usecase.CorrelationStrength
 import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
+import dev.vic41148.somn.core.domain.usecase.ShiftFlag
+import dev.vic41148.somn.core.domain.usecase.TagImpact
+import dev.vic41148.somn.core.domain.usecase.maturityLabel
 import dev.vic41148.somn.feature.habits.HabitViewModel
 import kotlin.math.abs
 
@@ -54,6 +57,8 @@ fun CorrelationInsightsScreen(
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val report by viewModel.correlationReport.collectAsState()
+    val shiftFlags by viewModel.shiftFlags.collectAsState()
+    val tagImpacts by viewModel.tagImpacts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     // This screen had no TopAppBar/back button and wasn't reachable from anywhere in the app —
@@ -124,8 +129,18 @@ fun CorrelationInsightsScreen(
         if (!safeReport.hasAnyData) {
             EmptyCorrelationsState()
         } else {
+            // R4: material moves first — flagged without being asked.
+            shiftFlags.forEach { flag ->
+                ShiftFlagCard(flag = flag)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             correlations.forEach { result ->
                 CorrelationCard(result = result)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            // R4: tag presence as binary predictors next to the big-four habits.
+            tagImpacts.forEach { impact ->
+                TagImpactCard(impact = impact)
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -206,10 +221,10 @@ private fun CorrelationCard(result: CorrelationResult) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("r = ${"%.2f".format(result.correlation)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                // Sample size + confidence qualifier, distinct from the strength badge above:
-                // a strong r from 7 nights is still an early read (CorrelationConfidence).
+                // Sample size + maturity: a strong r from 7 nights is still an early
+                // read, the same r from 90 nights is settled (CorrelationConfidence).
                 Text(
-                    text = "n = ${result.dataPoints} · ${result.confidence.displayName}",
+                    text = "n = ${result.dataPoints} · ${result.confidence.maturityLabel}",
                     style = MaterialTheme.typography.bodySmall,
                     color = when (result.confidence) {
                         CorrelationConfidence.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -292,9 +307,84 @@ private fun StrengthBadge(strength: CorrelationStrength, isPositive: Boolean) {
     }
 }
 
+/** R4 shift flag: a material move, surfaced without being asked. */
 @Composable
-private fun InsufficientDataCard(label: String) {
+private fun ShiftFlagCard(flag: ShiftFlag) {
     Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Heads up",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = flag.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = flag.detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+/** R4 tag read: binary predictor with its sample on both sides. */
+@Composable
+private fun TagImpactCard(impact: TagImpact) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Tag · ${impact.tagName}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = impact.insight,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${impact.taggedAvgScore} tagged vs ${impact.untaggedAvgScore} untagged",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun InsufficientDataCard(label: String) {    Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(

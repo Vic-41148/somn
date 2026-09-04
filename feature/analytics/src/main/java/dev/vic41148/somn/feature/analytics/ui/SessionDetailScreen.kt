@@ -151,6 +151,11 @@ fun SessionDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            // R4: tag this night — tag presence feeds the Patterns binary predictors.
+            SessionTagsCard(sessionId = sessionId, viewModel = viewModel)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Audio Timeline (Phase 3)
             dev.vic41148.somn.core.ui.components.AudioTimeline(
                 events = audioEvents,
@@ -279,6 +284,42 @@ fun SessionDetailScreen(
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * R4 Tags card: FlowRow of toggle chips (the MorningReview moods pattern). Tagging a
+ * night feeds the Patterns screen's binary predictors — five tagged nights minimum
+ * before a tag earns its own read.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SessionTagsCard(sessionId: Long, viewModel: AnalyticsViewModel) {
+    val allTags by viewModel.allTags.collectAsState()
+    val attached by viewModel.observeSessionTags(sessionId).collectAsState(initial = emptyList())
+    val attachedIds = attached.map { it.id }.toSet()
+    SleepCard(title = "Tags") {
+        if (allTags.isEmpty()) {
+            Text(
+                "No tags yet — they appear here after your first tagged night.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                allTags.forEach { tag ->
+                    val isAttached = attachedIds.contains(tag.id)
+                    androidx.compose.material3.FilterChip(
+                        selected = isAttached,
+                        onClick = { viewModel.toggleSessionTag(sessionId, tag.id, isAttached) },
+                        label = { Text(tag.name) }
                     )
                 }
             }
