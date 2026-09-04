@@ -45,6 +45,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.DebtLevel
 import dev.vic41148.somn.core.domain.model.SleepDebt
+import dev.vic41148.somn.core.domain.usecase.ReadinessResult
+import dev.vic41148.somn.core.domain.usecase.assessReadiness
+import dev.vic41148.somn.core.domain.usecase.buildOutlook
 import dev.vic41148.somn.core.domain.usecase.formatDurationShort
 import dev.vic41148.somn.core.domain.usecase.summarizeSessions
 import dev.vic41148.somn.core.ui.components.MetricChip
@@ -73,7 +76,27 @@ fun HomeScreen(
     val lastSession by viewModel.lastSession.collectAsState()
     val lastScore by viewModel.lastScore.collectAsState()
     val recentSessions by viewModel.recentSessions.collectAsState()
+    val readinessVitals by viewModel.readinessVitals.collectAsState()
     val sleepDebt by habitViewModel.sleepDebt.collectAsState()
+    // Morning verdict — same inputs as History's header plus vitals, so numbers agree.
+    val readiness = remember(recentSessions, sleepDebt, readinessVitals) {
+        assessReadiness(recentSessions, sleepDebt, readinessVitals)
+    }
+    // Outlook sentence — strongest settled correlation + debt-plan hint, template-built.
+    val recoveryPlan by habitViewModel.recoveryPlan.collectAsState()
+    val correlationReport by habitViewModel.correlationReport.collectAsState()
+    val outlook = remember(readiness, sleepDebt, correlationReport, recoveryPlan) {
+        val topInsight = correlationReport?.availableCorrelations
+            ?.maxByOrNull { kotlin.math.abs(it.correlation) }?.insight
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        buildOutlook(
+            readiness = readiness,
+            debt = sleepDebt,
+            correlationInsight = topInsight,
+            recoveryMinutesHint = recoveryPlan?.additionalMinutesPerNight?.takeIf { it > 0 },
+            isMorning = hour in 4..16
+        )
+    }
     // 7-day rollup for the rings — same math History's header uses, so the numbers agree.
     val weekSummary = remember(recentSessions) {
         val cutoff = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
@@ -289,6 +312,28 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
+        // Morning verdict — the prescription to Last Night's description. Sits above
+        // it so the first thing a woken-up user reads is what today should look like.
+        val showReadiness by viewModel.showReadinessCard.collectAsState()
+        if (showReadiness) {
+            MorningReadyCard(
+                readiness = readiness,
+                hasAnySessions = recentSessions.isNotEmpty(),
+                onRingClick = onNavigateToTrends
+            )
+
+            // Daily Outlook — one template-built sentence, morning vs evening variants.
+            Spacer(modifier = Modifier.height(16.dp))
+            SleepCard(title = "Today") {
+                Text(
+                    text = outlook,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
         // Last night's score
         AnimatedVisibility(
             visible = lastSession != null && lastSession!!.isCompleted,
@@ -409,6 +454,122 @@ fun HomeScreen(
         sleepDebt?.let { debt ->
             Spacer(modifier = Modifier.height(16.dp))
             SleepDebtHomeCard(debt = debt, onClick = onNavigateToDebt)
+        }
+    }
+}
+
+@Composable
+private fun MorningReadyCard(
+    readiness: ReadinessResult?,
+    hasAnySessions: Boolean,
+    onRingClick: () -> Unit
+) {
+    Spacer(modifier = Modifier.height(16.dp))
+    if (readiness == null) {
+        if (!hasAnySessions) return
+        SleepCard(title = "Morning Ready") {
+            Text(
+                text = "Track tonight and tomorrow's verdict lands here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        }
+        return
+    }
+
+    var expanded by remember { mutableStateOf(false) }
+    val verdict = when (readiness.zone) {
+        dev.vic41148.somn.core.domain.usecase.ReadinessZone.READY ->
+            "Push today — your body is primed for it."
+        dev.vic41148.somn.core.domain.usecase.ReadinessZone.STEADY ->
+            "A steady day — normal load is fine, save max efforts."
+        dev.vic41148.somn.core.domain.usecase.ReadinessZone.REST ->
+            "Take it easy — rest beats training today."
+    }
+    SleepCard(title = "Morning Ready") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            StatRing(
+                label = readiness.zone.displayName,
+                value = "${readiness.score}",
+                fraction = readiness.score / 100f,
+                color = scoreColor(readiness.score),
+                onClick = onRingClick
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = verdict,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                if (!readiness.isCalibrated) {
+                    LinearProgressIndicator(
+                        progress = { readiness.nightsUsed / 3f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${readiness.nightsUsed}/3 nights — settling your baseline",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        text = "${readiness.nightsUsed} nights in your baseline",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+        AnimatedVisibility(visible = expanded, enter = fadeIn(), exit = fadeOut()) {
+            Column(modifier = Modifier.padding(top = 12.dp)) {
+                readiness.contributors.forEach { c ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = c.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (c.hasData) c.detail else "Not enough data yet",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = if (c.hasData) "${c.score}" else "–",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (c.hasData) scoreColor(c.score)
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "Hide details" else "Why this verdict")
+            }
         }
     }
 }

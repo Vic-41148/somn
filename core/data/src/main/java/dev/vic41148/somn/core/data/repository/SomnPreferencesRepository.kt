@@ -56,6 +56,8 @@ class SomnPreferencesRepository @Inject constructor(
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
         /** Material You dynamic color on Android 12+, on by default so the theme stays as it was. */
         val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+        /** R1: Morning Ready verdict + Today outlook cards on Home, on by default. */
+        val SHOW_READINESS_CARD = booleanPreferencesKey("show_readiness_card")
         /**
          * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO — the
          * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
@@ -219,6 +221,15 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateUseDynamicColor(enabled: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.USE_DYNAMIC_COLOR] = enabled }
+    }
+
+    /** R1: whether the Morning Ready verdict + Today outlook cards show on Home. */
+    val showReadinessCard: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.SHOW_READINESS_CARD] ?: true }
+
+    suspend fun updateShowReadinessCard(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.SHOW_READINESS_CARD] = enabled }
     }
 
     /**

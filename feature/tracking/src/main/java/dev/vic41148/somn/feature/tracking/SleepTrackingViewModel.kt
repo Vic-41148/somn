@@ -17,6 +17,10 @@ import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase
 import dev.vic41148.somn.core.domain.usecase.PostpartumFragmentationUseCase
+import dev.vic41148.somn.core.domain.usecase.VitalsDeviation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.withContext
 import dev.vic41148.somn.core.notifications.DeepSleepAlertNotifier
 import dev.vic41148.somn.core.notifications.HormonalPhaseNotifier
 import dev.vic41148.somn.core.notifications.PPDRiskNotifier
@@ -69,6 +73,42 @@ class SleepTrackingViewModel @Inject constructor(
     /** Completed sessions for the Home "This week" rings — same source History summarizes. */
     val recentSessions: StateFlow<List<SleepSession>> = sleepRepository.observeCompletedSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** R1: Settings gate for the Morning Ready verdict + Today outlook cards. */
+    val showReadinessCard: StateFlow<Boolean> = preferencesRepository.showReadinessCard
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    /**
+     * Last-night wearable deltas vs the user's own 14-day median, for the readiness
+     * verdict. Null while loading; `VitalsDeviation()` (no data) when Health Connect
+     * has nothing — the engine degrades to sleep signals instead of scoring zeros.
+     * Suspended Room reads run on Default so the flow never blocks the main thread.
+     */
+    val readinessVitals: StateFlow<VitalsDeviation?> = recentSessions.mapLatest { sessions ->
+        withContext(Dispatchers.Default) {
+            val cutoff = System.currentTimeMillis() - 14 * 24 * 60 * 60 * 1000L
+            val window = sessions.filter { it.isCompleted && it.startTimeMillis >= cutoff }
+                .sortedBy { it.startTimeMillis }
+            if (window.isEmpty()) return@withContext null
+            val snaps = window.mapNotNull { session ->
+                runCatching { sleepRepository.getExternalVitals(session.id) }.getOrNull()
+            }.filter { it.hasAnyData }
+            if (snaps.isEmpty()) return@withContext VitalsDeviation()
+            val last = snaps.last()
+            VitalsDeviation(
+                restingHrDeltaBpm = last.restingHeartRateBpm?.let { it - snaps.mapNotNull { s -> s.restingHeartRateBpm }.median() },
+                hrvDeltaMs = last.avgHeartRateVariabilityMs?.let { it - snaps.mapNotNull { s -> s.avgHeartRateVariabilityMs }.median() },
+                tempDeltaCelsius = last.avgSkinTemperatureCelsius?.let { it - snaps.mapNotNull { s -> s.avgSkinTemperatureCelsius }.median() }
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private fun List<Float>.median(): Float {
+        if (isEmpty()) return 0f
+        val sorted = sorted()
+        return if (size % 2 == 1) sorted[size / 2]
+        else (sorted[size / 2 - 1] + sorted[size / 2]) / 2f
+    }
 
     init {
         checkIncompleteSession()

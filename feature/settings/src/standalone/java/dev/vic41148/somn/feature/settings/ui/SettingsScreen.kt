@@ -209,6 +209,11 @@ fun SettingsScreen(
                 checked = settings.useDynamicColor,
                 onCheckedChange = { viewModel.updateUseDynamicColor(it) }
             )
+            SettingToggle(
+                title = "Morning Ready Card",
+                checked = settings.showReadinessCard,
+                onCheckedChange = { viewModel.updateShowReadinessCard(it) }
+            )
         }
 
         // Wake-Up Verification (WAKE-01/02)

@@ -10,6 +10,9 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import dev.vic41148.somn.app.R
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
+import dev.vic41148.somn.core.domain.model.SleepSession
+import dev.vic41148.somn.core.domain.usecase.assessReadiness
+import dev.vic41148.somn.core.domain.usecase.buildOutlook
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -54,24 +57,31 @@ class MorningBriefingWidget : AppWidgetProvider() {
                 val sleepSessionDao = entryPoint.sleepSessionDao()
 
                 // SESS-04: morning briefing should reflect last night's main sleep, not a stray nap.
-                val recentSessions = sleepSessionDao.getRecentMainSleepSessions(1)
-                val session = recentSessions.firstOrNull()
+                // Readiness runs on lightweight domain copies (the entity→domain mapper lives
+                // private in SleepRepository) with no debt/vitals here — the engine degrades
+                // to sleep signals, which is all a 30-minute widget refresh needs.
+                val recentEntities = sleepSessionDao.getRecentMainSleepSessions(14)
+                val session = recentEntities.firstOrNull()
 
                 val views = RemoteViews(context.packageName, R.layout.widget_morning_briefing)
 
                 if (session != null && session.isCompleted) {
                     val score = session.sleepScore
-                    val durationHours = session.sleepDurationMinutes / 60
-                    val durationMins = session.sleepDurationMinutes % 60
 
                     views.setTextViewText(R.id.widget_score, "$score")
 
-                    val insight = when {
-                        score >= 85 -> "Excellent sleep! ${durationHours}h ${durationMins}m"
-                        score >= 70 -> "Good night. ${durationHours}h ${durationMins}m"
-                        score >= 50 -> "Room to improve. ${durationHours}h ${durationMins}m"
-                        else -> "Tough night. ${durationHours}h ${durationMins}m — prioritize rest tonight."
+                    val domainSessions = recentEntities.map {
+                        SleepSession(
+                            startTimeMillis = it.startTimeMillis,
+                            sleepDurationMinutes = it.sleepDurationMinutes,
+                            sleepScore = it.sleepScore,
+                            isCompleted = it.isCompleted
+                        )
                     }
+                    val readiness = assessReadiness(domainSessions, null, null)
+                    val hour = java.util.Calendar.getInstance()
+                        .get(java.util.Calendar.HOUR_OF_DAY)
+                    val insight = buildOutlook(readiness, null, null, isMorning = hour < 12)
                     views.setTextViewText(R.id.widget_insight, insight)
                 } else {
                     views.setTextViewText(R.id.widget_score, "--")

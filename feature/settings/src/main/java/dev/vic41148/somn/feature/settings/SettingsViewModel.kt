@@ -135,6 +135,9 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.useDynamicColor) { state, enabled ->
             state.copy(useDynamicColor = enabled)
         }
+        collectInto(preferencesRepository.showReadinessCard) { state, enabled ->
+            state.copy(showReadinessCard = enabled)
+        }
         collectInto(preferencesRepository.hemisphereOverride) { state, override ->
             state.copy(hemisphereOverride = override)
         }
@@ -177,6 +180,8 @@ class SettingsViewModel @Inject constructor(
         val wakeVerificationWindowSeconds: Int = 15,
         /** THEME-01: whether Material You tints the app from the wallpaper on Android 12+. */
         val useDynamicColor: Boolean = true,
+        /** R1: whether the Morning Ready verdict + Today outlook cards show on Home. */
+        val showReadinessCard: Boolean = true,
         /** Which hemisphere seasonal analysis assumes; AUTO keeps the timezone heuristic. */
         val hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO,
         val snoreNudgeEnabled: Boolean = true,
@@ -336,6 +341,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateUseDynamicColor(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.updateUseDynamicColor(enabled) }
+    }
+
+    fun updateShowReadinessCard(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateShowReadinessCard(enabled) }
     }
 
     fun updateHemisphereOverride(override: HemisphereOverride) {
