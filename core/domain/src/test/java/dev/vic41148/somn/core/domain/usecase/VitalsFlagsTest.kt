@@ -41,8 +41,19 @@ class VitalsFlagsTest {
     }
 
     @Test
-    fun `missing latest value shows dash without data`() {
-        val history = (1..6).map { snap(it.toLong()) }
+    fun `real temp shift still flags on flat history`() {
+        val history = (1..6).map {
+            ExternalVitalsSnapshot(sessionId = it.toLong(), avgSkinTemperatureCelsius = 36.0f)
+        }
+        val flags = flagVitals(
+            ExternalVitalsSnapshot(sessionId = 7, avgSkinTemperatureCelsius = 36.5f),
+            history
+        )
+        assertThat(flags.first { it.label == "Skin temp" }.inRange).isFalse()
+    }
+
+    @Test
+    fun `missing latest value shows dash without data`() {        val history = (1..6).map { snap(it.toLong()) }
         val flags = flagVitals(snap(7, rhr = null), history)
         val rhr = flags.first { it.label == "Resting HR" }
         assertThat(rhr.value).isEqualTo("–")

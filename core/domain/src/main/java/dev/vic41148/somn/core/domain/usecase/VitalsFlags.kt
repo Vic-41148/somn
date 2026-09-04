@@ -33,25 +33,29 @@ fun flagVitals(
             label = "Resting HR",
             latest = latest.restingHeartRateBpm,
             past = past.mapNotNull { it.restingHeartRateBpm },
-            format = { "${it.toInt()} bpm" }
+            format = { "${it.toInt()} bpm" },
+            minTolerance = 1.5f
         ),
         flagOne(
             label = "HRV",
             latest = latest.avgHeartRateVariabilityMs,
             past = past.mapNotNull { it.avgHeartRateVariabilityMs },
-            format = { "${it.toInt()} ms" }
+            format = { "${it.toInt()} ms" },
+            minTolerance = 2f
         ),
         flagOne(
             label = "SpO2",
             latest = latest.avgSpo2Percent,
             past = past.mapNotNull { it.avgSpo2Percent },
-            format = { "${it.toInt()}%" }
+            format = { "${it.toInt()}%" },
+            minTolerance = 1f
         ),
         flagOne(
             label = "Skin temp",
             latest = latest.avgSkinTemperatureCelsius,
             past = past.mapNotNull { it.avgSkinTemperatureCelsius },
-            format = { "${"%.1f".format(it)}°C" }
+            format = { "${"%.1f".format(it)}°C" },
+            minTolerance = 0.2f
         )
     )
 }
@@ -60,7 +64,9 @@ private fun flagOne(
     label: String,
     latest: Float?,
     past: List<Float>,
-    format: (Float) -> String
+    format: (Float) -> String,
+    /** Night-to-night wobble floor: identical history must not flag a 1-bpm move. */
+    minTolerance: Float
 ): VitalFlag {
     if (latest == null || past.size < MIN_HISTORY_NIGHTS) {
         return VitalFlag(
@@ -76,9 +82,12 @@ private fun flagOne(
     val sorted = past.sorted()
     val lo = sorted[(sorted.size * 0.1).toInt().coerceIn(0, sorted.size - 1)]
     val hi = sorted[(sorted.size * 0.9).toInt().coerceIn(0, sorted.size - 1)]
-    val span = (hi - lo).coerceAtLeast(0.001f)
-    // 10% tolerance outside the band before flagging — vitals wobble night to night.
-    val inRange = latest >= lo - span * 0.1f && latest <= hi + span * 0.1f
+    val span = (hi - lo).coerceAtLeast(0f)
+    // 10% tolerance outside the band before flagging — vitals wobble night to
+    // night — with a per-vital floor so flat history (span 0) can't flag a 1-bpm
+    // move while a real shift (half a degree of skin temp) still fires.
+    val tol = maxOf(span * 0.1f, minTolerance)
+    val inRange = latest >= lo - tol && latest <= hi + tol
     return VitalFlag(
         label = label,
         value = format(latest),

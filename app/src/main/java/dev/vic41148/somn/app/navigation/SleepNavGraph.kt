@@ -43,6 +43,7 @@ import dev.vic41148.somn.feature.alarm.ui.AlarmListScreen
 import dev.vic41148.somn.feature.analytics.ui.CircadianInsightsScreen
 import dev.vic41148.somn.feature.analytics.ui.HistoryScreen
 import dev.vic41148.somn.feature.analytics.ui.ManualSessionScreen
+import dev.vic41148.somn.feature.analytics.ui.ReportsScreen
 import dev.vic41148.somn.feature.analytics.ui.SessionDetailScreen
 import dev.vic41148.somn.feature.analytics.ui.TrendsScreen
 import dev.vic41148.somn.feature.analytics.ui.VitalsScreen
@@ -93,6 +94,7 @@ private val hideNavRoutes = setOf(
     "circadian_insights",
     "trends",
     "vitals",
+    "reports",
     "manual_session",
     "breathing_exercise",
     "cognitive_winddown",
@@ -278,6 +280,9 @@ fun SleepNavGraph(
                     onNavigateToVitals = {
                         navController.navigate("vitals")
                     },
+                    onNavigateToReports = {
+                        navController.navigate("reports")
+                    },
                     onAddManualSession = {
                         navController.navigate("manual_session")
                     }
@@ -403,6 +408,14 @@ fun SleepNavGraph(
 
             composable("vitals") {
                 VitalsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // ---- R3: Reports (weekly/monthly/year + PDF) ----
+
+            composable("reports") {
+                ReportsScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

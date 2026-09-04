@@ -23,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
+    private val tagRepository: dev.vic41148.somn.core.data.repository.TagRepository,
     private val exportCsv: ExportCsvUseCase,
     preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 ) : ViewModel() {
@@ -177,6 +178,14 @@ class AnalyticsViewModel @Inject constructor(
             _selectedSession.value = null
         }
     }
+
+    /** R3 Reports: distinct tag names across sessions, for the report + PDF tag list. */
+    suspend fun tagNamesFor(sessionIds: List<Long>): List<String> =
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            sessionIds.flatMap { id ->
+                runCatching { tagRepository.getTagsForSession(id) }.getOrDefault(emptyList())
+            }.map { it.name }.distinct()
+        }
 
     fun exportAllSessions() {
         viewModelScope.launch {
