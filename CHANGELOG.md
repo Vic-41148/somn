@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Alarm dial hand no longer vanishes (fixed).** On the alarm time picker, toggling AM/PM and then dragging the hand could make the hand stop drawing (numbers stayed, time still moved) until the screen was reopened. The picker is now rebuilt with fresh state every time AM/PM flips while no finger is down, so the orphaned hand animation can't survive a toggle.
 - **Health Connect steps & exercise (R6).** Prior-day step count and active minutes now feed the morning readiness verdict — a "Yesterday's activity" contributor (scored toward 10k steps / 45 active minutes) and a matching Outlook sentence. Degrades gracefully: with no Health Connect data the contributor is skipped, never fabricated as a quiet day.
 - **Cycle depth (R5).** New menopause check-in (10-symptom questionnaire, stored on-device) for peri/menopause users, plus luteal-phase coaching in the daily Outlook and a luteal-window extra-minutes hint for the debt recovery plan. Phase refinement now also corrects the calendar estimate with overnight skin temperature when Health Connect has it.
 - **Correlations & predictors (R4).** Settled-correlation insight sentences in the daily Outlook, per-tag shift flags, and expanded tag predictors.

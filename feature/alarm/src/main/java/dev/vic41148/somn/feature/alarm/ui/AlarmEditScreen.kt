@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,7 +49,30 @@ fun AlarmEditScreen(
         // to live inside the AnimatedVisibility content, so the dial's state (including its
         // needle-animation clock) was tied to the enter/exit subcomposition — after tapping
         // AM/PM and dragging, the needle froze while the time still moved. It survives now.
-        val timePickerState = rememberTimePickerState(initialHour = 7, initialMinute = 0)
+        //
+        // The AM/PM toggle inside the Material3 picker mutates `isAfternoon` on the *same*
+        // state object, whose internal needle Animatable is then left pointing at a stale
+        // angle; the first drag after the flip can orphan the draw layer so the hand stops
+        // drawing until the screen reopens. The picker is therefore rebuilt with a fresh
+        // state (and a fresh needle animation) whenever AM/PM flips and no finger is down.
+        val initialPickerState = rememberTimePickerState(initialHour = 7, initialMinute = 0)
+        var timePickerState by remember { mutableStateOf<TimePickerState>(initialPickerState) }
+        var activePointers by remember { mutableIntStateOf(0) }
+        var lastNoon by remember { mutableStateOf(if (timePickerState.hour >= 12) 1 else 0) }
+
+        LaunchedEffect(timePickerState.hour >= 12, activePointers) {
+            when {
+                activePointers == 0 && (if (timePickerState.hour >= 12) 1 else 0) != lastNoon -> {
+                    lastNoon = if (timePickerState.hour >= 12) 1 else 0
+                    timePickerState = TimePickerState(
+                        initialHour = timePickerState.hour,
+                        initialMinute = timePickerState.minute,
+                        is24Hour = timePickerState.is24hour
+                    ).also { it.selection = timePickerState.selection }
+                }
+                else -> lastNoon = if (timePickerState.hour >= 12) 1 else 0
+            }
+        }
 
         LaunchedEffect(editingAlarm) {
             editingAlarm?.let {
@@ -103,7 +128,27 @@ fun AlarmEditScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TimePicker(state = timePickerState)
+            Box(
+                modifier = Modifier.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            when (event.type) {
+                                PointerEventType.Press -> activePointers += 1
+                                PointerEventType.Release ->
+                                    activePointers = (activePointers - 1).coerceAtLeast(0)
+                                PointerEventType.Move ->
+                                    if (activePointers > 0 && event.changes.none { it.pressed }) {
+                                        activePointers = 0
+                                    }
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+            ) {
+                TimePicker(state = timePickerState)
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
