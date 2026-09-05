@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Plain-language pass over all user-visible text and code comments.** Every string the user sees (onboarding, Home, alarm, analytics, habits, settings, wind-down, notifications) and every code comment now follows the same plain-language rules: active voice, no contractions, short common words. Copy only — no behavior or meaning changed.
 - **Automated QA guardrails.** The alarm dial's AM/PM-toggle rebuild policy is now covered by unit tests (was only verified by hand on a device), the toggle-then-drag hand check itself is automated in `scripts/verify_alarm_dial.py` (one command, screenshots + pixel assertion), and CI now fails a source-touching commit that does not also update CHANGELOG.md.
 - **Alarm dial hand no longer vanishes (fixed).** On the alarm time picker, toggling AM/PM and then dragging the hand could make the hand stop drawing (numbers stayed, time still moved) until the screen was reopened. The picker is now rebuilt with fresh state every time AM/PM flips while no finger is down, so the orphaned hand animation can't survive a toggle.
 - **Health Connect steps & exercise (R6).** Prior-day step count and active minutes now feed the morning readiness verdict — a "Yesterday's activity" contributor (scored toward 10k steps / 45 active minutes) and a matching Outlook sentence. Degrades gracefully: with no Health Connect data the contributor is skipped, never fabricated as a quiet day.
