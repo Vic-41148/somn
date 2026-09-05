@@ -142,6 +142,8 @@ fun TrendsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // New chart instance per metric and range so the entrance animation replays on every switch.
+            key(selectedMetric, rangeDays) {
             SleepCard(title = "${selectedMetric.displayName} · ${stats?.nights ?: sessions.size} nights") {
                 val points = sessions.map {
                     TrendPoint(it.startTimeMillis, viewModel.valueFor(it, selectedMetric))
@@ -188,6 +190,7 @@ fun TrendsScreen(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
+            }
             }
 
             if (!cyclePhaseRuns.isNullOrEmpty()) {

@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -350,6 +351,8 @@ private fun SummaryCard(
     modifier: Modifier = Modifier
 ) {
     SleepCard(title = rangeLabel, modifier = modifier) {
+        // New ring instances per range so the fill animation replays from zero on every switch.
+        key(rangeLabel) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -381,6 +384,7 @@ private fun SummaryCard(
                 strokeWidth = 8.dp,
                 onClick = onRingClick
             )
+        }
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(
@@ -446,7 +450,7 @@ private fun SessionRow(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = historyDateFormat.format(Date(session.startTimeMillis)),
                         style = MaterialTheme.typography.titleMedium,
