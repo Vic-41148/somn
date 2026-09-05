@@ -18,7 +18,7 @@ class TagRepository @Inject constructor(
 
     /**
      * R4 tag taxonomy: the built-in set Oura's 100+ tags gesture at, trimmed to a dozen
-     * that actually move sleep. Idempotent — inserts only names the user doesn't already
+     * that actually move sleep. Idempotent — inserts only names the user does not already
      * have (custom or debug-seeded), so it is safe to call on every cold start.
      *
      * @return how many defaults were inserted.

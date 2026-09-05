@@ -5,7 +5,7 @@ import dev.vic41148.somn.core.domain.model.AudioEventType
 /**
  * AudioSet class names for the bundled `yamnet.tflite` model, and the mapping from a
  * top-scoring class name to Somn's [AudioEventType]. Pure Kotlin, no TFLite/Android
- * dependency, so it's testable on the JVM without a device.
+ * dependency, so it is testable on the JVM without a device.
  */
 object YamnetLabels {
 
@@ -36,7 +36,7 @@ object YamnetLabels {
     )
 
     /**
-     * Maps a YAMNet class name to Somn's [AudioEventType], or null if the class isn't one
+     * Maps a YAMNet class name to Somn's [AudioEventType], or null if the class is not one
      * this feature cares about (e.g. "Silence", "Music", "Vehicle") - callers should fall back
      * to another signal (e.g. the existing ZCR heuristic) rather than treat null as ANOMALY.
      */

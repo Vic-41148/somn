@@ -50,7 +50,7 @@ class ClipRetentionWorker @AssistedInject constructor(
         var deleted = 0
         for (event in expired) {
             val path = event.clipPath ?: continue
-            // Clear the path even when the file is already gone, so a missing file can't leave a
+            // Clear the path even when the file is already gone, so a missing file cannot leave a
             // dangling clipPath that playback UI keeps trying to open.
             runCatching { File(path).delete() }
                 .onFailure { Log.e(TAG, "Failed to delete clip: $path", it) }

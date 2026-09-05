@@ -77,7 +77,7 @@ fun AudioTimeline(
                         .graphicsLayer() // Caches drawing
                         .pointerInput(Unit) {
                             detectTransformGestures { _, pan, _, _ ->
-                                // Handle tap separately or via click
+                                // Handle the tap separately or via click
                             }
                         }
                         .pointerInput(events) {
@@ -90,7 +90,7 @@ fun AudioTimeline(
                     val canvasWidth = size.width
                     val canvasHeight = size.height
                     
-                    // Draw baseline
+                    // Draw the baseline
                     drawLine(
                         color = Color.Gray.copy(alpha = 0.3f),
                         start = Offset(0f, canvasHeight / 2),

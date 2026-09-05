@@ -94,8 +94,8 @@ class AndroidHapticsManager @Inject constructor(
     override fun backgroundComplete(gentle: Boolean) {
         if (!enabled) return
         if (gentle) {
-            // Ease-in envelope for relax-state finishes (wind-down ending): four pulses ramping up
-            // from barely-there, so someone mid-breathing-exercise isn't startled by a hard buzz.
+            // Ease-in envelope for relax-state finishes (wind-down ending): four pulses ramp up
+            // from barely-there, so someone mid-breathing-exercise is not startled by a hard buzz.
             vibrate(
                 VibrationEffect.createWaveform(
                     longArrayOf(0, 70, 70, 70, 70),
@@ -122,7 +122,7 @@ class AndroidHapticsManager @Inject constructor(
     override fun preview() {
         if (!enabled) return
         // The preview is the only effect the user actively seeks out - it must be unambiguous.
-        // Single <50ms blips can pass unnoticed on OEM linear motors, so use two pulses for every
+        // A single <50ms blip can pass unnoticed on OEM linear motors, so use two pulses for every
         // level, with the standard tier keeping decent separation between them.
         when (intensity) {
             HapticsIntensity.LIGHT -> vibrate(

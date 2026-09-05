@@ -23,7 +23,7 @@ class AudioCollector(private val context: Context) {
     private val _audioFlow = MutableSharedFlow<ShortArray>(extraBufferCapacity = 10)
     val audioFlow: Flow<ShortArray> = _audioFlow.asSharedFlow()
 
-    /** Fires if [start] fails to initialize the microphone - otherwise a night's worth of audio events silently never happens with no signal to the rest of the app. */
+    /** Fires if [start] fails to initialize the microphone. Otherwise a night of audio events never reaches the rest of the app. */
     private val _recordingFailed = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val recordingFailed: Flow<Unit> = _recordingFailed.asSharedFlow()
 
@@ -74,7 +74,7 @@ class AudioCollector(private val context: Context) {
         while (isRecording && kotlinx.coroutines.currentCoroutineContext().isActive) {
             val readResult = audioRecord?.read(buffer, 0, buffer.size) ?: 0
             if (readResult > 0) {
-                // Emit copy of buffer
+                // Emit a copy of the buffer
                 _audioFlow.tryEmit(buffer.copyOf(readResult))
             }
             yield()

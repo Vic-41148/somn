@@ -46,7 +46,7 @@ class HealthConnectRepository @Inject constructor(
     /**
      * R6: prior-day movement for the readiness "Yesterday's activity" contributor.
      * Full prior calendar day in the device's zone — steps + exercise-session minutes.
-     * Null (not zero) when Health Connect isn't authorized, so readiness degrades to
+     * Null (not zero) when Health Connect is not authorized, so readiness degrades to
      * sleep signals rather than scoring missing activity as a quiet day.
      */
     suspend fun readPriorDayActivity(nowMillis: Long = System.currentTimeMillis()): ActivityDeviation? {

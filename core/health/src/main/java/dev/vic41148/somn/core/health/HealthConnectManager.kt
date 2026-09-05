@@ -99,7 +99,7 @@ class HealthConnectManager @Inject constructor(
      * R6: active minutes in [start, end) from exercise sessions that started in the window.
      * ExerciseSessionRecords carry explicit start/end times, so summing their durations avoids
      * the alpha-status aggregate-metric API entirely — only sessions begun inside the window
-     * count, so a session straddling midnight can't double-count into two days.
+     * count, so a session straddling midnight cannot double-count into two days.
      */
     suspend fun readActiveMinutes(start: Instant, end: Instant): Int {
         val client = clientOrNull() ?: return 0

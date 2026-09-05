@@ -37,7 +37,7 @@ class YamnetAudioClassifier(modelFile: File) {
 
     /**
      * Classifies one audio buffer. Returns null if the buffer is silent/empty, or if the
-     * top-scoring class isn't one [YamnetLabels] maps to a Somn [AudioEventType] - callers
+     * top-scoring class is not one [YamnetLabels] maps to a Somn [AudioEventType] - callers
      * should treat null as "no opinion", not as a negative result, and may fall back to
      * another signal (e.g. the ZCR heuristic).
      */

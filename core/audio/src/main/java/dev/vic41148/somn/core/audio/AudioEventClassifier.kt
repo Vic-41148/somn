@@ -11,7 +11,7 @@ import kotlin.math.sqrt
  * Uses Zero-Crossing Rate (ZCR) alongside duration for classification.
  *
  * @param yamnetClassify optional YAMNet-backed classifier (Task 14, AUDIO-01) - when provided,
- * the finished event's audio is classified by YAMNet first; the ZCR heuristic below only runs
+ * the finished event's audio is classified by YAMNet first. The ZCR heuristic below only runs
  * as a fallback when YAMNet returns null (silence, or a class this feature doesn't map - see
  * [YamnetLabels.classNameToAudioEventType]). Kept as a plain lambda rather than a direct
  * [YamnetAudioClassifier] dependency so this class stays Android/TFLite-free and unit-testable.
@@ -24,7 +24,7 @@ class AudioEventClassifier(
         // Sustained noise above the "loud" threshold (fan, traffic, a snoring bout that never
         // drops below 45dB) would otherwise keep boxing samples into `currentBuffer` for as long
         // as it lasts, unbounded, for the rest of the night. Cap raw-sample retention once an
-        // event has accumulated this much audio; duration/dB/ZCR stats keep accumulating past
+        // event has accumulated this much audio. Duration/dB/ZCR stats keep accumulating past
         // this point for classification, only the raw clip itself is capped.
         private const val MAX_BUFFERED_SECONDS = 30
     }

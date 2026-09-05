@@ -36,7 +36,7 @@ object DataModule {
             SleepDatabase.DATABASE_NAME
         )
             .addMigrations(*ALL_MIGRATIONS)
-            // v1 predates exportSchema and never shipped; every later version migrates properly.
+            // v1 predates exportSchema and never shipped. Every later version migrates properly.
             .fallbackToDestructiveMigrationFrom(1)
             .build()
     }

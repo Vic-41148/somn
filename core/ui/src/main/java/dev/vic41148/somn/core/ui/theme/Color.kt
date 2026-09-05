@@ -50,7 +50,7 @@ val OnSurfaceDark = Color(0xFFE4E1E6)
 // falls back to Material's baseline purple for the roles screens actually use (cards, chips,
 // text fields, outlines, disabled content), so non-dynamic devices leaked purple into a sea
 // of indigo. Dark surfaces climb a monotonic tone ladder out of true black (4/8/10/12/17/22)
-// so the container hierarchy resolves cleanly; light ones descend from white the same way.
+// so the container hierarchy resolves cleanly. Light ones descend from white the same way.
 val SurfaceVariantLight = Color(0xFFE3E1EC)
 val OnSurfaceVariantLight = Color(0xFF44464F)
 val SurfaceDimLight = Color(0xFFDAD8DF)
@@ -92,7 +92,7 @@ val InversePrimaryDark = Color(0xFF4A5AC7)
 val ScrimDark = Color(0xFF000000)
 
 // Sleep Score colors — a fixed ramp independent of dynamic colour, so a score means the same
-// green anywhere in the app. Green (well) to amber (caution) to red (poor); prepared next to
+// green anywhere in the app. Green (well) to amber (caution) to red (poor). Prepared next to
 // the Okabe-Ito palette below so the ramp has no glaring collision with stage/cycle hues.
 val ScoreGreat = Color(0xFF43A047)
 val ScoreGood = Color(0xFF9CCC65)
@@ -108,7 +108,7 @@ val StageDeep = Color(0xFF0072B2)
 val StageRem = Color(0xFFCC79A7)
 
 // Sleep debt severity — was duplicated inline as raw hex in both HomeScreen and
-// SleepDebtDetailScreen; named here so the two can't drift out of sync with each other.
+// SleepDebtDetailScreen. Named here so the two cannot drift out of sync with each other.
 // Already an ordered amber-to-red ramp, so it stays as it is.
 val DebtMild = Color(0xFFF9A825)
 val DebtModerate = Color(0xFFE65100)

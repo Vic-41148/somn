@@ -84,9 +84,9 @@ fun TrendLineChart(
         progress.animateTo(1f, animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing))
     }
 
-    // Sorted once per series change rather than inside the Canvas draw scope below, which runs on
-    // every animation frame (~42 times over the 700ms entrance) — re-sorting each series that often
-    // was pure wasted UI-thread work every frame, and the visible cause of dropped frames on this
+    // Sort once per series change, not inside the Canvas draw scope below. That scope runs on
+    // every animation frame (~42 times over the 700ms entrance). Re-sorting that often wastes
+    // UI-thread work every frame, and the visible cause of dropped frames on this
     // screen for any real amount of trend data.
     val sortedSeries = remember(series) { series.map { it.sortedBy { point -> point.timestampMillis } } }
 

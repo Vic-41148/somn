@@ -77,7 +77,7 @@ class NasClientImpl @Inject constructor(
     /**
      * Android blocks cleartext HTTP by default at this targetSdk, so a plain-HTTP NAS fails with a
      * generic-looking IOException that reads like an unreachable host. Name the real cause instead
-     * of letting users chase a network problem they don't have.
+     * of letting users chase a network problem they do not have.
      */
     private fun logWebDavFailure(message: String, config: NasConfig, e: Exception) {
         if (!config.useHttps && e.message?.contains("Cleartext", ignoreCase = true) == true) {

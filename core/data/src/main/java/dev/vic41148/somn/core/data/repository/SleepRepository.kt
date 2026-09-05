@@ -140,7 +140,7 @@ class SleepRepository @Inject constructor(
         return sessionDao.getAverageDurationSince(fromMillis) ?: 0f
     }
 
-    /** HEALTH-04: count of completed sessions Health Connect sync hasn't successfully written yet (unsynced or silently dedup-skipped). */
+    /** HEALTH-04: count of completed sessions Health Connect sync has not successfully written yet (unsynced or silently dedup-skipped). */
     fun observeUnsyncedToHealthConnectCount(): Flow<Int> {
         return sessionDao.observeUnsyncedToHealthConnectCount()
     }
@@ -192,7 +192,7 @@ class SleepRepository @Inject constructor(
     /**
      * Deletes every sleep-talk recording on disk and forgets their paths. The audio events stay
      * in the history — only the audio itself goes. Backs the "delete all recordings" control in
-     * Settings, so a user who wants the recordings gone doesn't have to wait for retention to
+     * Settings, so a user who wants the recordings gone does not have to wait for retention to
      * catch up or delete whole sessions to get there.
      *
      * @return how many clip files were actually removed.

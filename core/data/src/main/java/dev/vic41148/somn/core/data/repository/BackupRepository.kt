@@ -69,11 +69,11 @@ class BackupRepository @Inject constructor(
                 writeToDocumentTree(documentTree, DB_BACKUP_NAME_ENCRYPTED) { output ->
                     dbFile.inputStream().use { portableCrypto.encrypt(it, output, kek) }
                 }
-                // Drop any plaintext copy left by a pre-passphrase backup so the two don't diverge.
+                // Drop any plaintext copy left by a pre-passphrase backup so the two do not diverge.
                 documentTree.findFile(DB_BACKUP_NAME)?.delete()
             } else {
                 // No passphrase yet — keep the existing plaintext behaviour rather than silently
-                // skipping the backup entirely. Restore still works; off-site sync stays disabled.
+                // skipping the backup entirely. Restore still works. Off-site sync stays disabled.
                 writeToDocumentTree(documentTree, DB_BACKUP_NAME) { output ->
                     dbFile.inputStream().use { it.copyTo(output) }
                 }
@@ -202,7 +202,7 @@ class BackupRepository @Inject constructor(
 
     /**
      * Recognises the shape written by [dev.vic41148.somn.core.data.backup.EncryptionUtils]: a
-     * single IV-length byte followed by that many IV bytes. Only used to explain *why* a file can't
+     * single IV-length byte followed by that many IV bytes. Only used to explain *why* a file cannot
      * be restored — there is no way to actually decrypt one off-device.
      */
     private fun looksLikeLegacyKeystoreBlob(prefix: ByteArray): Boolean =

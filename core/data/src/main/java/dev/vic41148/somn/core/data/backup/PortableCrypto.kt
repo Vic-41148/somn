@@ -78,7 +78,7 @@ class PortableCrypto @Inject constructor() {
 
     /**
      * Derives a KEK from [passphrase]. Pass an existing [salt]/[iterations] to reproduce a prior
-     * key; omit them for a fresh one.
+     * key. Omit them for a fresh one.
      */
     fun deriveKek(
         passphrase: CharArray,
@@ -175,7 +175,7 @@ class PortableCrypto @Inject constructor() {
 
     /**
      * Generates a 160-bit recovery key as Crockford Base32 in dash-separated groups of four,
-     * e.g. `K3M9-7QRT-...`. Shown to the user once; it is the only thing that can open their backups.
+     * e.g. `K3M9-7QRT-...`. Shown to the user once. It is the only thing that can open their backups.
      */
     fun generateRecoveryKey(): String {
         val bytes = randomBytes(RECOVERY_KEY_BYTES)

@@ -14,7 +14,7 @@ class DeepSleepAlertNotifier @Inject constructor(
                 // notification, and stopForeground(STOP_FOREGROUND_REMOVE) at session end
                 // removes it. When this alert posted as 1001, the FGS teardown raced the
                 // ViewModel's notifyMorningAlerts and silently deleted the deep-sleep alert
-                // ~half the time (the Luteal alert, id 1003, always survived — that's how the
+                // ~half the time (the Luteal alert, id 1003, always survived — that is how the
                 // session e2e caught it). Alerts must never share ids with FGS notifications.
                 id = 1004,
                 channelId = NotificationEngine.CHANNEL_ALERTS,
