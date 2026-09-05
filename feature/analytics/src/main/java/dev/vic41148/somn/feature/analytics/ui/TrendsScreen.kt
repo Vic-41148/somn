@@ -53,6 +53,7 @@ fun TrendsScreen(
     val rangeDays by viewModel.rangeDays.collectAsState()
     val stats by viewModel.trendStats.collectAsState()
     val cyclePhaseRuns by viewModel.cyclePhaseRuns.collectAsState()
+    val lifeStageNote by viewModel.lifeStageBanner.collectAsState()
     val deepSleepTargetPercent by viewModel.deepSleepTargetPercent.collectAsState()
     val deepTarget = deepSleepTargetPercent
 
@@ -86,6 +87,17 @@ fun TrendsScreen(
 
             // Metric selector dropdown (DATA-03)
             var expanded by remember { mutableStateOf(false) }
+            // R5: pregnancy/postpartum trend context — phase bands don't apply here.
+            lifeStageNote?.let { note ->
+                SleepCard {
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },

@@ -68,4 +68,22 @@ class OutlookEngineTest {
         assertThat(s).contains("Rest Mode is on")
         assertThat(s).contains("streak")
     }
+
+    @Test
+    fun `luteal coaching appends to morning copy`() {
+        val s = buildOutlook(
+            readiness(ReadinessZone.STEADY), debt(), null,
+            isMorning = true, cycleCoaching = "Luteal phase: test coaching."
+        )
+        assertThat(s).contains("Luteal phase: test coaching.")
+    }
+
+    @Test
+    fun `evening copy ignores cycle coaching`() {
+        val s = buildOutlook(
+            readiness(ReadinessZone.STEADY), null, null, null,
+            isMorning = false, cycleCoaching = "Luteal phase: test coaching."
+        )
+        assertThat(s).doesNotContain("Luteal phase")
+    }
 }

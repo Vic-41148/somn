@@ -18,8 +18,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -232,6 +234,20 @@ class SettingsViewModel @Inject constructor(
 
     private val _settings = MutableStateFlow(SettingsState())
     val settings: StateFlow<SettingsState> = _settings.asStateFlow()
+
+    /** R5: profile for gating the menopause check-in entry (peri/meno stages only). */
+    val userProfile = userProfileRepository.observeProfile()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** R5: completed menopause check-in answers, null until first done. */
+    val menoAnswers = preferencesRepository.menoAnswers
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun saveMenoAnswers(answers: List<Int>) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            preferencesRepository.saveMenoAnswers(answers)
+        }
+    }
 
     private val _exportStatus = MutableStateFlow<String?>(null)
     val exportStatus: StateFlow<String?> = _exportStatus.asStateFlow()

@@ -53,6 +53,7 @@ import dev.vic41148.somn.feature.habits.ui.MedicationLogScreen
 import dev.vic41148.somn.feature.habits.ui.SleepDebtDetailScreen
 import dev.vic41148.somn.feature.onboarding.ui.OnboardingFlow
 import dev.vic41148.somn.feature.settings.ui.DataExportBackupScreen
+import dev.vic41148.somn.feature.settings.ui.MenopauseSurveyScreen
 import dev.vic41148.somn.feature.settings.ui.SettingsScreen
 import dev.vic41148.somn.feature.tracking.service.SleepTrackingService
 import dev.vic41148.somn.feature.tracking.ui.HomeScreen
@@ -95,6 +96,7 @@ private val hideNavRoutes = setOf(
     "trends",
     "vitals",
     "reports",
+    "meno_survey",
     "manual_session",
     "breathing_exercise",
     "cognitive_winddown",
@@ -311,7 +313,8 @@ fun SleepNavGraph(
                     onNavigateToUpdates = { navController.navigate("updates") },
                     onNavigateToBreathing = { navController.navigate("breathing_exercise") },
                     onNavigateToCognitiveWindDown = { navController.navigate("cognitive_winddown") },
-                    onNavigateToADHDCooldown = { navController.navigate("adhd_cooldown") }
+                    onNavigateToADHDCooldown = { navController.navigate("adhd_cooldown") },
+                    onNavigateToMenoSurvey = { navController.navigate("meno_survey") }
                 )
             }
 
@@ -416,6 +419,14 @@ fun SleepNavGraph(
 
             composable("reports") {
                 ReportsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // ---- R5: menopause check-in ----
+
+            composable("meno_survey") {
+                MenopauseSurveyScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

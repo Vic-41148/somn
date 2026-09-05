@@ -8,6 +8,7 @@ import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.core.domain.model.MenstrualCyclePhase
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.usecase.formatDurationShort
+import dev.vic41148.somn.core.domain.usecase.lifeStageBanner
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,8 +62,7 @@ class TrendsViewModel @Inject constructor(
         .map { it?.deepSleepTargetPercent }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** DATA-04: null when the user's profile doesn't have cycle tracking enabled/configured — screen hides the overlay entirely rather than showing an empty one. */
-    val cyclePhaseRuns: StateFlow<List<CyclePhaseRun>?> = combine(
+    /** DATA-04: null when the user's profile doesn't have cycle tracking enabled/configured — screen hides the overlay entirely rather than showing an empty one. */    val cyclePhaseRuns: StateFlow<List<CyclePhaseRun>?> = combine(
         userProfileRepository.observeProfile(),
         sessions
     ) { profile, sessions ->
@@ -82,6 +82,17 @@ class TrendsViewModel @Inject constructor(
     fun selectMetric(metric: TrendMetric) {
         _selectedMetric.value = metric
     }
+
+    /**
+     * R5: pregnancy/postpartum context banner — the phase-run overlay above only fits
+     * cycling users, so non-cycling life stages get their trend context as words.
+     */
+    val lifeStageBanner: StateFlow<String?> = userProfileRepository.observeProfile()
+        .map { profile ->
+            if (profile == null) null
+            else lifeStageBanner(profile.lifeStage.name, profile.pregnancyTrimester)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /** Report range in days; null = all history. */
     private val _rangeDays = MutableStateFlow<Int?>(90)

@@ -218,7 +218,7 @@ Every pull request is expected to keep the test suite green:
 ./gradlew testStandaloneDebugUnitTest testDebugUnitTest
 ```
 
-The suite currently runs 268 unit tests — a number enforced by CI: if you add
+The suite currently runs 281 unit tests — a number enforced by CI: if you add
 or remove a test, update this line and the count in README.md in the same PR,
 or the build fails. If you add a feature, add tests for it — especially for
 pure logic like scoring, classification, and parsing. Pure functions with

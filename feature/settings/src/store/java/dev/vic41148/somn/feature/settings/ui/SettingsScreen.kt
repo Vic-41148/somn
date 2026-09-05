@@ -63,10 +63,13 @@ fun SettingsScreen(
     onNavigateToUpdates: () -> Unit = {},
     onNavigateToBreathing: () -> Unit = {},
     onNavigateToCognitiveWindDown: () -> Unit = {},
-    onNavigateToADHDCooldown: () -> Unit = {}
+    onNavigateToADHDCooldown: () -> Unit = {},
+    onNavigateToMenoSurvey: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
+    val profile by viewModel.userProfile.collectAsState()
+    val menoAnswers by viewModel.menoAnswers.collectAsState()
     val exportStatus by viewModel.exportStatus.collectAsState()
     val importStatus by viewModel.importStatus.collectAsState()
     val clipDeletionStatus by viewModel.clipDeletionStatus.collectAsState()
@@ -153,6 +156,25 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        // R5: menopause check-in lives here so the peri/meno stages Somn already
+        // models get Oura's questionnaire mechanic as pure UI over prefs.
+        if (profile?.showMenopauseFeatures == true) {
+            SettingSection(title = "Cycle & hormones") {
+                Text(
+                    text = "Menopause check-in: 10 questions on how symptoms have " +
+                        "bothered you the last 2 weeks, with an honest read at the end.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(onClick = onNavigateToMenoSurvey) {
+                    Text(
+                        if (menoAnswers != null) "Review check-in"
+                        else "Start check-in"
+                    )
+                }
+            }
         }
 
         // Haptics - app-wide feedback master switch with intensity, a live preview so the user can

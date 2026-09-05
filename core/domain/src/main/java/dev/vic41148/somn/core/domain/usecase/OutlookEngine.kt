@@ -21,7 +21,9 @@ fun buildOutlook(
     recoveryMinutesHint: Int? = null,
     isMorning: Boolean = true,
     /** Rest Mode: the math stays honest, the voice switches to recovery framing. */
-    restMode: Boolean = false
+    restMode: Boolean = false,
+    /** R5 luteal coaching sentence, appended when the cycle is in its luteal window. */
+    cycleCoaching: String? = null
 ): String {
     if (readiness == null) {
         return if (isMorning) "Track tonight and tomorrow starts with a plan."
@@ -52,7 +54,8 @@ fun buildOutlook(
             if (debtWord != null) append(" with $debtWord")
             append(" — $advice")
         }
-        if (correlationInsight != null) "$first $correlationInsight" else first
+        val second = if (correlationInsight != null) "$first $correlationInsight" else first
+        return if (cycleCoaching != null) "$second $cycleCoaching" else second
     } else {
         val parts = mutableListOf<String>()
         when (readiness.zone) {

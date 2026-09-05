@@ -88,17 +88,22 @@ fun HomeScreen(
     // Outlook sentence — strongest settled correlation + debt-plan hint, template-built.
     val recoveryPlan by habitViewModel.recoveryPlan.collectAsState()
     val correlationReport by habitViewModel.correlationReport.collectAsState()
-    val outlook = remember(readiness, sleepDebt, correlationReport, recoveryPlan, restMode) {
+    // R5: luteal coaching + widened debt hint inside the cycle's luteal window.
+    val cycleCoaching by viewModel.cycleCoaching.collectAsState()
+    val lutealExtra by viewModel.lutealExtraMinutes.collectAsState()
+    val outlook = remember(readiness, sleepDebt, correlationReport, recoveryPlan, restMode, cycleCoaching, lutealExtra) {
         val topInsight = correlationReport?.availableCorrelations
             ?.maxByOrNull { kotlin.math.abs(it.correlation) }?.insight
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val baseHint = recoveryPlan?.additionalMinutesPerNight?.takeIf { it > 0 }
         buildOutlook(
             readiness = readiness,
             debt = sleepDebt,
             correlationInsight = topInsight,
-            recoveryMinutesHint = recoveryPlan?.additionalMinutesPerNight?.takeIf { it > 0 },
+            recoveryMinutesHint = if (baseHint != null) baseHint + lutealExtra else null,
             isMorning = hour in 4..16,
-            restMode = restMode
+            restMode = restMode,
+            cycleCoaching = cycleCoaching
         )
     }
     // 7-day rollup for the rings — same math History's header uses, so the numbers agree.

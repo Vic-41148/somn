@@ -60,7 +60,7 @@ class SomnPreferencesRepository @Inject constructor(
         val SHOW_READINESS_CARD = booleanPreferencesKey("show_readiness_card")
         /** R2 Rest Mode start timestamp. Absent = off; sick nights on/after this leave baselines. */
         val REST_MODE_SINCE = longPreferencesKey("rest_mode_since")
-        /**
+        val MENO_ANSWERS_CSV = stringPreferencesKey("meno_answers_csv")        /**
          * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO — the
          * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
          */
@@ -244,6 +244,20 @@ class SomnPreferencesRepository @Inject constructor(
             if (sinceMillis == null) it.remove(PreferencesKeys.REST_MODE_SINCE)
             else it[PreferencesKeys.REST_MODE_SINCE] = sinceMillis
         }
+    }
+
+    /**
+     * R5 menopause check-in answers as "2,0,3,..." (question order = MENOPAUSE_QUESTIONS).
+     * Null until first completed; prefs, not Room — questionnaire data stays a setting.
+     */
+    val menoAnswers: Flow<List<Int>?> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs ->
+            prefs[PreferencesKeys.MENO_ANSWERS_CSV]?.split(",")?.mapNotNull { it.toIntOrNull() }
+        }
+
+    suspend fun saveMenoAnswers(answers: List<Int>) {
+        context.dataStore.edit { it[PreferencesKeys.MENO_ANSWERS_CSV] = answers.joinToString(",") }
     }
 
     /**

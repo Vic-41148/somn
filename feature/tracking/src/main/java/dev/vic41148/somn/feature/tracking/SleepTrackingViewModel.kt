@@ -16,8 +16,11 @@ import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase
+import dev.vic41148.somn.core.domain.usecase.LUTEAL_EXTRA_MINUTES
 import dev.vic41148.somn.core.domain.usecase.PostpartumFragmentationUseCase
 import dev.vic41148.somn.core.domain.usecase.VitalsDeviation
+import dev.vic41148.somn.core.domain.usecase.lutealCoaching
+import dev.vic41148.somn.core.domain.usecase.refinePhase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
@@ -113,6 +116,37 @@ class SleepTrackingViewModel @Inject constructor(
         return if (size % 2 == 1) sorted[size / 2]
         else (sorted[size / 2 - 1] + sorted[size / 2]) / 2f
     }
+
+    /**
+     * R5 cycle coaching for the Outlook sentence. Null unless cycle tracking is on
+     * and the refined phase sits in its luteal window — calendar math with
+     * temperature refinement when Health Connect skin temps exist, never instead.
+     */
+    val cycleCoaching: StateFlow<String?> = recentSessions.mapLatest { sessions ->
+        withContext(Dispatchers.Default) {
+            val profile = runCatching { userProfileRepository.getProfile() }.getOrNull()
+                ?: return@withContext null
+            if (!profile.showCycleFeatures) return@withContext null
+            val calendarPhase = dev.vic41148.somn.core.domain.model.MenstrualCyclePhase.currentPhase(
+                lastPeriodStart = profile.lastPeriodStartDate,
+                cycleLength = profile.cycleLength
+            )
+            val temps = sessions.filter { it.isCompleted }
+                .sortedBy { it.startTimeMillis }
+                .takeLast(14)
+                .mapNotNull { session ->
+                    runCatching { sleepRepository.getExternalVitals(session.id) }.getOrNull()
+                        ?.avgSkinTemperatureCelsius
+                }
+            val refined = refinePhase(calendarPhase, temps)
+            lutealCoaching(refined.phase)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** R5: the debt plan widens 20 min inside the luteal window; 0 elsewhere. */
+    val lutealExtraMinutes: StateFlow<Int> = cycleCoaching.mapLatest { coaching ->
+        if (coaching != null) LUTEAL_EXTRA_MINUTES else 0
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     init {
         checkIncompleteSession()
