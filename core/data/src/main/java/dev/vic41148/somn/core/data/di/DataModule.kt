@@ -6,6 +6,7 @@ import dev.vic41148.somn.core.data.backup.EncryptionUtils
 import dev.vic41148.somn.core.data.backup.NasClient
 import dev.vic41148.somn.core.data.backup.NasClientImpl
 import dev.vic41148.somn.core.data.database.ALL_MIGRATIONS
+import dev.vic41148.somn.core.data.database.DatabaseKeyManager
 import dev.vic41148.somn.core.data.database.SleepDatabase
 import dev.vic41148.somn.core.data.database.dao.AlarmDao
 import dev.vic41148.somn.core.data.database.dao.HabitLogDao
@@ -29,12 +30,20 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): SleepDatabase {
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+        keyManager: DatabaseKeyManager
+    ): SleepDatabase {
         return Room.databaseBuilder(
             context,
             SleepDatabase::class.java,
             SleepDatabase.DATABASE_NAME
         )
+            .openHelperFactory(
+                // At-rest encryption: SQLCipher with a Keystore-wrapped random key. First
+                // launch on a v0.1.2 install migrates the plaintext DB in place.
+                net.sqlcipher.database.SupportFactory(keyManager.getOrCreatePassphrase())
+            )
             .addMigrations(*ALL_MIGRATIONS)
             // v1 predates exportSchema and never shipped. Every later version migrates properly.
             .fallbackToDestructiveMigrationFrom(1)

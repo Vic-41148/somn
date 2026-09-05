@@ -66,6 +66,9 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    // SQLCipher: at-rest encryption for the Room DB (SupportFactory + one-time
+    // plaintext migration in DatabaseKeyManager).
+    implementation(libs.sqlcipher)
 
     // DataStore
     implementation(libs.datastore.preferences)

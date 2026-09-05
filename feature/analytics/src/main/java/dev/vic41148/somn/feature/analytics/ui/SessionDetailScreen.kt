@@ -28,8 +28,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -186,9 +192,14 @@ fun SessionDetailScreen(
             val talkEvents = audioEvents.filter { it.type == AudioEventType.TALK && it.clipPath != null }
             if (talkEvents.isNotEmpty()) {
                 val context = LocalContext.current
+                val scope = rememberCoroutineScope()
                 val mediaPlayer = remember { MediaPlayer() }
+                var tempClip by remember { mutableStateOf<java.io.File?>(null) }
                 DisposableEffect(mediaPlayer) {
-                    onDispose { mediaPlayer.release() }
+                    onDispose {
+                        mediaPlayer.release()
+                        tempClip?.takeIf { it.name.startsWith("play_") }?.delete()
+                    }
                 }
 
                 SleepCard(title = "Sleep Talk Recordings") {
@@ -208,21 +219,34 @@ fun SessionDetailScreen(
                             },
                             trailingContent = {
                                 IconButton(onClick = {
-                                    try {
-                                        mediaPlayer.reset()
-                                        mediaPlayer.setOnPreparedListener { it.start() }
-                                        mediaPlayer.setOnErrorListener { _, what, extra ->
-                                            android.util.Log.e("SessionDetailScreen",
-                                                "Talk clip playback failed: what=$what extra=$extra")
-                                            true
+                                    scope.launch {
+                                        try {
+                                            // Sealed clips decrypt to a temp copy; legacy clips
+                                            // play in place. Old temp copies never linger.
+                                            tempClip?.takeIf { it.name.startsWith("play_") }?.delete()
+                                            val file = withContext(Dispatchers.IO) {
+                                                viewModel.playableClip(event.clipPath!!)
+                                            }
+                                            if (file.name.startsWith("play_")) tempClip = file
+                                            mediaPlayer.reset()
+                                            mediaPlayer.setOnPreparedListener { it.start() }
+                                            mediaPlayer.setOnCompletionListener {
+                                                tempClip?.takeIf { f -> f.name.startsWith("play_") }?.delete()
+                                                tempClip = null
+                                            }
+                                            mediaPlayer.setOnErrorListener { _, what, extra ->
+                                                android.util.Log.e("SessionDetailScreen",
+                                                    "Talk clip playback failed: what=$what extra=$extra")
+                                                true
+                                            }
+                                            mediaPlayer.setDataSource(context, Uri.fromFile(file))
+                                            // prepareAsync() instead of prepare() — the latter blocks
+                                            // synchronously on the calling thread, which here is the
+                                            // main/UI thread inside a click handler.
+                                            mediaPlayer.prepareAsync()
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("SessionDetailScreen", "Failed to play talk clip", e)
                                         }
-                                        mediaPlayer.setDataSource(context, Uri.parse(event.clipPath!!))
-                                        // prepareAsync() instead of prepare() — the latter blocks
-                                        // synchronously on the calling thread, which here is the
-                                        // main/UI thread inside a click handler.
-                                        mediaPlayer.prepareAsync()
-                                    } catch (e: Exception) {
-                                        android.util.Log.e("SessionDetailScreen", "Failed to play talk clip", e)
                                     }
                                 }) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = "Play")

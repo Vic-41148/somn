@@ -17,6 +17,9 @@ import java.time.LocalTime
 import java.time.temporal.TemporalAdjusters
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class SomnApp : Application(), Configuration.Provider {
@@ -34,6 +37,11 @@ class SomnApp : Application(), Configuration.Provider {
         scheduleWeeklyReport()
         scheduleClipRetention()
         scheduleLocalBackup()
+        // One-time upgrade: seal any still-plaintext sensitive prefs (v0.1.2 installs).
+        // Fire-and-forget on IO; reads tolerate both forms until it lands.
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { preferencesRepository.migrateSensitivePrefsToEncrypted() }
+        }
         // Channel-scoped integrations (in-app updater scheduling on standalone builds; no-op on
         // store). Called after the base scheduling so we stay independent of app startup order.
         updateIntegrations.forEach { it.onAppCreated(this) }

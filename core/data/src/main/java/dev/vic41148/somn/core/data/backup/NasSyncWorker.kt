@@ -30,7 +30,8 @@ class NasSyncWorker @AssistedInject constructor(
     private val nasClient: NasClient,
     private val portableCrypto: PortableCrypto,
     private val backupRepository: BackupRepository,
-    private val preferencesRepository: SomnPreferencesRepository
+    private val preferencesRepository: SomnPreferencesRepository,
+    private val audioClipStore: dev.vic41148.somn.core.data.audio.AudioClipStore
 ) : CoroutineWorker(appContext, params) {
 
     companion object {
@@ -91,8 +92,8 @@ class NasSyncWorker @AssistedInject constructor(
             }
 
             try {
-                // Encrypt clip
-                val plainBytes = clipFile.readBytes()
+                // Encrypt clip (sealed at-rest clips are decrypted first)
+                val plainBytes = audioClipStore.readClipBytes(clipPath)
                 val encrypted = portableCrypto.encrypt(plainBytes, kek)
 
                 // Upload

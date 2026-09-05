@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **At-rest encryption.** The Room DB is now SQLCipher-encrypted with a Keystore-wrapped random key (existing installs migrate their plaintext DB in place), sensitive prefs (NAS endpoint, QR value, backup URI, menopause answers) are sealed, and new sleep audio clips are AES-GCM sealed (legacy clips keep playing until retention prunes them).
 - **Alarms survive reboot + no more plaintext backups in shared storage.** `BootReceiver` is now registered, so enabled alarms re-arm after a reboot. The mandatory pre-update backup stays in app-private storage only — the mirror to public Downloads is gone, so no plaintext backup lands in shared storage anymore.
 - **UI standardization pass.** Settings toggles and radio rows have consistent gaps, icon buttons use real spacers instead of leading spaces, back navigation is an arrow everywhere, gutters and rhythm follow the 4/8/12/16/24 scale, and Battery Threshold uses the same slider as the other thresholds. History rings and the Trends chart replay their entrance animation on every range or metric switch.
 - **History header rings match Home.** Same 72dp size and short labels, so the two ring strips read as one component.

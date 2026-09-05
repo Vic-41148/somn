@@ -34,6 +34,56 @@ class SomnPreferencesRepository @Inject constructor(
         const val CLIP_RETENTION_KEEP_FOREVER = 0
     }
 
+    /**
+     * Keystore envelope for sensitive string prefs (NAS endpoint parts, QR value, backup
+     * URI, menopause answers). New writes are always sealed; reads accept pre-encryption
+     * plaintext so v0.1.2 installs keep working until [migrateSensitivePrefsToEncrypted] runs.
+     */
+    private fun seal(plain: String): String =
+        android.util.Base64.encodeToString(
+            encryptionUtils.encryptBytes(plain.toByteArray(Charsets.UTF_8)),
+            android.util.Base64.NO_WRAP
+        )
+
+    private fun unseal(stored: String?): String? {
+        if (stored == null) return null
+        return try {
+            encryptionUtils.decryptBytes(
+                android.util.Base64.decode(stored, android.util.Base64.NO_WRAP)
+            ).toString(Charsets.UTF_8)
+        } catch (_: Exception) {
+            stored
+        }
+    }
+
+    /**
+     * One-time upgrade: re-writes any still-plaintext sensitive values sealed. Only values
+     * that fail to decrypt get sealed, so re-runs are no-ops.
+     */
+    suspend fun migrateSensitivePrefsToEncrypted() {
+        context.dataStore.edit { prefs ->
+            listOf(
+                PreferencesKeys.QR_CODE_VALUE,
+                PreferencesKeys.BACKUP_URI,
+                PreferencesKeys.NAS_HOST,
+                PreferencesKeys.NAS_PATH,
+                PreferencesKeys.NAS_USERNAME,
+                PreferencesKeys.MENO_ANSWERS_CSV
+            ).forEach { key ->
+                val raw = prefs[key] ?: return@forEach
+                val alreadySealed = try {
+                    encryptionUtils.decryptBytes(
+                        android.util.Base64.decode(raw, android.util.Base64.NO_WRAP)
+                    )
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+                if (!alreadySealed) prefs[key] = seal(raw)
+            }
+        }
+    }
+
     private object PreferencesKeys {
         val SELECTED_CAPTCHA_TASK_ID = stringPreferencesKey("selected_captcha_task_id")
         val QR_CODE_VALUE = stringPreferencesKey("qr_code_value")
@@ -115,7 +165,7 @@ class SomnPreferencesRepository @Inject constructor(
                 throw exception
             }
         }.map { preferences ->
-            preferences[PreferencesKeys.BACKUP_URI]
+            unseal(preferences[PreferencesKeys.BACKUP_URI])
         }
 
     val selectedCaptchaTaskId: Flow<String> = context.dataStore.data
@@ -137,7 +187,7 @@ class SomnPreferencesRepository @Inject constructor(
                 throw exception
             }
         }.map { preferences ->
-            preferences[PreferencesKeys.QR_CODE_VALUE]
+            unseal(preferences[PreferencesKeys.QR_CODE_VALUE])
         }
 
     val maxSnoozeCount: Flow<Int> = context.dataStore.data
@@ -162,7 +212,7 @@ class SomnPreferencesRepository @Inject constructor(
             if (uri == null) {
                 preferences.remove(PreferencesKeys.BACKUP_URI)
             } else {
-                preferences[PreferencesKeys.BACKUP_URI] = uri
+                preferences[PreferencesKeys.BACKUP_URI] = seal(uri)
             }
         }
     }
@@ -178,7 +228,7 @@ class SomnPreferencesRepository @Inject constructor(
             if (value == null) {
                 preferences.remove(PreferencesKeys.QR_CODE_VALUE)
             } else {
-                preferences[PreferencesKeys.QR_CODE_VALUE] = value
+                preferences[PreferencesKeys.QR_CODE_VALUE] = seal(value)
             }
         }
     }
@@ -253,11 +303,11 @@ class SomnPreferencesRepository @Inject constructor(
     val menoAnswers: Flow<List<Int>?> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { prefs ->
-            prefs[PreferencesKeys.MENO_ANSWERS_CSV]?.split(",")?.mapNotNull { it.toIntOrNull() }
+            unseal(prefs[PreferencesKeys.MENO_ANSWERS_CSV])?.split(",")?.mapNotNull { it.toIntOrNull() }
         }
 
     suspend fun saveMenoAnswers(answers: List<Int>) {
-        context.dataStore.edit { it[PreferencesKeys.MENO_ANSWERS_CSV] = answers.joinToString(",") }
+        context.dataStore.edit { it[PreferencesKeys.MENO_ANSWERS_CSV] = seal(answers.joinToString(",")) }
     }
 
     /**
@@ -361,15 +411,15 @@ class SomnPreferencesRepository @Inject constructor(
 
     val nasHost: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_HOST] ?: "" }
+        .map { unseal(it[PreferencesKeys.NAS_HOST]) ?: "" }
 
     val nasPath: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_PATH] ?: "/somn" }
+        .map { unseal(it[PreferencesKeys.NAS_PATH]) ?: "/somn" }
 
     val nasUsername: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_USERNAME] ?: "" }
+        .map { unseal(it[PreferencesKeys.NAS_USERNAME]) ?: "" }
 
     val nasProtocol: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
@@ -393,15 +443,15 @@ class SomnPreferencesRepository @Inject constructor(
     }
 
     suspend fun updateNasHost(host: String) {
-        context.dataStore.edit { it[PreferencesKeys.NAS_HOST] = host }
+        context.dataStore.edit { it[PreferencesKeys.NAS_HOST] = seal(host) }
     }
 
     suspend fun updateNasPath(path: String) {
-        context.dataStore.edit { it[PreferencesKeys.NAS_PATH] = path }
+        context.dataStore.edit { it[PreferencesKeys.NAS_PATH] = seal(path) }
     }
 
     suspend fun updateNasUsername(username: String) {
-        context.dataStore.edit { it[PreferencesKeys.NAS_USERNAME] = username }
+        context.dataStore.edit { it[PreferencesKeys.NAS_USERNAME] = seal(username) }
     }
 
     suspend fun updateNasProtocol(protocol: String) {

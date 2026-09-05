@@ -25,6 +25,7 @@ class AnalyticsViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
     private val tagRepository: dev.vic41148.somn.core.data.repository.TagRepository,
     private val exportCsv: ExportCsvUseCase,
+    private val audioClipStore: dev.vic41148.somn.core.data.audio.AudioClipStore,
     preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 ) : ViewModel() {
 
@@ -139,9 +140,8 @@ class AnalyticsViewModel @Inject constructor(
                                 val newFile = rootDoc?.createFile("audio/wav", "somn_audio_${sessionId}_${event.id}.wav")
                                 newFile?.uri?.let { destUri ->
                                     context.contentResolver.openOutputStream(destUri)?.use { out ->
-                                        file.inputStream().use { input ->
-                                            input.copyTo(out)
-                                        }
+                                        // Explicit user export: sealed clips are decrypted here.
+                                        out.write(audioClipStore.readClipBytes(path))
                                     }
                                 }
                             }
@@ -168,6 +168,12 @@ class AnalyticsViewModel @Inject constructor(
     }
 
     fun observeAudioEvents(sessionId: Long) = sleepRepository.observeAudioEvents(sessionId)
+
+    /**
+     * Plaintext temp copy of a clip for MediaPlayer. The caller deletes it when done.
+     * Legacy plaintext clips return the original file (no copy, nothing to delete).
+     */
+    fun playableClip(path: String): java.io.File = audioClipStore.playableCopy(path)
 
     /** HEALTH-01: one-shot fetch. An external sync writes external vitals once per sync, so the screen needs no live-updating Flow. */
     suspend fun getExternalVitals(sessionId: Long) = sleepRepository.getExternalVitals(sessionId)

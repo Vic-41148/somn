@@ -64,6 +64,7 @@ class SleepTrackingService : Service() {
     @Inject lateinit var smartAlarmUseCase: SmartAlarmUseCase
     @Inject lateinit var preferencesRepository: SomnPreferencesRepository
     @Inject lateinit var yamnetModelRepository: YamnetModelRepository
+    @Inject lateinit var audioClipStore: dev.vic41148.somn.core.data.audio.AudioClipStore
 
     private var snoreNudgeEnabled = true
 
@@ -478,9 +479,13 @@ class SleepTrackingService : Service() {
             }
             val dir = java.io.File(filesDir, clipDirName)
             if (!dir.exists()) dir.mkdirs()
-            val wavFile = java.io.File(dir, "${event.type.name.lowercase()}_${sessionId}_${event.timestampMillis}.wav")
+            // Sealed at rest (.enc); legacy plaintext clips keep working until retention prunes them.
+            val wavFile = audioClipStore.writeClip(
+                dir,
+                "${event.type.name.lowercase()}_${sessionId}_${event.timestampMillis}.wav",
+                encodeWavBytes(rawBuffer, AudioCollector.SAMPLE_RATE)
+            )
             kotlinx.coroutines.withContext(Dispatchers.IO) {
-                writeWavFile(wavFile, rawBuffer, AudioCollector.SAMPLE_RATE)
                 event = event.copy(clipPath = wavFile.absolutePath)
                 sleepRepository.insertAudioEvent(event)
             }
@@ -533,13 +538,13 @@ class SleepTrackingService : Service() {
 
     // ─── WAV helper ────────────────────────────────────────────────────────────
 
-    private fun writeWavFile(file: java.io.File, data: ShortArray, sampleRate: Int) {
+    private fun encodeWavBytes(data: ShortArray, sampleRate: Int): ByteArray {
         val channels      = 1
         val byteRate      = 16 * sampleRate * channels / 8
         val totalDataLen  = data.size * 2
         val totalAudioLen = totalDataLen + 36
-        java.io.FileOutputStream(file).use { out ->
-            val h = ByteArray(44)
+        val out = java.io.ByteArrayOutputStream(44 + totalDataLen)
+        val h = ByteArray(44)
             h[0]='R'.code.toByte(); h[1]='I'.code.toByte(); h[2]='F'.code.toByte(); h[3]='F'.code.toByte()
             h[4]=(totalAudioLen and 0xff).toByte(); h[5]=((totalAudioLen shr 8) and 0xff).toByte()
             h[6]=((totalAudioLen shr 16) and 0xff).toByte(); h[7]=((totalAudioLen shr 24) and 0xff).toByte()
@@ -560,7 +565,7 @@ class SleepTrackingService : Service() {
             bb.order(java.nio.ByteOrder.LITTLE_ENDIAN)
             bb.asShortBuffer().put(data)
             out.write(bb.array())
-        }
+            return out.toByteArray()
     }
 
     // ─── Lifecycle ─────────────────────────────────────────────────────────────
