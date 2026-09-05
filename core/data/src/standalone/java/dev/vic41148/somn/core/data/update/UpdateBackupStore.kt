@@ -1,6 +1,5 @@
 package dev.vic41148.somn.core.data.update
 
-import android.content.ContentValues
 import android.content.Context
 import android.os.Build
 import android.os.Environment
@@ -16,13 +15,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Where the mandatory pre-update backup lives. It is ALWAYS written to app-private storage first
- * (that survives an in-place update, since `adb install -r` keeps app data), then mirrored to a
- * user-visible location - MediaStore Downloads (API 29+) or the legacy public Documents dir
- * (API 26-28) - so there is a copy that survives a full uninstall (the downgrade path).
+ * Where the mandatory pre-update backup lives: app-private storage only (that survives an
+ * in-place update, since `adb install -r` keeps app data). A previous version also mirrored
+ * the plaintext zip to public Downloads; that mirror is gone — no plaintext backup lands in
+ * shared storage anymore. [findLatestPreUpdateBackup] still reads such older visible copies
+ * once, so a reinstall can recover data written before this change.
  *
- * [findLatestPreUpdateBackup] hunts in both places after a reinstall, when app-private storage is
- * gone, to power the "Restore from backup made on [date]?" prompt.
+ * [findLatestPreUpdateBackup] powers the "Restore from backup made on [date]?" prompt.
  */
 @Singleton
 class UpdateBackupStore @Inject constructor(
@@ -36,22 +35,13 @@ class UpdateBackupStore @Inject constructor(
         get() = File(context.filesDir, "update_backups").apply { mkdirs() }
 
     /**
-     * Copies the freshly-created export zip into app-private storage and a user-visible location.
-     * Returns the private file; throws if the private write fails (that is the hard gate). A
-     * failure to mirror to the visible location is degraded to a warning via [mirrorFailure].
+     * Copies the freshly-created export zip into app-private storage. Returns the private
+     * file; throws if the private write fails (that is the hard gate).
      */
-    suspend fun keepPreUpdateBackup(
-        zipFile: File,
-        mirrorFailure: (Throwable) -> Unit = {}
-    ): File = withContext(Dispatchers.IO) {
+    suspend fun keepPreUpdateBackup(zipFile: File): File = withContext(Dispatchers.IO) {
         privateBackupDir.listFiles()?.forEach { it.delete() }
         val privateCopy = File(privateBackupDir, zipFile.name)
         zipFile.copyTo(privateCopy, overwrite = true)
-        try {
-            materializeUserVisibleCopy(zipFile)
-        } catch (e: Exception) {
-            mirrorFailure(e)
-        }
         privateCopy
     }
 
@@ -68,41 +58,7 @@ class UpdateBackupStore @Inject constructor(
         null
     }
 
-    // ---- user-visible mirror ----
-
-    private fun materializeUserVisibleCopy(zipFile: File) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val resolver = context.contentResolver
-            val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-            val values = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, zipFile.name)
-                put(MediaStore.Downloads.MIME_TYPE, "application/zip")
-                put(MediaStore.Downloads.RELATIVE_PATH, VISIBLE_DIRECTORY)
-                put(MediaStore.Downloads.IS_PENDING, 1)
-            }
-            val uri = resolver.insert(collection, values)
-                ?: throw IllegalStateException("MediaStore insert failed for ${zipFile.name}")
-            try {
-                zipFile.inputStream().use { input ->
-                    resolver.openOutputStream(uri)?.use { output ->
-                        input.copyTo(output)
-                    } ?: throw IllegalStateException("Could not open ${zipFile.name} for writing")
-                }
-            } finally {
-                values.clear()
-                values.put(MediaStore.Downloads.IS_PENDING, 0)
-                resolver.update(uri, values, null, null)
-            }
-        } else {
-            val p = publicLegacyDir()
-            if (p == null || !Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-                throw IllegalStateException("External storage unavailable for backup mirror")
-            } else {
-                p.mkdirs()
-                zipFile.copyTo(File(p, zipFile.name), overwrite = true)
-            }
-        }
-    }
+    // ---- read-only lookup of pre-change visible copies ----
 
     private fun findLatestVisible(): BackupRef? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

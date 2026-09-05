@@ -17,6 +17,14 @@
             android:name="dev.vic41148.somn.feature.alarm.receiver.AlarmReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name="dev.vic41148.somn.feature.alarm.receiver.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name="dev.vic41148.somn.feature.alarm.service.AlarmService"
             android:foregroundServiceType="mediaPlayback"

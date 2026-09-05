@@ -51,9 +51,8 @@ class UpdateFlow @Inject constructor(
     }
 
     /**
-     * The mandatory pre-update backup: full export ZIP written to app-private storage (survives an
-     * in-place update) and mirrored to a user-visible location (survives a full uninstall). Returns
-     * the backup file name, or the failure that must abort the update.
+     * The mandatory pre-update backup: full export ZIP in app-private storage (survives an
+     * in-place update). Returns the backup file name, or the failure that must abort the update.
      */
     suspend fun createBackup(): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
