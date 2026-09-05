@@ -89,7 +89,7 @@ You don't have to write Kotlin to help:
 git clone https://github.com/Vic-41148/somn.git
 cd somn
 ./gradlew assembleStandaloneDebug   # debug APK (standalone channel)
-./gradlew testStandaloneDebugUnitTest testDebugUnitTest   # full unit-test suite (213)
+./gradlew testStandaloneDebugUnitTest testDebugUnitTest   # full unit-test suite (293)
 ./gradlew lintStandaloneDebug       # Android Lint
 ```
 
@@ -218,7 +218,7 @@ Every pull request is expected to keep the test suite green:
 ./gradlew testStandaloneDebugUnitTest testDebugUnitTest
 ```
 
-The suite currently runs 288 unit tests — a number enforced by CI: if you add
+The suite currently runs 293 unit tests — a number enforced by CI: if you add
 or remove a test, update this line and the count in README.md in the same PR,
 or the build fails. If you add a feature, add tests for it — especially for
 pure logic like scoring, classification, and parsing. Pure functions with

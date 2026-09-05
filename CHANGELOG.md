@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Automated QA guardrails.** The alarm dial's AM/PM-toggle rebuild policy is now covered by unit tests (was only verified by hand on a device), the toggle-then-drag hand check itself is automated in `scripts/verify_alarm_dial.py` (one command, screenshots + pixel assertion), and CI now fails a source-touching commit that does not also update CHANGELOG.md.
 - **Alarm dial hand no longer vanishes (fixed).** On the alarm time picker, toggling AM/PM and then dragging the hand could make the hand stop drawing (numbers stayed, time still moved) until the screen was reopened. The picker is now rebuilt with fresh state every time AM/PM flips while no finger is down, so the orphaned hand animation can't survive a toggle.
 - **Health Connect steps & exercise (R6).** Prior-day step count and active minutes now feed the morning readiness verdict — a "Yesterday's activity" contributor (scored toward 10k steps / 45 active minutes) and a matching Outlook sentence. Degrades gracefully: with no Health Connect data the contributor is skipped, never fabricated as a quiet day.
 - **Cycle depth (R5).** New menopause check-in (10-symptom questionnaire, stored on-device) for peri/menopause users, plus luteal-phase coaching in the daily Outlook and a luteal-window extra-minutes hint for the debt recovery plan. Phase refinement now also corrects the calendar estimate with overnight skin temperature when Health Connect has it.

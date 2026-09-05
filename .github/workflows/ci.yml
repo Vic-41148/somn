@@ -181,14 +181,38 @@ jobs:
           fi
           echo "OK: backup opt-out intact, INTERNET scoped to :core:data."
 
+  changelog-guardrail:
+    name: Changelog kept in sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      # Refactors, features and fixes are tracked in CHANGELOG.md by hand; nobody re-remembers to
+      # open it, so a source-touching commit silently ships without a changelog entry until a
+      # release note is missing. Guard now: the latest commit may only touch app/feature/core code
+      # when CHANGELOG.md changed with it (docs-only pushes sail through — that is the point).
+      - name: Source changes must carry a CHANGELOG entry
+        run: |
+          set -euo pipefail
+          CHANGED=$(git diff --name-only HEAD~1 HEAD || true)
+          CODE=$(printf '%s\n' "$CHANGED" | grep -E '^(app|feature|core|build-logic)/' || true)
+          if [ -n "$CODE" ] && ! printf '%s\n' "$CHANGED" | grep -q '^CHANGELOG.md$'; then
+            echo "::error::Source changed without a CHANGELOG.md entry:"
+            echo "$CODE"
+            exit 1
+          fi
+          echo "OK: changelog discipline holds."
+
   style-guardrails:
     name: Style guardrails
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v7
-
       # CONTRIBUTING.md's "no emoji in source or user-facing text" is a promise to users exactly
       # like the privacy claims above: cheap to assert, expensive to notice breaking, because a
       # doc rewrite or a copy-paste can reintroduce emoji in a heading or a string with no
