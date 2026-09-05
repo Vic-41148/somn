@@ -29,11 +29,11 @@ fun buildOutlook(
 ): String {
     if (readiness == null) {
         return if (isMorning) "Track tonight and tomorrow starts with a plan."
-        else "Wind down early tonight — your future morning self says thanks."
+        else "Wind down early tonight for a better morning."
     }
     if (restMode && isMorning) {
         return "Rest Mode is on — only rest counts today. " +
-            "Nights logged now won't move your streak or baselines."
+            "Nights logged now will not move the streak or baselines."
     }
     val debtWord = when {
         debt == null -> null
@@ -42,7 +42,7 @@ fun buildOutlook(
     }
     return if (isMorning) {
         val lead = when (readiness.zone) {
-            ReadinessZone.READY -> "You're primed today"
+            ReadinessZone.READY -> "You are primed today"
             ReadinessZone.STEADY -> "A steady day ahead"
             ReadinessZone.REST -> "Recovery day"
         }

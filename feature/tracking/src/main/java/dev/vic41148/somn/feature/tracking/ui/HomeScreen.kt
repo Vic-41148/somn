@@ -448,6 +448,8 @@ fun HomeScreen(
                         value = "${summary.avgScore}",
                         fraction = summary.avgScore / 100f,
                         color = scoreColor(summary.avgScore),
+                        size = 72.dp,
+                        strokeWidth = 8.dp,
                         onClick = onNavigateToTrends
                     )
                     StatRing(
@@ -455,6 +457,8 @@ fun HomeScreen(
                         value = formatDurationShort(summary.avgDurationMinutes),
                         fraction = (summary.avgDurationMinutes / 480f).coerceIn(0f, 1f),
                         color = MaterialTheme.colorScheme.primary,
+                        size = 72.dp,
+                        strokeWidth = 8.dp,
                         onClick = onNavigateToTrends
                     )
                     StatRing(
@@ -462,6 +466,8 @@ fun HomeScreen(
                         value = "${summary.avgEfficiencyPercent}%",
                         fraction = summary.avgEfficiencyPercent / 100f,
                         color = MaterialTheme.colorScheme.tertiary,
+                        size = 72.dp,
+                        strokeWidth = 8.dp,
                         onClick = onNavigateToTrends
                     )
                 }
@@ -488,7 +494,7 @@ private fun MorningReadyCard(
         if (!hasAnySessions) return
         SleepCard(title = "Morning Ready") {
             Text(
-                text = "Track tonight and tomorrow's verdict lands here.",
+                text = "Track tonight and read the verdict for tomorrow here.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -510,7 +516,7 @@ private fun MorningReadyCard(
     SleepCard(title = "Morning Ready") {
         if (restMode) {
             Text(
-                text = "Rest Mode is on — sick nights aren't counting.",
+                text = "Rest Mode is on. Sick nights do not count.",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.tertiary,
@@ -526,10 +532,18 @@ private fun MorningReadyCard(
                 value = "${readiness.score}",
                 fraction = readiness.score / 100f,
                 color = scoreColor(readiness.score),
+                showLabel = false,
                 onClick = onRingClick
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = readiness.zone.displayName,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = scoreColor(readiness.score)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = verdict,
                     style = MaterialTheme.typography.titleSmall,

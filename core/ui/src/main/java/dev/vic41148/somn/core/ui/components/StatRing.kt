@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -48,7 +49,9 @@ fun StatRing(
     strokeWidth: Dp = 9.dp,
     sublabel: String? = null,
     /** When set, the ring becomes a button announcing "Show details for <label>". */
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    /** When false, the caption under the ring is hidden and all text sits in one column. */
+    showLabel: Boolean = true
 ) {
     var target by remember { mutableFloatStateOf(0f) }
     val animated by animateFloatAsState(
@@ -92,7 +95,8 @@ fun StatRing(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
                 if (sublabel != null) {
                     Text(
@@ -104,12 +108,16 @@ fun StatRing(
                 }
             }
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        if (showLabel) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }
