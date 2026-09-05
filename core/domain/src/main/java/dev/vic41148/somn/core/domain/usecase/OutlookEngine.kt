@@ -23,7 +23,9 @@ fun buildOutlook(
     /** Rest Mode: the math stays honest, the voice switches to recovery framing. */
     restMode: Boolean = false,
     /** R5 luteal coaching sentence, appended when the cycle is in its luteal window. */
-    cycleCoaching: String? = null
+    cycleCoaching: String? = null,
+    /** R6: prior-day movement, adds an activity sentence in the morning when present. */
+    activity: ActivityDeviation? = null
 ): String {
     if (readiness == null) {
         return if (isMorning) "Track tonight and tomorrow starts with a plan."
@@ -55,7 +57,9 @@ fun buildOutlook(
             append(" — $advice")
         }
         val second = if (correlationInsight != null) "$first $correlationInsight" else first
-        return if (cycleCoaching != null) "$second $cycleCoaching" else second
+        val activitySentence = activitySentence(activity)
+        val third = if (activitySentence != null) "$second $activitySentence" else second
+        return if (cycleCoaching != null) "$third $cycleCoaching" else third
     } else {
         val parts = mutableListOf<String>()
         when (readiness.zone) {
@@ -68,5 +72,18 @@ fun buildOutlook(
             parts.add("A consistent bedtime matters more than a perfect one.")
         }
         parts.joinToString(" ")
+    }
+}
+
+/**
+ * R6 morning-only activity copy. Movement framing, never a verdict on the person —
+ * a quiet yesterday gets a nudge ("a short walk"), a busy one gets a "backs readiness".
+ */
+private fun activitySentence(activity: ActivityDeviation?): String? {
+    if (activity == null || activity.priorDaySteps == null) return null
+    return when {
+        activity.priorDaySteps >= 10_000 -> "Yesterday's movement backs readiness — keep the pace."
+        activity.priorDaySteps >= 5_000 -> "Yesterday's movement feeds today's outlook."
+        else -> "Yesterday was quiet — a short walk pays back tonight."
     }
 }

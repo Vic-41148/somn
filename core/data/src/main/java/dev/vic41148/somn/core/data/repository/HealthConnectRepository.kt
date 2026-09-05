@@ -11,6 +11,7 @@ import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.SleepEpoch
 import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.SleepStage
+import dev.vic41148.somn.core.domain.usecase.ActivityDeviation
 import dev.vic41148.somn.core.health.HealthConnectManager
 import java.time.Instant
 import java.time.ZoneId
@@ -41,6 +42,29 @@ class HealthConnectRepository @Inject constructor(
 
     /** Permission set the settings UI's launcher requests via [permissionsContract]. */
     val requiredPermissions: Set<String> get() = HealthConnectManager.ALL_PERMISSIONS
+
+    /**
+     * R6: prior-day movement for the readiness "Yesterday's activity" contributor.
+     * Full prior calendar day in the device's zone — steps + exercise-session minutes.
+     * Null (not zero) when Health Connect isn't authorized, so readiness degrades to
+     * sleep signals rather than scoring missing activity as a quiet day.
+     */
+    suspend fun readPriorDayActivity(nowMillis: Long = System.currentTimeMillis()): ActivityDeviation? {
+        if (getStatus() != HealthConnectStatus.AUTHORIZED) return null
+        val zone = ZoneId.systemDefault()
+        // Instant.atZone().toLocalDate() rather than LocalDate.ofInstant() — the latter is API
+        // 34 and core:data runs on minSdk 26 without core-library desugaring.
+        val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
+        val dayStart = today.minusDays(1).atStartOfDay(zone).toInstant()
+        val dayEnd = today.atStartOfDay(zone).toInstant()
+        if (dayEnd <= dayStart) return ActivityDeviation()
+        val steps = healthConnectManager.readSteps(dayStart, dayEnd)
+        val activeMinutes = healthConnectManager.readActiveMinutes(dayStart, dayEnd)
+        return ActivityDeviation(
+            priorDaySteps = steps.takeIf { it > 0 },
+            priorDayActiveMinutes = activeMinutes.takeIf { it > 0 }
+        )
+    }
 
     /** Hosted from a Composable via `rememberLauncherForActivityResult` to drive the OS permission sheet. */
     fun permissionsContract() = healthConnectManager.requestPermissionsContract()

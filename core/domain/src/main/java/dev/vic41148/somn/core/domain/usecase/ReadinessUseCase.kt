@@ -68,6 +68,21 @@ data class VitalsDeviation(
         restingHrDeltaBpm != null || hrvDeltaMs != null || tempDeltaCelsius != null
 }
 
+/**
+ * Prior-day movement, for the activity contributor. Null fields when Health Connect has
+ * nothing — the engine degrades to sleep signals instead of scoring missing data as zero.
+ *
+ * Scored against daily targets (10,000 steps / 45 active minutes) rather than a personal
+ * baseline because step history is not persisted — an honest, documented exception to the
+ * "personal baselines only" rule, and one that never fires without data.
+ */
+data class ActivityDeviation(
+    val priorDaySteps: Int? = null,
+    val priorDayActiveMinutes: Int? = null
+) {
+    val hasAnyData: Boolean get() = priorDaySteps != null || priorDayActiveMinutes != null
+}
+
 private const val WINDOW_DAYS = 14
 private const val CALIBRATED_NIGHTS = 3
 
@@ -76,6 +91,8 @@ fun assessReadiness(
     sessions: List<SleepSession>,
     debt: SleepDebt?,
     vitals: VitalsDeviation? = null,
+    /** R6: prior-day movement, contributes only when Health Connect has data. */
+    activity: ActivityDeviation? = null,
     nowMillis: Long = System.currentTimeMillis(),
     /** Rest Mode boundary: sick nights leave the window entirely. */
     excludeSinceMillis: Long? = null
@@ -161,7 +178,26 @@ fun assessReadiness(
         )
     }
 
-    val weights = mapOf("Last night" to 0.35f, "Sleep debt" to 0.25f, "Consistency" to 0.20f, "Overnight vitals" to 0.20f)
+    // Activity (weight 0.10) — prior-day movement vs daily targets, when Health Connect
+    // has steps or exercise sessions. Absent by default (no data → skipped, not zero).
+    if (activity != null && activity.hasAnyData) {
+        contributors.add(
+            ReadinessContributor(
+                label = "Yesterday's activity",
+                detail = activityDetail(activity),
+                score = activityScore(activity),
+                hasData = true
+            )
+        )
+    }
+
+    val weights = mapOf(
+        "Last night" to 0.30f,
+        "Sleep debt" to 0.25f,
+        "Consistency" to 0.15f,
+        "Overnight vitals" to 0.20f,
+        "Yesterday's activity" to 0.10f
+    )
     val available = contributors.filter { it.hasData }
     val totalWeight = available.sumOf { (weights[it.label] ?: 0f).toDouble() }.toFloat()
     var score = if (totalWeight <= 0f) 0
@@ -213,4 +249,19 @@ private fun vitalsDetail(vitals: VitalsDeviation): String {
         parts.add("temp ${if (it >= 0) "+" else ""}${"%.1f".format(it)}°C vs usual")
     }
     return parts.joinToString(" · ").ifEmpty { "No vitals data" }
+}
+
+/** 0–100 from steps toward 10k and active minutes toward 45, averaged across whichever are present. */
+private fun activityScore(activity: ActivityDeviation): Int {
+    val subs = mutableListOf<Float>()
+    activity.priorDaySteps?.let { subs.add((it / 10_000f).coerceIn(0f, 1f) * 100f) }
+    activity.priorDayActiveMinutes?.let { subs.add((it / 45f).coerceIn(0f, 1f) * 100f) }
+    return if (subs.isEmpty()) 0 else (subs.average()).toInt()
+}
+
+private fun activityDetail(activity: ActivityDeviation): String {
+    val parts = mutableListOf<String>()
+    activity.priorDaySteps?.let { parts.add("%,d steps".format(it)) }
+    activity.priorDayActiveMinutes?.let { parts.add("$it active min") }
+    return parts.joinToString(" · ")
 }

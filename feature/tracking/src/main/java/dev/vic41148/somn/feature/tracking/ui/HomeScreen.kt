@@ -77,13 +77,20 @@ fun HomeScreen(
     val lastScore by viewModel.lastScore.collectAsState()
     val recentSessions by viewModel.recentSessions.collectAsState()
     val readinessVitals by viewModel.readinessVitals.collectAsState()
+    val readinessActivity by viewModel.readinessActivity.collectAsState()
     val sleepDebt by habitViewModel.sleepDebt.collectAsState()
     // Morning verdict — same inputs as History's header plus vitals, so numbers agree.
     // restModeSince excludes sick nights from every baseline (R2 Rest Mode).
     val restModeSince by viewModel.restModeSince.collectAsState()
     val restMode = restModeSince != null
-    val readiness = remember(recentSessions, sleepDebt, readinessVitals, restModeSince) {
-        assessReadiness(recentSessions, sleepDebt, readinessVitals, excludeSinceMillis = restModeSince)
+    val readiness = remember(recentSessions, sleepDebt, readinessVitals, readinessActivity, restModeSince) {
+        assessReadiness(
+            recentSessions,
+            sleepDebt,
+            readinessVitals,
+            activity = readinessActivity,
+            excludeSinceMillis = restModeSince
+        )
     }
     // Outlook sentence — strongest settled correlation + debt-plan hint, template-built.
     val recoveryPlan by habitViewModel.recoveryPlan.collectAsState()
@@ -91,7 +98,7 @@ fun HomeScreen(
     // R5: luteal coaching + widened debt hint inside the cycle's luteal window.
     val cycleCoaching by viewModel.cycleCoaching.collectAsState()
     val lutealExtra by viewModel.lutealExtraMinutes.collectAsState()
-    val outlook = remember(readiness, sleepDebt, correlationReport, recoveryPlan, restMode, cycleCoaching, lutealExtra) {
+    val outlook = remember(readiness, sleepDebt, correlationReport, recoveryPlan, restMode, cycleCoaching, lutealExtra, readinessActivity) {
         val topInsight = correlationReport?.availableCorrelations
             ?.maxByOrNull { kotlin.math.abs(it.correlation) }?.insight
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
@@ -103,7 +110,8 @@ fun HomeScreen(
             recoveryMinutesHint = if (baseHint != null) baseHint + lutealExtra else null,
             isMorning = hour in 4..16,
             restMode = restMode,
-            cycleCoaching = cycleCoaching
+            cycleCoaching = cycleCoaching,
+            activity = readinessActivity
         )
     }
     // 7-day rollup for the rings — same math History's header uses, so the numbers agree.

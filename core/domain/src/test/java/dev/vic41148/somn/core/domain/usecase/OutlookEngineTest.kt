@@ -86,4 +86,32 @@ class OutlookEngineTest {
         )
         assertThat(s).doesNotContain("Luteal phase")
     }
+
+    @Test
+    fun `high prior-day activity appends push sentence`() {
+        val activity = ActivityDeviation(priorDaySteps = 12_000, priorDayActiveMinutes = 60)
+        val s = buildOutlook(
+            readiness(ReadinessZone.READY), debt(), null, isMorning = true, activity = activity
+        )
+        assertThat(s).contains("movement backs readiness")
+    }
+
+    @Test
+    fun `quiet prior-day activity appends nudge sentence`() {
+        val activity = ActivityDeviation(priorDaySteps = 1_200, priorDayActiveMinutes = null)
+        val s = buildOutlook(
+            readiness(ReadinessZone.STEADY), debt(), null, isMorning = true, activity = activity
+        )
+        assertThat(s).contains("was quiet")
+    }
+
+    @Test
+    fun `evening copy ignores activity`() {
+        val activity = ActivityDeviation(priorDaySteps = 12_000)
+        val s = buildOutlook(
+            readiness(ReadinessZone.STEADY), debt(), null, null,
+            isMorning = false, activity = activity
+        )
+        assertThat(s).doesNotContain("readiness")
+    }
 }

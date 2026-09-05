@@ -120,4 +120,45 @@ class ReadinessUseCaseTest {
         assertThat(result.isCalibrated).isFalse()
         assertThat(result.contributors.first { it.label == "Consistency" }.hasData).isFalse()
     }
+
+    @Test
+    fun `high prior-day activity adds contributor and boosts the verdict`() {
+        val today = LocalDate.now()
+        val sessions = (0..6).map { sessionOn(today.minusDays(it.toLong()), score = 80) }
+        val activity = ActivityDeviation(priorDaySteps = 12_000, priorDayActiveMinutes = 60)
+        val without = assessReadiness(sessions, noDebt(), nowMillis = nowMillis())!!
+        val with = assessReadiness(sessions, noDebt(), activity = activity, nowMillis = nowMillis())!!
+        val contributor = with.contributors.first { it.label == "Yesterday's activity" }
+        assertThat(contributor.hasData).isTrue()
+        assertThat(contributor.score).isEqualTo(100)
+        assertThat(with.score).isGreaterThan(without.score)
+    }
+
+    @Test
+    fun `missing activity is skipped not scored as quiet`() {
+        val today = LocalDate.now()
+        val sessions = (0..6).map { sessionOn(today.minusDays(it.toLong()), score = 80) }
+        val result = assessReadiness(sessions, noDebt(), nowMillis = nowMillis())!!
+        assertThat(result.contributors.none { it.label == "Yesterday's activity" }).isTrue()
+    }
+
+    @Test
+    fun `zero prior-day steps scores the activity contributor zero`() {
+        val today = LocalDate.now()
+        val sessions = (0..4).map { sessionOn(today.minusDays(it.toLong()), score = 80) }
+        val activity = ActivityDeviation(priorDaySteps = 0, priorDayActiveMinutes = 0)
+        val result = assessReadiness(sessions, noDebt(), activity = activity, nowMillis = nowMillis())!!
+        assertThat(result.contributors.first { it.label == "Yesterday's activity" }.score).isEqualTo(0)
+    }
+
+    @Test
+    fun `partial activity data averages only what is present`() {
+        val today = LocalDate.now()
+        val sessions = (0..4).map { sessionOn(today.minusDays(it.toLong()), score = 80) }
+        val stepsOnly = ActivityDeviation(priorDaySteps = 5_000, priorDayActiveMinutes = null)
+        val result = assessReadiness(sessions, noDebt(), activity = stepsOnly, nowMillis = nowMillis())!!
+        val contributor = result.contributors.first { it.label == "Yesterday's activity" }
+        assertThat(contributor.score).isEqualTo(50)
+        assertThat(contributor.detail).contains("steps")
+    }
 }

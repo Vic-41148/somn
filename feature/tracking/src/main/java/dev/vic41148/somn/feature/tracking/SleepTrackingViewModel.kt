@@ -14,6 +14,7 @@ import dev.vic41148.somn.core.domain.model.SleepSession
 import dev.vic41148.somn.core.domain.model.SleepStage
 import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.model.TrackingMode
+import dev.vic41148.somn.core.domain.usecase.ActivityDeviation
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ClassifySleepStageUseCase
 import dev.vic41148.somn.core.domain.usecase.LUTEAL_EXTRA_MINUTES
@@ -108,6 +109,16 @@ class SleepTrackingViewModel @Inject constructor(
                 tempDeltaCelsius = last.avgSkinTemperatureCelsius?.let { it - snaps.mapNotNull { s -> s.avgSkinTemperatureCelsius }.median() }
             )
         }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /**
+     * R6: prior-day step + active-minute data for the readiness "Yesterday's activity"
+     * contributor. Null while loading; empty `ActivityDeviation()` (or null) when Health
+     * Connect has no data — the engine degrades to sleep signals instead of scoring zeros.
+     * Re-read on every session change so the Home card refreshes after each tracked night.
+     */
+    val readinessActivity: StateFlow<ActivityDeviation?> = recentSessions.mapLatest {
+        runCatching { healthConnectRepository.readPriorDayActivity() }.getOrNull()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private fun List<Float>.median(): Float {
