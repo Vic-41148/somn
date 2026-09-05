@@ -355,17 +355,21 @@ private fun SummaryCard(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             StatRing(
-                label = "Average score",
+                label = "Score",
                 value = "${summary.avgScore}",
                 fraction = summary.avgScore / 100f,
                 color = scoreColor(summary.avgScore),
+                size = 72.dp,
+                strokeWidth = 8.dp,
                 onClick = onRingClick
             )
             StatRing(
-                label = "Average sleep",
+                label = "Sleep",
                 value = formatDurationShort(summary.avgDurationMinutes),
                 fraction = (summary.avgDurationMinutes / 480f).coerceIn(0f, 1f),
                 color = MaterialTheme.colorScheme.primary,
+                size = 72.dp,
+                strokeWidth = 8.dp,
                 onClick = onRingClick
             )
             StatRing(
@@ -373,6 +377,8 @@ private fun SummaryCard(
                 value = "${summary.avgEfficiencyPercent}%",
                 fraction = summary.avgEfficiencyPercent / 100f,
                 color = MaterialTheme.colorScheme.tertiary,
+                size = 72.dp,
+                strokeWidth = 8.dp,
                 onClick = onRingClick
             )
         }
