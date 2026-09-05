@@ -47,7 +47,7 @@ data class MeqOption(
 
 private val meqQuestions = listOf(
     MeqQuestion(
-        question = "If you had no commitments, what time would you naturally wake up?",
+        question = "With no commitments, what time do you naturally wake?",
         options = listOf(
             MeqOption("Before 6:30 AM", 5),
             MeqOption("6:30 – 7:45 AM", 4),
@@ -57,7 +57,7 @@ private val meqQuestions = listOf(
         )
     ),
     MeqQuestion(
-        question = "If you had no commitments, what time would you naturally go to bed?",
+        question = "With no commitments, what time do you go to bed?",
         options = listOf(
             MeqOption("Before 9:00 PM", 5),
             MeqOption("9:00 – 10:15 PM", 4),
@@ -86,7 +86,7 @@ private val meqQuestions = listOf(
         )
     ),
     MeqQuestion(
-        question = "Would you say you're a morning or evening person?",
+        question = "Are you a morning or an evening person?",
         options = listOf(
             MeqOption("Definitely morning", 6),
             MeqOption("More morning than evening", 4),
@@ -126,8 +126,8 @@ fun ChronotypeQuizScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Your chronotype is wired into your circadian genes — it's not a lifestyle choice. " +
-                "We'll score your consistency against your natural pattern, not a universal ideal.",
+            text = "Your circadian genes set your chronotype. It is not a lifestyle choice. " +
+                "We will score your consistency against your natural pattern, not a universal ideal.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -188,7 +188,7 @@ fun ChronotypeQuizScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "We'll calibrate your sleep targets and consistency scoring to match.",
+                        text = "We will calibrate your sleep targets and the consistency scoring to match.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

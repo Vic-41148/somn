@@ -193,7 +193,7 @@ fun MorningReviewScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = "We noticed frequent coughing during the night. You may want to monitor your symptoms.",
+                            text = "We noticed frequent coughing during the night. Monitor your symptoms.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

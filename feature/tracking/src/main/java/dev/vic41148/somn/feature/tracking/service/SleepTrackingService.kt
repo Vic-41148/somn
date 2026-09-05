@@ -652,7 +652,7 @@ class SleepTrackingService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Sleep Tracking Active")
-            .setContentText("Monitoring your sleep… - tap to open")
+            .setContentText("Monitoring your sleep… Tap to open")
             .setSmallIcon(android.R.drawable.ic_menu_recent_history)
             .setOngoing(true).setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

@@ -84,8 +84,8 @@ fun LifeStageScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Each stage has unique hormonal effects on sleep. We'll adjust your scores " +
-                "so they reflect what's healthy for your body right now.",
+            text = "Each stage has unique hormonal effects on sleep. We will adjust your scores " +
+                "to show what is healthy for your body right now.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

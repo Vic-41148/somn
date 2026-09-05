@@ -63,8 +63,8 @@ fun SleepGoalScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Based on your age, we recommend ${recommendedHours.format()} hours. " +
-                "You can adjust this — we'll track your sleep debt based on this target.",
+            text = "We recommend ${recommendedHours.format()} hours for your age. " +
+                "You can adjust this target. We will track your sleep debt against this target.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

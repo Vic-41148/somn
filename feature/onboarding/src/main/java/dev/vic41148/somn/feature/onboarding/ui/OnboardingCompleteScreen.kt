@@ -49,7 +49,7 @@ fun OnboardingCompleteScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "You're all set!",
+            text = "You are all set!",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
@@ -57,7 +57,7 @@ fun OnboardingCompleteScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Your sleep tracking is personalized for your biology.",
+            text = "We personalized your sleep tracking for your biology.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

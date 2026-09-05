@@ -80,7 +80,7 @@ fun TrackingScreen(
 
         if (isCalibrating) {
             Text(
-                text = "Establishing acoustic baseline (60s). Keep still…",
+                text = "We set the acoustic baseline (60s). Keep still…",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -107,7 +107,7 @@ fun TrackingScreen(
             )
         } else {
             Text(
-                text = "Place your phone on the bed and relax",
+                text = "Place your phone on the bed. Then relax.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

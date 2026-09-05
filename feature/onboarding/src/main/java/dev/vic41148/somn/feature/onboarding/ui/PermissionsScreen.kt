@@ -135,7 +135,7 @@ fun PermissionsScreen(
 
         Text(
             text = "We need a few permissions to track your sleep accurately. " +
-                "All processing happens on your device.",
+                "We process everything on your device.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
