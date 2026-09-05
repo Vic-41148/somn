@@ -7,7 +7,11 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
-- Nothing yet — add entries here as changes land on `dev`.
+- **Health Connect steps & exercise (R6).** Prior-day step count and active minutes now feed the morning readiness verdict — a "Yesterday's activity" contributor (scored toward 10k steps / 45 active minutes) and a matching Outlook sentence. Degrades gracefully: with no Health Connect data the contributor is skipped, never fabricated as a quiet day.
+- **Cycle depth (R5).** New menopause check-in (10-symptom questionnaire, stored on-device) for peri/menopause users, plus luteal-phase coaching in the daily Outlook and a luteal-window extra-minutes hint for the debt recovery plan. Phase refinement now also corrects the calendar estimate with overnight skin temperature when Health Connect has it.
+- **Correlations & predictors (R4).** Settled-correlation insight sentences in the daily Outlook, per-tag shift flags, and expanded tag predictors.
+- **In-app reports with on-device PDF (R3).** Weekly/monthly/year reports with Save PDF and Share PDF, generated entirely on-device.
+- **Vitals dashboard & Rest Mode (R2).** Wearable-vitals dashboard, a Rest Mode that keeps sick nights from moving streaks/baselines, and per-category data purge.
 
 ## Somn v0.1.2 — smarter scoring, reliable alerts
 
