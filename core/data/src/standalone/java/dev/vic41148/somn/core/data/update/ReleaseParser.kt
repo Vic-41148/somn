@@ -6,7 +6,7 @@ import org.json.JSONObject
 
 /**
  * Pure org.json parsing of a GitHub/Forgejo releases API response, deliberately defensive: any
- * unknown or missing field maps to a safe default so an API shape tweak can't crash the checker.
+ * unknown or missing field maps to a safe default so an API shape tweak cannot crash the checker.
  * Network handling stays in [UpdateRepository]; this class is unit-testable with static JSON.
  */
 object ReleaseParser {

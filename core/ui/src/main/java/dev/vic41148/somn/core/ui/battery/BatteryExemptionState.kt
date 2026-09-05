@@ -31,7 +31,7 @@ object BatteryExemptionState {
      * exact thing [isExempted] checks, on every OEM, in one tap, no navigation required.
      *
      * This used to try an OEM-specific settings *screen* first (e.g. Samsung's Device Care >
-     * Battery hub) and only fall back to this intent if the OEM one didn't resolve. That was
+     * Battery hub) and only fall back to this intent if the OEM one did not resolve. That was
      * backwards: those hub screens almost always resolve, so the OEM path won every time, and it
      * lands on a general battery overview — not a per-app toggle — leaving the user to hunt for
      * Somn themselves. [oemBackgroundRestrictionIntent] is kept as a separate, secondary action for

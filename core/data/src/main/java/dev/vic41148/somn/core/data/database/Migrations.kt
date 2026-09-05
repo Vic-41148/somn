@@ -116,7 +116,7 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
  */
 val MIGRATION_10_11 = object : Migration(10, 11) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // No SQL-level DEFAULTs here — Room's own generated schema doesn't declare column
+        // No SQL-level DEFAULTs here — Room's own generated schema does not declare column
         // defaults (they're applied at the Kotlin/insert level), so adding DEFAULT clauses
         // would make TableInfo validation fail against the entity's expected schema.
         db.execSQL(
