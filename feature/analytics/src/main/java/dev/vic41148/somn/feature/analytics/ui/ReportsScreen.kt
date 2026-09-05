@@ -108,8 +108,8 @@ fun ReportsScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        "Track sleep and your ${window.title.lowercase()} will appear here — " +
-                            "reports stay available as long as your data does.",
+                        "Track sleep. Your ${window.title.lowercase()} appears here. " +
+                            "Reports stay available as long as your data does.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -125,12 +125,12 @@ fun ReportsScreen(
                 }
                 PillRow {
                     MetricChip(
-                        label = "Avg score",
+                        label = "Average score",
                         value = "${summary.avgScore}",
                         modifier = Modifier.weight(1f)
                     )
                     MetricChip(
-                        label = "Avg sleep",
+                        label = "Average sleep",
                         value = formatDurationShort(summary.avgDurationMinutes),
                         modifier = Modifier.weight(1f)
                     )
@@ -186,10 +186,10 @@ fun ReportsScreen(
                                         )
                                     }
                                 }.onSuccess {
-                                    status = "Saved — share it from any file manager, or use Share below."
+                                    status = "The app saved the file. Share it from any file manager. Or use Share below."
                                     generating = false
                                 }.onFailure { e ->
-                                    status = "Export failed: ${e.message}"
+                                    status = "The export failed: ${e.message}"
                                     generating = false
                                 }
                             }
@@ -228,11 +228,11 @@ fun ReportsScreen(
                                                 putExtra(Intent.EXTRA_STREAM, uri)
                                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                             },
-                                            "Share sleep report"
+                                            "Share the sleep report"
                                         )
                                     )
                                 }.onFailure { e ->
-                                    status = "Share failed: ${e.message}"
+                                    status = "The share failed: ${e.message}"
                                 }
                             }
                         },

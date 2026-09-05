@@ -182,7 +182,7 @@ fun TrendsScreen(
                 )
                 if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
                     Text(
-                        text = "Shaded band: your age-adjusted deep sleep target (${"%.0f".format(deepTarget)}% ± 5).",
+                        text = "The shaded band shows your deep sleep target for your age (${"%.0f".format(deepTarget)}% ± 5).",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
@@ -231,7 +231,7 @@ private fun TrendRangeRow(
 /** Headline numbers above the chart — the screen used to show a bare line with no values. */
 @Composable
 private fun TrendStatsCard(stats: TrendStats, metric: TrendMetric) {
-    SleepCard(title = "Now vs average") {
+    SleepCard(title = "Now against the average") {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly

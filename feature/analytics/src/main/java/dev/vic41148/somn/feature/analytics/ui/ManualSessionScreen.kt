@@ -110,9 +110,9 @@ fun ManualSessionScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Forgot to start tracking? Enter the best times you remember. " +
-                    "Only the bed and wake times are stored - no sensor data - and the score is " +
-                    "estimated from duration alone.",
+                text = "You forgot to start tracking. Enter the best times you remember. " +
+                    "The app stores only the bed and wake times. It has no sensor data. " +
+                    "It estimates the score from duration alone.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -121,7 +121,7 @@ fun ManualSessionScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Went to bed",
+                text = "Bed time",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -136,7 +136,7 @@ fun ManualSessionScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Woke up",
+                text = "Wake time",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -154,11 +154,11 @@ fun ManualSessionScreen(
                 text = when {
                     isValid -> "Duration: ${durationMinutes / 60}h ${durationMinutes % 60}m"
                     wakeMillis > System.currentTimeMillis() ->
-                        "Wake time can't be in the future."
+                        "Wake time cannot be in the future."
                     durationMinutes < 15 ->
-                        "Wake time must be at least 15 minutes after bed time."
+                        "Wake time must be at least 15 minutes after the bed time."
                     else ->
-                        "A manual night can't be longer than 24 hours."
+                        "A manual night cannot be longer than 24 hours."
                 },
                 style = MaterialTheme.typography.titleMedium,
                 color = if (isValid) {
@@ -183,7 +183,7 @@ fun ManualSessionScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "The night will appear in History and Trends like any other session.",
+                text = "The night appears in History and Trends like any other session.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

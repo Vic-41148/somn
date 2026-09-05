@@ -73,7 +73,7 @@ fun VitalsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             when {
-                flags == null -> SleepCard(title = "Reading vitals") {
+                flags == null -> SleepCard(title = "The app reads your vitals") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -83,9 +83,9 @@ fun VitalsScreen(
                 }
                 flags!!.isEmpty() -> SleepCard(title = "No wearable data yet") {
                     Text(
-                        text = "Connect a wearable via Settings → Health Connect and " +
-                            "your resting heart rate, HRV, oxygen and skin temperature " +
-                            "will appear here, flagged against your own usual range.",
+                        text = "Connect a wearable in Settings through Health Connect. " +
+                            "Your resting heart rate, HRV, oxygen, and skin temperature " +
+                            "appear here against your own usual range.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -100,9 +100,9 @@ fun VitalsScreen(
                         }
                     }
                     Text(
-                        text = "Ranges are your own last 14 nights — not population " +
-                            "averages. A flag means you drifted from your usual, " +
-                            "not that a number is objectively wrong.",
+                        text = "Ranges are your own last 14 nights. They are not population " +
+                            "averages. A flag means you moved from your usual. " +
+                            "It does not mean that a number is wrong.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

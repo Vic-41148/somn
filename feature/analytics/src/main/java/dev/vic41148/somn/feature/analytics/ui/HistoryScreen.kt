@@ -135,7 +135,7 @@ fun HistoryScreen(
                         IconButton(onClick = onAddManualSession) {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = "Add manual entry"
+                                contentDescription = "Add a manual entry"
                             )
                         }
                     }
@@ -187,7 +187,7 @@ fun HistoryScreen(
                             value = selectedTypeFilter?.displayName ?: "All Sessions",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Filter by Session Type") },
+                            label = { Text("Filter by the session type") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded) },
                             modifier = Modifier
                                 .menuAnchor()
@@ -229,7 +229,7 @@ fun HistoryScreen(
                         Text(
                             text = when {
                                 allSessions.isEmpty() -> "No sleep data yet"
-                                rangedSessions.isEmpty() -> "No sessions in this range — try a wider range"
+                                rangedSessions.isEmpty() -> "No sessions are in this range. Use a wider range"
                                 else -> "No ${selectedTypeFilter?.displayName} sessions yet"
                             },
                             style = MaterialTheme.typography.titleLarge,
@@ -355,14 +355,14 @@ private fun SummaryCard(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             StatRing(
-                label = "Avg score",
+                label = "Average score",
                 value = "${summary.avgScore}",
                 fraction = summary.avgScore / 100f,
                 color = scoreColor(summary.avgScore),
                 onClick = onRingClick
             )
             StatRing(
-                label = "Avg sleep",
+                label = "Average sleep",
                 value = formatDurationShort(summary.avgDurationMinutes),
                 fraction = (summary.avgDurationMinutes / 480f).coerceIn(0f, 1f),
                 color = MaterialTheme.colorScheme.primary,
@@ -462,7 +462,7 @@ private fun SessionRow(
                 val hours = session.sleepDurationMinutes / 60
                 val mins = session.sleepDurationMinutes % 60
                 Text(
-                    text = "${hours}h ${mins}m • ${session.sleepEfficiency.toInt()}% eff",
+                    text = "${hours}h ${mins}m • ${session.sleepEfficiency.toInt()}% efficiency",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

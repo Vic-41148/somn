@@ -83,7 +83,7 @@ fun CircadianInsightsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (isLoading && chronotype == null && socialJetLag == null && seasonalAnalysis == null) {
-                SleepCard(title = "Reading your rhythm") {
+                SleepCard(title = "The app reads your rhythm") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -91,7 +91,7 @@ fun CircadianInsightsScreen(
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Crunching your recent nights…",
+                            text = "The app reviews your recent nights.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -105,8 +105,8 @@ fun CircadianInsightsScreen(
             if (!isLoading && chronotype == null && socialJetLag == null && seasonalAnalysis == null) {
                 SleepCard(title = "Not enough nights yet") {
                     Text(
-                        text = "Track a few more nights — including at least one weekend — " +
-                            "and your chronotype, social jet lag and seasonal patterns will appear here.",
+                        text = "Track a few more nights. Include at least one weekend night. " +
+                            "Your chronotype, social jet lag, and seasonal patterns appear here.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -141,7 +141,7 @@ fun ChronotypeCard(assessment: ChronotypeAssessment) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "${assessment.alarmFreeNightsUsed}/${ChronotypeAssessment.MIN_ALARM_FREE_NIGHTS} " +
-                        "alarm-free nights so far — keep tracking and the data-driven read unlocks here.",
+                        "alarm-free nights so far. Keep tracking. The data-driven result unlocks here.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -172,8 +172,8 @@ fun SocialJetLagCard(lag: SocialJetLag) {
 private fun SocialJetLagPendingCard() {
     SleepCard(title = "Social Jet Lag") {
         Text(
-            text = "Needs nights on both weekdays and weekends to compare your midpoints. " +
-                "Weekend tracking fills this in.",
+            text = "The app needs nights on weekdays and weekends to compare your midpoints. " +
+                "Weekend tracking fills this gap.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -192,7 +192,7 @@ fun SeasonalAnalysisCard(analysis: SeasonalAnalysis) {
                     Text(trend.insight, style = MaterialTheme.typography.bodyMedium)
                 }
             } else {
-                 Text(analysis.insight ?: "Not enough cross-season data yet.")
+                 Text(analysis.insight ?: "There is not enough cross-season data yet.")
             }
     }
 }

@@ -196,7 +196,7 @@ fun SessionDetailScreen(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    text = "Talk Clip - ${timeFormat.format(Date(event.timestampMillis))}",
+                                    text = "Talk clip at ${timeFormat.format(Date(event.timestampMillis))}",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             },
@@ -247,7 +247,7 @@ fun SessionDetailScreen(
                     SleepCard(title = "Vitals" + (sourceLabel?.let { " · $it" } ?: "")) {
                         PillRow {
                             vitals.avgHeartRateBpm?.let {
-                                MetricChip(label = "Avg HR", value = "${it.toInt()} bpm", modifier = Modifier.weight(1f).fillMaxHeight())
+                                MetricChip(label = "Average HR", value = "${it.toInt()} bpm", modifier = Modifier.weight(1f).fillMaxHeight())
                             }
                             vitals.restingHeartRateBpm?.let {
                                 MetricChip(label = "Resting HR", value = "${it.toInt()} bpm", modifier = Modifier.weight(1f).fillMaxHeight())
@@ -266,7 +266,7 @@ fun SessionDetailScreen(
                                     MetricChip(label = "Min SpO2", value = "${it.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
                                 }
                                 vitals.avgSkinTemperatureCelsius?.let {
-                                    MetricChip(label = "Skin Temp", value = "${"%.1f".format(it)}°C", modifier = Modifier.weight(1f).fillMaxHeight())
+                                    MetricChip(label = "Skin temperature", value = "${"%.1f".format(it)}°C", modifier = Modifier.weight(1f).fillMaxHeight())
                                 }
                             }
                         }
@@ -305,7 +305,7 @@ private fun SessionTagsCard(sessionId: Long, viewModel: AnalyticsViewModel) {
     SleepCard(title = "Tags") {
         if (allTags.isEmpty()) {
             Text(
-                "No tags yet — they appear here after your first tagged night.",
+                "No tags yet. They appear here after your first tagged night.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
