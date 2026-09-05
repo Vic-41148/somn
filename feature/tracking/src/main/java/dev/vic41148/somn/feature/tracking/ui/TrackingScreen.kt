@@ -52,7 +52,7 @@ fun TrackingScreen(
     val isSonar             = activeMode == TrackingMode.SONAR
     val isCalibrating       = isSonar && calibrationState == SonarCollector.SonarCalibrationState.CALIBRATING
 
-    // Back must never strand a live session: popping this screen mid-tracking dumps the user
+    // Back must never strand a live session. Popping this screen mid-tracking dumps the user
     // back on Home with a running foreground service and no in-app way to stop it (the Home
     // moon button only starts sessions). Block system back for as long as the service is
     // actually tracking — the stop has to go through the explicit Wake Up button, same as the
@@ -116,8 +116,8 @@ fun TrackingScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Isolated in its own composable with its own 1Hz-ticking state, so the per-second
-        // recomposition this timer requires doesn't cascade into the rest of the screen
+        // It is isolated in its own composable with its own 1Hz-ticking state. The per-second
+        // recomposition this timer requires does not cascade into the rest of the screen
         // (hypnogram, epoch count) below it.
         ElapsedTimeText(startTimeMillis = activeSession?.startTimeMillis)
 

@@ -13,10 +13,10 @@ object CaptchaTaskRegistry {
         register(ShakeCaptchaTask())
         register(SequenceCaptchaTask())
         register(QRCodeCaptchaTask())
-        // NFC captchas only make sense on devices that can read tags. The task is
-        // registered unconditionally, but getAvailableTasks() filters it by
+        // NFC captchas only make sense on devices that can read tags. The code
+        // registers the task unconditionally. getAvailableTasks() filters it by
         // PackageManager.FEATURE_NFC and resolveTask() falls back to the global
-        // preference (or math) when NFC is unavailable — a captcha the user can
+        // preference (or math) when NFC is unavailable. A captcha the user can
         // never solve must not lock them out of dismissing their own alarm.
         register(NFCCaptchaTask())
     }
@@ -31,7 +31,7 @@ object CaptchaTaskRegistry {
      * Resolves the captcha task that gates a firing alarm's dismissal.
      *
      * The per-alarm [CaptchaType] (received via [AlarmService.currentCaptchaType], from
-     * `Alarm.captchaType`) wins when it names a real task; `NONE` (or an unmappable value) falls
+     * `Alarm.captchaType`) wins when it names a real task. `NONE` (or an unmappable value) falls
      * back to the global Settings preference so both layers keep working together. A QR task is
      * swapped for math when no QR value has been configured — an unsettable captcha must never
      * lock the user out of dismissing their own alarm.

@@ -79,7 +79,7 @@ fun HomeScreen(
     val readinessVitals by viewModel.readinessVitals.collectAsState()
     val readinessActivity by viewModel.readinessActivity.collectAsState()
     val sleepDebt by habitViewModel.sleepDebt.collectAsState()
-    // Morning verdict — same inputs as History's header plus vitals, so numbers agree.
+    // Morning verdict — the same inputs as the History header plus vitals, so numbers agree.
     // restModeSince excludes sick nights from every baseline (R2 Rest Mode).
     val restModeSince by viewModel.restModeSince.collectAsState()
     val restMode = restModeSince != null
@@ -114,7 +114,7 @@ fun HomeScreen(
             activity = readinessActivity
         )
     }
-    // 7-day rollup for the rings — same math History's header uses, so the numbers agree.
+    // 7-day rollup for the rings — the same math the History header uses, so the numbers agree.
     val weekSummary = remember(recentSessions) {
         val cutoff = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
         summarizeSessions(recentSessions.filter { it.startTimeMillis >= cutoff })
@@ -147,7 +147,7 @@ fun HomeScreen(
         val isBatteryExempted by dev.vic41148.somn.core.ui.battery.BatteryExemptionState.isExempted.collectAsState()
         var batteryBannerDismissed by remember { mutableStateOf(false) }
         // Some OEMs (Samsung, Xiaomi, Huawei) enforce a separate "autostart" restriction on
-        // top of standard battery optimization — exposed as the gear icon, not a third row.
+        // top of standard battery optimization. The code exposes it as the gear icon, not a third row.
         val oemIntent = remember {
             dev.vic41148.somn.core.ui.battery.BatteryExemptionState.oemBackgroundRestrictionIntent(context)
         }

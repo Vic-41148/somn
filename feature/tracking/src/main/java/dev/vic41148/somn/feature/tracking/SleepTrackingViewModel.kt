@@ -74,7 +74,7 @@ class SleepTrackingViewModel @Inject constructor(
     val activeSession = sleepRepository.observeActiveSession()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** Completed sessions for the Home "This week" rings — same source History summarizes. */
+    /** Completed sessions for the Home "This week" rings — the same source History summarizes. */
     val recentSessions: StateFlow<List<SleepSession>> = sleepRepository.observeCompletedSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -88,7 +88,7 @@ class SleepTrackingViewModel @Inject constructor(
 
     /**
      * Last-night wearable deltas vs the user's own 14-day median, for the readiness
-     * verdict. Null while loading; `VitalsDeviation()` (no data) when Health Connect
+     * verdict. Null while loading. `VitalsDeviation()` (no data) when Health Connect
      * has nothing — the engine degrades to sleep signals instead of scoring zeros.
      * Suspended Room reads run on Default so the flow never blocks the main thread.
      */
@@ -113,7 +113,7 @@ class SleepTrackingViewModel @Inject constructor(
 
     /**
      * R6: prior-day step + active-minute data for the readiness "Yesterday's activity"
-     * contributor. Null while loading; empty `ActivityDeviation()` (or null) when Health
+     * contributor. Null while loading. Empty `ActivityDeviation()` (or null) when Health
      * Connect has no data — the engine degrades to sleep signals instead of scoring zeros.
      * Re-read on every session change so the Home card refreshes after each tracked night.
      */
@@ -130,8 +130,8 @@ class SleepTrackingViewModel @Inject constructor(
 
     /**
      * R5 cycle coaching for the Outlook sentence. Null unless cycle tracking is on
-     * and the refined phase sits in its luteal window — calendar math with
-     * temperature refinement when Health Connect skin temps exist, never instead.
+     * and the refined phase sits in its luteal window. It uses calendar math with
+     * temperature refinement when Health Connect skin temps exist, never as a replacement.
      */
     val cycleCoaching: StateFlow<String?> = recentSessions.mapLatest { sessions ->
         withContext(Dispatchers.Default) {
@@ -154,7 +154,7 @@ class SleepTrackingViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** R5: the debt plan widens 20 min inside the luteal window; 0 elsewhere. */
+    /** R5: the debt plan widens 20 min inside the luteal window. The value is 0 elsewhere. */
     val lutealExtraMinutes: StateFlow<Int> = cycleCoaching.mapLatest { coaching ->
         if (coaching != null) LUTEAL_EXTRA_MINUTES else 0
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -167,9 +167,9 @@ class SleepTrackingViewModel @Inject constructor(
     /**
      * REL-02: detects a tracking session abandoned by a dead/killed [SleepTrackingService]
      * (no [stopTracking] ever called) and finalizes it as partial data rather than leaving
-     * it stuck open forever. Only runs when this process doesn't itself believe tracking is
+     * it stuck open forever. It runs only when this process does not itself believe tracking is
      * active — a live service in this process always keeps [SleepTrackingService.trackingState]
-     * at [TrackingState.TRACKING], so this can't race a genuinely in-progress night.
+     * at [TrackingState.TRACKING], so this cannot race a genuinely in-progress night.
      */
     private fun checkIncompleteSession() {
         viewModelScope.launch {
@@ -188,7 +188,7 @@ class SleepTrackingViewModel @Inject constructor(
 
     private suspend fun finalizeIncompleteSession(session: SleepSession) {
         // REL-02: the held-back final epoch dies with a hard-killed process (it lives in the
-        // service's memory), but an interrupted stop — the normal stop path dying mid-flight in
+        // service memory). An interrupted stop — the normal stop path that dies mid-flight in
         // THIS process — leaves it pending in the companion flow. Recover it exactly like
         // [stopTracking] does, before reading the epoch list back, so the recovered session
         // includes every epoch this process still could write.
@@ -242,7 +242,7 @@ class SleepTrackingViewModel @Inject constructor(
             )
             SleepTrackingService.startTracking(context, sessionId, mode)
 
-            // Observe epochs for real-time display
+            // Observe epochs for the real-time display
             launch {
                 sleepRepository.observeEpochs(sessionId).collect { epochList ->
                     _epochs.value = epochList
@@ -258,9 +258,9 @@ class SleepTrackingViewModel @Inject constructor(
             val session = sleepRepository.getActiveSession() ?: return@launch
 
             // REL-02: the service no longer flushes its held-back final epoch with a runBlocking on
-            // the main thread (that wedged Room's executors during teardown and hung every later
-            // query — including the morning alerts below). Instead it exposes the epoch here and the
-            // ViewModel writes it, synchronously and in order, before reading the epoch list back.
+            // the main thread. That wedged Room executors during teardown and hung every later
+            // query — including the morning alerts below. Instead it exposes the epoch here and the
+            // ViewModel writes it, synchronously and in order, before it reads the epoch list back.
             flushPendingFinalEpoch()
 
             val epochs = sleepRepository.getEpochs(session.id)
@@ -281,7 +281,7 @@ class SleepTrackingViewModel @Inject constructor(
                 oversleepThresholdMinutes = oversleepThresholdMinutes
             )
 
-            // Calculate score
+            // Calculate the score
             val score = calculateScore(completedSession)
             val scoredSession = completedSession.copy(sleepScore = score.totalScore)
 
@@ -307,8 +307,8 @@ class SleepTrackingViewModel @Inject constructor(
     /**
      * REL-02: writes the service's held-back final epoch if one is still pending, then clears it.
      * Shared by the user-stop path and the incomplete-session recovery path so both recover the
-     * same data the 3-epoch smoothing filter deliberately held back (an epoch can't be persisted
-     * until its successor arrives). Runs on the ViewModel's coroutine, never the main thread —
+     * same data the 3-epoch smoothing filter deliberately held back. An epoch cannot persist
+     * until its successor arrives. Runs on the ViewModel's coroutine, never the main thread —
      * the whole point of the companion flow is that the service must not runBlocking a Room write.
      */
     private suspend fun flushPendingFinalEpoch() {
@@ -331,7 +331,7 @@ class SleepTrackingViewModel @Inject constructor(
 
         if (profile.lifeStage == LifeStage.POSTPARTUM) {
             val lookback = System.currentTimeMillis() - (6L * 7 * 24 * 60 * 60 * 1000)
-            // SESS-04: fragmentation risk is a nighttime signal — naps shouldn't count toward it.
+            // SESS-04: fragmentation risk is a nighttime signal — naps should not count toward it.
             val recentSessions = sleepRepository.getMainSleepSessionsSince(lookback)
             val weeksFragmented = fragmentationUseCase(recentSessions, System.currentTimeMillis())
             ppdRiskNotifier.checkAndNotify(profile, weeksFragmented)
@@ -339,8 +339,8 @@ class SleepTrackingViewModel @Inject constructor(
     }
 
     /**
-     * HEALTH-01/02: mirrors the NAS sync pattern in [stopTracking] — best-effort, opt-in, and
-     * never allowed to break session completion if Health Connect is unavailable/unauthorized
+     * HEALTH-01/02: it mirrors the NAS sync pattern in [stopTracking]. It stays best-effort and
+     * opt-in. It never breaks session completion if Health Connect is unavailable/unauthorized
      * or the write otherwise fails (both repository methods already no-op on !AUTHORIZED, this
      * catch only guards against unexpected platform exceptions).
      */
@@ -367,7 +367,7 @@ class SleepTrackingViewModel @Inject constructor(
 
     /**
      * Loads the detail state for the given session: score explanation, epochs, audio events.
-     * Runs once the session row arrives so it can't race the stop path's commit.
+     * It runs once the session row arrives so it cannot race the stop path commit.
      */
     fun loadSessionDetail(sessionId: Long) {
         viewModelScope.launch {
@@ -394,14 +394,14 @@ class SleepTrackingViewModel @Inject constructor(
         }
     }
 
-    /** Target sleep minutes (from profile, falling back to the 8h domain default) + configured oversleep threshold. */
+    /** The target sleep minutes (from the profile, falling back to the 8h domain default) + the configured oversleep threshold. */
     private suspend fun loadOversleepInputs(): Pair<Int, Int> {
         val targetSleepMinutes = ((userProfileRepository.getProfile()?.targetSleepHours ?: 8.0f) * 60).toInt()
         val oversleepThresholdMinutes = preferencesRepository.oversleepThresholdMinutes.first()
         return targetSleepMinutes to oversleepThresholdMinutes
     }
 
-    /** Derives final session metrics from recorded epochs. Shared by a normal user-initiated stop and REL-02's incomplete-session finalization. */
+    /** Derives final session metrics from recorded epochs. A normal user-initiated stop and REL-02 incomplete-session finalization share it. */
     private fun buildCompletedSession(
         session: SleepSession,
         epochs: List<SleepEpoch>,
@@ -417,7 +417,7 @@ class SleepTrackingViewModel @Inject constructor(
         val lightEpochs = epochs.filter { it.stage == SleepStage.LIGHT }
         val remEpochs = epochs.filter { it.stage == SleepStage.REM }
 
-        // Time in bed from wall clock
+        // The time in bed from the wall clock
         val timeInBed = ((endTimeMillis - session.startTimeMillis) / 60_000).toInt()
 
         // Sleep duration: each epoch covers a 30-second window from its timestamp
@@ -467,7 +467,7 @@ class SleepTrackingViewModel @Inject constructor(
             isCompleted = true,
             isPartial = isPartial,
             // SESS-03: only main-sleep sessions are compared against the full-night target —
-            // a long nap/commute session isn't "oversleep" against a nightly baseline.
+            // a long nap/commute session is not "oversleep" against a nightly baseline.
             isOversleep = session.sessionType == SessionType.MAIN_SLEEP &&
                 sleepDuration > (targetSleepMinutes + oversleepThresholdMinutes)
         )

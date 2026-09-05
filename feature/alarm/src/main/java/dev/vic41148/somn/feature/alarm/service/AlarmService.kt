@@ -102,7 +102,7 @@ class AlarmService : Service() {
 
         private var snoozeCount = 0
 
-        /** Hard-dismiss, bypassing wake verification entirely. Kept for callers that need an immediate stop. */
+        /** Hard-dismiss, bypassing wake verification entirely. The code keeps it for callers that need an immediate stop. */
         fun dismiss(context: Context) {
             val intent = Intent(context, AlarmService::class.java).apply {
                 action = "DISMISS"
@@ -165,13 +165,13 @@ class AlarmService : Service() {
                 val alarmIdForSnooze = currentAlarmId
                 stopAlarm()
                 // Ends the firing episode: AlarmActivity's phase watcher finishes it, and the nav
-                // graph pops the in-app firing screen. (Previously phase stayed FIRING, so any UI
+                // graph pops the in-app firing screen. (Previously phase stayed FIRING. Any UI
                 // that observed the phase — e.g. the alarm_firing route — would sit on a "ringing"
                 // screen forever after a snooze.)
                 _phase.value = AlarmPhase.DISMISSED
                 stopForeground(STOP_FOREGROUND_REMOVE)
-                // The comment here used to say "snooze handled by the UI/ViewModel" — it wasn't;
-                // neither AlarmViewModel.snoozeAlarm nor anything else ever actually scheduled a
+                // The comment here used to say "snooze handled by the UI/ViewModel". It was not true.
+                // Neither AlarmViewModel.snoozeAlarm nor anything else ever actually scheduled a
                 // re-fire. Tapping Snooze silently killed the alarm forever instead of ringing
                 // again after the snooze duration. Re-arm a one-shot trigger for this same alarm
                 // id before stopping the service.
@@ -206,7 +206,7 @@ class AlarmService : Service() {
                 }
                 
                 // A failed foreground promotion must never take the whole app down with it — stop
-                // cleanly so the system doesn't kill the process for a service that started but
+                // cleanly so the system does not kill the process for a service that started but
                 // never went foreground (e.g. ForegroundServiceDidNotStartInTimeException on a
                 // cold start, or ForegroundServiceStartNotAllowedException in a non-exempt edge
                 // case). The alarm is missed rather than crashing — same pattern as
@@ -237,9 +237,9 @@ class AlarmService : Service() {
                             if (alarm.repeatDays.isEmpty()) {
                                 alarmRepository.setEnabled(alarmId, false)
                             } else {
-                                // AlarmManager.setAlarmClock() is a one-shot trigger — nothing
+                                // AlarmManager.setAlarmClock() is a one-shot trigger. Nothing
                                 // else ever re-armed a repeating alarm for its next occurrence
-                                // after it fired, so a "repeat every weekday" alarm rang exactly
+                                // after it fired. A "repeat every weekday" alarm rang exactly
                                 // once, ever, until the user manually re-toggled/edited it or
                                 // rebooted the device (which re-schedules via BootReceiver).
                                 alarmScheduler.schedule(alarm)
@@ -297,7 +297,7 @@ class AlarmService : Service() {
 
             if (playSound) {
                 // prepare()/start() block synchronously — run off Dispatchers.Main so a slow or
-                // stuck ringtone provider can't ANR the exact moment the alarm is meant to fire.
+                // stuck ringtone provider cannot ANR the exact moment the alarm is meant to fire.
                 soundStarted = withContext(Dispatchers.IO) {
                     try {
                         val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
@@ -338,8 +338,8 @@ class AlarmService : Service() {
                 }
             }
 
-            // Vibration — also forced on when sound failed to start (or was never attempted due
-            // to ASD mode) so a broken/missing ringtone never leaves the alarm completely silent.
+            // The code also forces Vibration on when sound failed to start (or was never attempted due
+            // to ASD mode). A broken/missing ringtone never leaves the alarm completely silent.
             val finalVibrationEnabled = vibrationEnabled || asdMode || !soundStarted
             if (finalVibrationEnabled) {
                 vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -365,7 +365,7 @@ class AlarmService : Service() {
         }
 
         // WAKE-01 window: the per-alarm smart wake window (in minutes) is authoritative for the
-        // alarm that's firing — the confirmation countdown lasts as long as the alarm's own wake
+        // alarm that is firing. The confirmation countdown lasts as long as the alarm's own wake
         // window. Alarms fired without one (legacy pending intents) keep the global preference.
         val windowSeconds = currentWakeWindowMinutes?.let { it * 60 }
             ?: preferencesRepository.wakeVerificationWindowSeconds.first()

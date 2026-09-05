@@ -54,21 +54,21 @@ class AlarmActivity : ComponentActivity() {
         // Intercept back button to prevent accidental dismissal of the alarm
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                // Do nothing - user must complete CAPTCHA or press Snooze
+                // Do nothing - the user must complete CAPTCHA or press Snooze
             }
         })
 
         setContent {
             MaterialTheme {
                 // Reading DataStore synchronously (runBlocking) here would block onCreate on the
-                // highest-stakes screen in the app. Load it asynchronously instead — this class's
-                // `currentTask` field (needed synchronously by onNewIntent's NFC routing) is set
-                // as a side effect of the same LaunchedEffect once it resolves.
+                // highest-stakes screen in the app. Load it asynchronously instead. The same
+                // LaunchedEffect sets this class's `currentTask` field (needed synchronously
+                // by onNewIntent's NFC routing) as a side effect once it resolves.
                 var loadedTask by remember { mutableStateOf<dev.vic41148.somn.feature.alarm.captcha.CaptchaTask?>(null) }
                 var taskReady by remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
-                    // Per-alarm captcha wins; "NONE" falls back to the global Settings preference.
+                    // Per-alarm captcha wins. "NONE" falls back to the global Settings preference.
                     // The service publishes the per-alarm type (Alarm.captchaType -> receiver ->
                     // intent extra) before isAlarmFiring goes true, so it is always populated by
                     // the time this screen opens.
@@ -162,7 +162,7 @@ fun AlarmScreen(
     val canSnooze by AlarmService.canSnooze.collectAsState()
     val currentTime = remember { mutableStateOf(System.currentTimeMillis()) }
 
-    // Re-keyed by phase: a WAKE-02 re-ring transitions AWAITING_WAKE_CONFIRMATION -> FIRING,
+    // The code re-keys it by phase. A WAKE-02 re-ring transitions AWAITING_WAKE_CONFIRMATION -> FIRING,
     // which must reset both the captcha's own solved-state and this screen's completion flag.
     var isCaptchaComplete by remember(phase) { mutableStateOf(false) }
 
@@ -177,9 +177,9 @@ fun AlarmScreen(
         }
     }
 
-    // The alarm's phase transitions (a WAKE-02 re-ring flips AWAITING_WAKE_CONFIRMATION back to
-    // FIRING, dismiss flips FIRING to AWAITING_WAKE_CONFIRMATION) used to be an instant cut
-    // between two entirely separate Composables. This is the single highest-stakes screen in the
+    // The alarm's phase transitions used to be an instant cut between two entirely
+    // separate Composables. A WAKE-02 re-ring flips AWAITING_WAKE_CONFIRMATION back to
+    // FIRING. Dismiss flips FIRING to AWAITING_WAKE_CONFIRMATION. This is the single highest-stakes screen in the
     // app — deliberately calm motion here, not a bounce/overshoot, matching the color system.
     AnimatedContent(
         targetState = phase,
@@ -312,7 +312,7 @@ private fun AlarmFiringContent(
     }
 }
 
-/** WAKE-01: shown after dismiss, before the alarm is fully silenced — WAKE-02 re-rings via [onConfirmAwake]'s deadline lapsing if the user doesn't respond. */
+/** WAKE-01: shown after dismiss, before the service fully silences the alarm. WAKE-02 re-rings via [onConfirmAwake]'s deadline lapsing if the user does not respond. */
 @Composable
 private fun WakeConfirmScreen(deadlineMillis: Long?, onConfirmAwake: () -> Unit) {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -325,8 +325,8 @@ private fun WakeConfirmScreen(deadlineMillis: Long?, onConfirmAwake: () -> Unit)
     }
 
     val secondsLeft = deadlineMillis?.let { ((it - now) / 1000).coerceAtLeast(0) } ?: 0
-    // The WAKE-01 window is the per-alarm wake window in minutes (30 by default), so a bare
-    // "within 1800s" countdown is unreadable — render minutes once the window crosses 60s.
+    // The WAKE-01 window is the per-alarm wake window in minutes (30 by default). A bare
+    // "within 1800s" countdown is unreadable, so render minutes once the window crosses 60s.
     val windowLabel = when {
         secondsLeft >= 60 -> {
             val m = secondsLeft / 60

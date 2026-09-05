@@ -93,7 +93,7 @@ class AlarmViewModel @Inject constructor(
         // would silently override the user's global choice for every UI-created alarm.)
         captchaType: String = "none",
         repeatDays: Set<Int> = emptySet(),
-        // Was missing entirely, so a new alarm always took Alarm's 30-minute default and silently
+        // It was missing entirely. A new alarm always took the Alarm 30-minute default and silently
         // discarded whatever the user had just set on the edit screen's wake-window slider. Only
         // editing an existing alarm ever persisted the value.
         wakeWindowMinutes: Int = 30

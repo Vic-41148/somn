@@ -68,8 +68,8 @@ class SleepTrackingService : Service() {
     private var snoreNudgeEnabled = true
 
     private val classifyStage = ClassifySleepStageUseCase()
-    // Rebuilt per-session in startTracking() once yamnetClassificationEnabled is read - starts
-    // ZCR-only so there's never a window where this is uninitialized.
+    // Rebuilt per-session in startTracking() once yamnetClassificationEnabled is read. It starts
+    // ZCR-only so there is never a window where this is uninitialized.
     private var audioEventClassifier = AudioEventClassifier()
     private var yamnetClassifier: YamnetAudioClassifier? = null
     private val breathingRateEstimator = BreathingRateEstimator()
@@ -83,8 +83,8 @@ class SleepTrackingService : Service() {
     private var skipNextEpoch = false
 
     // ── Stage smoothing state (3-epoch mode filter) ───────────────────
-    // smoothStages() smooths epoch i against [i-1, i, i+1], so an epoch can't be persisted
-    // until its successor has been classified. The latest raw epoch is held back and, on each
+    // smoothStages() smooths epoch i against [i-1, i, i+1], so an epoch cannot persist
+    // until its successor is classified. The latest raw epoch is held back and, on each
     // new epoch, the previous one is written smoothed against [prevprev, prev, current]. The
     // final epoch has no successor and is flushed raw when tracking stops - matching
     // smoothStages()'s "first and last epochs are never replaced" semantics.
@@ -92,14 +92,14 @@ class SleepTrackingService : Service() {
     // Who flushes it: the ViewModel's stopTracking() writes it (via the [finalEpoch] companion
     // flow) in the normal user-stop path. The service itself only flushes asynchronously for the
     // non-ViewModel stop paths (smart-alarm early wake, onDestroy). It must NEVER flush with
-    // runBlocking on the main thread - that blocks main while Room queries from the ViewModel
-    // coroutine are in flight, wedging Room's executors so every later query (including the
+    // runBlocking on the main thread. That blocks main while Room queries from the ViewModel
+    // coroutine are in flight. It wedges Room executors so every later query (including the
     // morning health alerts in notifyMorningAlerts) hangs forever.
     private var pendingRawEpoch: SleepEpoch? = null
     private var prevPrevStage: SleepStage? = null
     private var prevStage: SleepStage? = null
 
-    // True when this service instance is being stopped via ACTION_STOP - the ViewModel owns the
+    // True when ACTION_STOP stops this service instance. The ViewModel owns the
     // final-epoch flush in that path, so onDestroy must not race it by flushing too.
     private var stopViaActionStop = false
 
@@ -132,9 +132,9 @@ class SleepTrackingService : Service() {
 
         // REL-02: the last epoch held back by the 3-epoch smoothing filter. The ViewModel's
         // stopTracking() and its incomplete-session recovery (finalizeIncompleteSession) read it
-        // and write it themselves (see the stage-smoothing note above) so the service never has
-        // to block the main thread with a runBlocking flush. Cleared by the ViewModel after
-        // writing, or by the service after its own async flush.
+        // and write it themselves (see the stage-smoothing note above) so the service never blocks
+        // the main thread with a runBlocking flush. The ViewModel clears it after
+        // writing, or the service clears it after its own async flush.
         private val _finalEpoch = MutableStateFlow<SleepEpoch?>(null)
         val finalEpoch: StateFlow<SleepEpoch?> = _finalEpoch.asStateFlow()
 
@@ -159,7 +159,7 @@ class SleepTrackingService : Service() {
         val sonarCalibrationState: StateFlow<SonarCollector.SonarCalibrationState> =
             _sonarCalibrationState.asStateFlow()
 
-        /** True if the microphone failed to initialize this session - audio events/BRPM/snoring nudge won't fire. */
+        /** True if the microphone failed to initialize this session. Audio events/BRPM/snoring nudge will not fire. */
         private val _audioRecordingFailed = MutableStateFlow(false)
         val audioRecordingFailed: StateFlow<Boolean> = _audioRecordingFailed.asStateFlow()
 
@@ -209,7 +209,7 @@ class SleepTrackingService : Service() {
                     } catch (e: Exception) {
                         // A failed foreground promotion or synchronous session-start error must
                         // never take the whole app down with it - stop cleanly so the system
-                        // doesn't kill the process for a service that started but never went
+                        // does not kill the process for a service that started but never went
                         // foreground. The un-finished session is recovered later by REL-02's
                         // incomplete-session finalization. Coroutine-level failures launched by
                         // startTracking() are absorbed by serviceScope's CoroutineExceptionHandler.
@@ -220,9 +220,9 @@ class SleepTrackingService : Service() {
                 }
             }
             ACTION_STOP -> {
-                // The ViewModel's stopTracking() writes the held-back final epoch itself, so the
-                // service must not flush here - doing so with runBlocking on the main thread used
-                // to wedge Room's executors while the ViewModel ran concurrent queries. The flag
+                // The ViewModel stopTracking() writes the held-back final epoch itself, so the
+                // service must not flush here. Doing so with runBlocking on the main thread used
+                // to wedge Room executors while the ViewModel ran concurrent queries. The flag
                 // tells onDestroy not to flush either, keeping the VM path fully deterministic.
                 stopViaActionStop = true
                 stopTracking(flushFinalEpochHere = false)
