@@ -148,10 +148,10 @@ fun SettingsScreen(
             )
             Text(
                 text = if (settings.restModeSince != null) {
-                    "On — nights logged now won't move your streak or baselines. " +
-                        "Turn it off when you're back and counting resumes."
+                    "On. Nights logged now will not move your streak or baselines. " +
+                        "Turn it off when you are back and counting resumes."
                 } else {
-                    "Turn on while sick or injured so bad nights don't poison " +
+                    "Turn on while sick or injured so bad nights do not poison " +
                         "your streak, baselines, or correlations."
                 },
                 style = MaterialTheme.typography.bodySmall,
@@ -262,7 +262,7 @@ fun SettingsScreen(
         // Wake-Up Verification (WAKE-01/02)
         SettingSection(title = "Wake-Up Verification") {
             SettingToggle(
-                title = "Confirm You're Awake",
+                title = "Confirm You Are Awake",
                 checked = settings.wakeVerificationEnabled,
                 onCheckedChange = { viewModel.updateWakeVerificationEnabled(it) }
             )
@@ -472,7 +472,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             if (settings.trackingMode == TrackingMode.ACCELEROMETER) {
                 Text(
-                    text = "Accelerometer - phone on bed, low battery usage.",
+                    text = "Accelerometer - phone on the bed, low battery usage.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -485,7 +485,7 @@ fun SettingsScreen(
                 )
                 Text(
                     text = "Pets and partners moving may affect accuracy. "
-                        + "Test on physical device only.",
+                        + "Test on a physical device only.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -508,29 +508,21 @@ fun SettingsScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Tracking enters standby mode below this level",
+                text = "Tracking enters standby mode below this level.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
-            val batteryOptions = listOf(5, 10, 15, 20, 25, 30)
-            SingleChoiceSegmentedButtonRow(
+            // Same floating-value slider as the other thresholds, snapped to 5-point steps
+            // (5/10/15/20/25/30). The value shown on the thumb repeats the header above.
+            SliderWithValueLabel(
+                value = settings.batteryThreshold.toFloat(),
+                onValueChange = { viewModel.updateBatteryThreshold(it.roundToInt()) },
+                valueRange = 5f..30f,
+                steps = 4,
+                valueLabel = "${settings.batteryThreshold}%",
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                batteryOptions.forEachIndexed { index, value ->
-                    SegmentedButton(
-                        selected = settings.batteryThreshold == value,
-                        onClick = {
-                            haptics.tick()
-                            viewModel.updateBatteryThreshold(value)
-                        },
-                        shape = if (index == 0) SegmentedButtonDefaults.itemShape(index = 0, count = batteryOptions.size)
-                        else if (index == batteryOptions.size - 1) SegmentedButtonDefaults.itemShape(index = batteryOptions.size - 1, count = batteryOptions.size)
-                        else SegmentedButtonDefaults.itemShape(index = index, count = batteryOptions.size),
-                        label = { Text("$value") }
-                    )
-                }
-            }
+            )
         }
 
         
@@ -545,7 +537,7 @@ fun SettingsScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Flag a session as oversleep once it runs this far beyond your target sleep hours",
+                text = "Flag a session as oversleep once it runs this far beyond your target sleep hours.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -650,6 +642,7 @@ fun SettingsScreen(
                         selected = selected,
                         onClick = { viewModel.updateCaptchaTask(id) }
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(text = label, style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -665,8 +658,9 @@ fun SettingsScreen(
                     colors = ButtonDefaults.outlinedButtonColors()
                 ) {
                     Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (settings.qrCodeValue == null) "  Setup QR Code" else "  Update QR Code"
+                        text = if (settings.qrCodeValue == null) "Set up QR Code" else "Update QR Code"
                     )
                 }
                 if (settings.qrCodeValue != null) {
@@ -862,7 +856,7 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "All uploads AES-256-GCM encrypted via Android Keystore",
+                    text = "The app encrypts all uploads with AES-256-GCM via the Android Keystore.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -892,7 +886,7 @@ fun SettingsScreen(
                 val (statusText, statusColor) = when (settings.healthConnectStatus) {
                     HealthConnectStatus.AUTHORIZED -> "Connected" to MaterialTheme.colorScheme.primary
                     HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
-                    HealthConnectStatus.UNAVAILABLE -> "Health Connect isn't installed on this device" to MaterialTheme.colorScheme.error
+                    HealthConnectStatus.UNAVAILABLE -> "Health Connect is not installed on this device" to MaterialTheme.colorScheme.error
                 }
                 Text(
                     text = statusText,
@@ -919,10 +913,10 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = if (settings.healthConnectUnsyncedCount == 1)
-                            "1 session hasn't reached Health Connect yet - " +
+                            "1 session has not reached Health Connect yet - " +
                                 "either not synced, or another app already recorded overlapping sleep for that night."
                         else
-                            "${settings.healthConnectUnsyncedCount} sessions haven't reached Health Connect yet - " +
+                            "${settings.healthConnectUnsyncedCount} sessions have not reached Health Connect yet - " +
                                 "either not synced, or another app already recorded overlapping sleep for that night.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1263,6 +1257,7 @@ private fun SettingToggle(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 8.dp)
             // Only the Switch itself was clickable - the label row did nothing, so a tap aimed at
             // the (wide) title silently missed. Make the whole row a toggle with a Switch role so
             // TalkBack reads the switch state and both access paths toggle the same setting.
@@ -1283,6 +1278,7 @@ private fun SettingToggle(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
+        Spacer(modifier = Modifier.width(16.dp))
         // Visual-only switch - the Row's toggleable owns the interaction so row and switch share
         // one click target instead of fighting for the same tap.
         Switch(

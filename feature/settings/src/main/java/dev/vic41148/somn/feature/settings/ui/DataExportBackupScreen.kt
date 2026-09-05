@@ -96,7 +96,8 @@ fun DataExportBackupScreen(
                     colors = ButtonDefaults.outlinedButtonColors()
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null)
-                    Text(if (settings.backupUri != null) "  Change Directory" else "  Select Backup Directory")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (settings.backupUri != null) "Change Directory" else "Select Backup Directory")
                 }
                 settings.backupDirectoryError?.let { error ->
                     Text(
@@ -276,7 +277,8 @@ fun DataExportBackupScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null)
-                    Text("  Export All Data (CSV)")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Export All Data (CSV)")
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -287,7 +289,8 @@ fun DataExportBackupScreen(
                     colors = ButtonDefaults.outlinedButtonColors()
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null)
-                    Text("  Export All Data (JSON + CSV, .zip)")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Export All Data (JSON + CSV, .zip)")
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
