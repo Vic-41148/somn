@@ -61,9 +61,9 @@ fun CorrelationInsightsScreen(
     val tagImpacts by viewModel.tagImpacts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // This screen had no TopAppBar/back button and wasn't reachable from anywhere in the app —
-    // the route existed in the nav graph but nothing ever called navigate() to it, so this
-    // finished feature (habit-to-sleep correlation insights) was entirely dead to users.
+    // This screen had no TopAppBar/back button and was not reachable from anywhere in the app.
+    // The route existed in the nav graph but nothing ever called navigate() to it. As a result
+    // this finished feature (habit-to-sleep correlation insights) was entirely dead to users.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -129,7 +129,7 @@ fun CorrelationInsightsScreen(
         if (!safeReport.hasAnyData) {
             EmptyCorrelationsState()
         } else {
-            // R4: material moves first — flagged without being asked.
+            // R4: material moves first. The code flags it without being asked.
             shiftFlags.forEach { flag ->
                 ShiftFlagCard(flag = flag)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -249,7 +249,7 @@ private fun CorrelationCard(result: CorrelationResult) {
 /**
  * Diverging scale, direction-aware at every strength: positive correlations read as
  * "helpful" (primary), negative as "undesirable" (error), with an alpha ramp so MILD
- * reads clearly under MODERATE and STRONG. Matches the score-ring colour language.
+ * reads clearly under MODERATE and STRONG. It matches the score-ring colour language.
  */
 @Composable
 private fun barColorFor(strength: CorrelationStrength, isPositive: Boolean): Color = when (strength) {
@@ -307,7 +307,7 @@ private fun StrengthBadge(strength: CorrelationStrength, isPositive: Boolean) {
     }
 }
 
-/** R4 shift flag: a material move, surfaced without being asked. */
+/** R4 shift flag: a material move. The code surfaces it without being asked. */
 @Composable
 private fun ShiftFlagCard(flag: ShiftFlag) {
     Card(

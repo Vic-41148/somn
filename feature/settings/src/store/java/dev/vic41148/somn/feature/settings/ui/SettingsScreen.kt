@@ -765,7 +765,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Port + Path row. The port field keeps a local string state so clearing it to type a new
-                // value doesn't snap it back to the default via the repository flow's emission.
+                // value does not snap it back to the default via the repository flow's emission.
                 var nasPortInput by rememberSaveable { mutableStateOf(settings.nasPort.toString()) }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -909,9 +909,9 @@ fun SettingsScreen(
 
                 // HEALTH-04: writeSleepSession() silently skips a session whenever another source
                 // already wrote overlapping sleep data (dedup), and that skip is permanent - the
-                // session's healthConnectRecordId stays null forever, so it'd otherwise never be
+                // session's healthConnectRecordId stays null forever, so it would otherwise never be
                 // surfaced anywhere. This count also includes sessions simply not synced yet, so
-                // it's worded as "haven't reached" rather than claiming they were all dedup-skipped.
+                // it is worded as "haven't reached" rather than claiming they were all dedup-skipped.
                 if (settings.healthConnectStatus == HealthConnectStatus.AUTHORIZED && settings.healthConnectUnsyncedCount > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(

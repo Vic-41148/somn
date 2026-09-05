@@ -127,7 +127,7 @@ object ReportPdfRenderer {
         )
     }
 
-    /** Draws [text] wrapped to [maxWidth]; returns the y for the next element. */
+    /** Draws [text] wrapped to [maxWidth]. It returns the y for the next element. */
     private fun drawWrapped(
         page: PdfDocument.Page,
         text: String,

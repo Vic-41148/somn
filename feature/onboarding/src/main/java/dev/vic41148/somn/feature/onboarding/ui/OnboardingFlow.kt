@@ -110,7 +110,7 @@ fun OnboardingFlow(
                     targetHours = state.targetSleepHours,
                     // Delegate to the canonical property instead of re-deriving the age brackets
                     // inline. This used to duplicate only the 13-18/19-64/else subset, collapsing
-                    // every age under 13 into the 65+ "7.5h" bucket — a 6-year-old was told
+                    // every age under 13 into the 65+ "7.5h" bucket — the screen told a 6-year-old
                     // "we recommend 7.5 hours" while setDateOfBirth had actually set the target
                     // to 10h. Same drift the ViewModel's setDateOfBirth comment documents as fixed.
                     recommendedHours = state.dateOfBirth?.let {

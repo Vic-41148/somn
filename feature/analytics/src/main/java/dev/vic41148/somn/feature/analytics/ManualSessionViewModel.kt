@@ -17,8 +17,8 @@ import javax.inject.Inject
  * [saved] event so the screen can pop itself.
  *
  * Validation lives on the screen (the Save button stays disabled until the times are
- * valid), so [save] is only ever called with valid times; the use case's null return is
- * still checked defensively - never silently dropping an entry the user confirmed.
+ * valid), so the screen only ever calls [save] with valid times. The code still checks the
+ * use case's null return defensively - it never silently drops an entry the user confirmed.
  */
 @HiltViewModel
 class ManualSessionViewModel @Inject constructor(

@@ -71,7 +71,7 @@ fun DataExportBackupScreen(
                         // A document provider may refuse to persist the grant (some cloud providers
                         // only offer transient access). Failing here must not crash the screen or
                         // silently swallow the choice - surface an error so the user knows the
-                        // picked directory won't survive a restart.
+                        // picked directory will not survive a restart.
                         try {
                             context.contentResolver.takePersistableUriPermission(uri, flags)
                         } catch (e: SecurityException) {

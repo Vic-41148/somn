@@ -53,9 +53,9 @@ fun CircadianInsightsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // Previously any exception in chronotype/social-jetlag/seasonal analysis was caught and
-    // silently discarded (`// Ignore for now`) — the screen would just show stale/empty state
-    // forever. Now surfaced as a Snackbar, matching the same pattern used elsewhere in the app.
+    // Previous code caught and silently discarded any exception in chronotype/social-jetlag/seasonal
+    // analysis (`// Ignore for now`). The screen then showed only stale/empty state forever.
+    // Now it surfaces the error as a Snackbar, which matches the same pattern used elsewhere in the app.
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(errorMessage) {
         errorMessage?.let { snackbarHostState.showSnackbar(it) }
@@ -167,7 +167,7 @@ fun SocialJetLagCard(lag: SocialJetLag) {
     }
 }
 
-/** Shown instead of nothing when there isn't weekday+weekend data yet to compute the lag. */
+/** Shown instead of nothing when there is no weekday+weekend data yet to compute the lag. */
 @Composable
 private fun SocialJetLagPendingCard() {
     SleepCard(title = "Social Jet Lag") {

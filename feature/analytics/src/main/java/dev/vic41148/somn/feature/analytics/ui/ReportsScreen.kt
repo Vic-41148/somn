@@ -43,7 +43,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * R3 Reports: in-app weekly/monthly/year-in-review screens plus on-device PDF
- * export. Anniversary = YEAR window; same engine, all-time data, nothing paywalled.
+ * export. Anniversary = YEAR window. Same engine, all-time data, nothing paywalled.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

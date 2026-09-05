@@ -51,8 +51,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Shared across all SessionRow instances (LazyColumn runs single-threaded on the main thread) —
-// these used to be constructed fresh on every row recomposition, allocating a locale-symbol
+// Shared across all SessionRow instances (LazyColumn runs single-threaded on the main thread).
+// The previous code constructed these fresh on every row recomposition, which allocated a locale-symbol
 // table lookup per row per scroll frame.
 private val historyDateFormat = SimpleDateFormat("EEE, MMM d", Locale.getDefault())
 private val historyTimeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
@@ -92,8 +92,8 @@ fun HistoryScreen(
         }
     }
 
-    // exportStatus was collected here but never rendered anywhere in this screen — export
-    // success/failure messages from exportSelectedSessions() reached nobody. Wired to a Snackbar
+    // Previous code collected exportStatus here but never rendered it anywhere in this screen — export
+    // success/failure messages from exportSelectedSessions() reached nobody. The fix wires it to a Snackbar
     // rather than inline Text, consistent with the same fix in SettingsScreen.
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     LaunchedEffect(exportStatus) {
@@ -144,8 +144,8 @@ fun HistoryScreen(
         }
     ) { padding ->
         // One LazyColumn for the whole screen. The header (range, summary, filter) used to
-        // sit in a fixed Column above a nested list, so the top half of the screen never
-        // scrolled and the list fought for the remaining space — everything scrolls as one
+        // sit in a fixed Column above a nested list. The top half of the screen never
+        // scrolled and the list fought for the remaining space. Everything scrolls as one
         // now, the way a report should read.
         var filterExpanded by remember { mutableStateOf(false) }
         LazyColumn(
@@ -164,7 +164,7 @@ fun HistoryScreen(
             }
 
             // Summary header: the actual "report" — averages, streak and best over the range.
-            // Each ring opens Trends, where the same numbers are broken down per metric.
+            // Each ring opens Trends, where Trends breaks the same numbers down per metric.
             summary?.let { report ->
                 item {
                     SummaryCard(

@@ -59,7 +59,7 @@ class CircadianViewModel @Inject constructor(
                     // SESS-04: chronotype/social-jetlag/seasonal analysis is bedtime-based —
                     // naps/commute/shift sessions would skew it.
                     sleepRepository.observeMainSleepSessions(),
-                    // Seasonal analysis can be pinned to a hemisphere; a change to the override
+                    // Seasonal analysis can be pinned to a hemisphere. A change to the override
                     // re-runs the analysis immediately, not on the next screen open.
                     preferencesRepository.hemisphereOverride
                 ) { profile, sessions, hemisphereOverride ->
@@ -74,8 +74,8 @@ class CircadianViewModel @Inject constructor(
                     _errorMessage.value = null
                 }
             } catch (e: Exception) {
-                // Previously silently ignored ("Ignore for now") — any exception in
-                // chronotype/social-jetlag/seasonal analysis left the screen showing stale or
+                // Previous code silently ignored ("Ignore for now") any exception in
+                // chronotype/social-jetlag/seasonal analysis. The screen then showed stale or
                 // empty state forever with zero indication anything went wrong.
                 _errorMessage.value = "Couldn't load circadian insights: ${e.message ?: e::class.simpleName}"
             } finally {

@@ -87,7 +87,7 @@ fun TrendsScreen(
 
             // Metric selector dropdown (DATA-03)
             var expanded by remember { mutableStateOf(false) }
-            // R5: pregnancy/postpartum trend context — phase bands don't apply here.
+            // R5: pregnancy/postpartum trend context — phase bands do not apply here.
             lifeStageNote?.let { note ->
                 SleepCard {
                     Text(

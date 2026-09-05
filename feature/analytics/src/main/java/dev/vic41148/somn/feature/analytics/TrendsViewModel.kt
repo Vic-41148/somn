@@ -21,7 +21,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
-/** DATA-03: which metric the trend line currently plots — one at a time, since the metrics don't share a scale. */
+/** DATA-03: which metric the trend line currently plots — one at a time, since the metrics do not share a scale. */
 enum class TrendMetric(val displayName: String) {
     SCORE("Score"),
     DURATION_HOURS("Duration"),
@@ -52,22 +52,22 @@ class TrendsViewModel @Inject constructor(
     val selectedMetric: StateFlow<TrendMetric> = _selectedMetric.asStateFlow()
 
     // SESS-04: trends are a bedtime-consistency signal — naps/commute/shift sessions would skew it,
-    // same reasoning CircadianViewModel already applies.
-    /** DATA-03: one metric at a time, since the metrics don't share a scale. */
+    // the same reasoning CircadianViewModel already applies.
+    /** DATA-03: one metric at a time, since the metrics do not share a scale. */
     val sessions: StateFlow<List<SleepSession>> = sleepRepository.observeMainSleepSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** Profile-derived deep-sleep target percent (age-adjusted); null until onboarding completes. */
+    /** Profile-derived deep-sleep target percent (age-adjusted). It is null until onboarding completes. */
     val deepSleepTargetPercent: StateFlow<Float?> = userProfileRepository.observeProfile()
         .map { it?.deepSleepTargetPercent }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** DATA-04: null when the user's profile doesn't have cycle tracking enabled/configured — screen hides the overlay entirely rather than showing an empty one. */    val cyclePhaseRuns: StateFlow<List<CyclePhaseRun>?> = combine(
+    /** DATA-04: null when the user's profile does not have cycle tracking enabled/configured — screen hides the overlay entirely rather than showing an empty one. */    val cyclePhaseRuns: StateFlow<List<CyclePhaseRun>?> = combine(
         userProfileRepository.observeProfile(),
         sessions
     ) { profile, sessions ->
-        // Captured into a local: lastPeriodStartDate lives in another module (core:domain), so
-        // Kotlin won't smart-cast it to non-null from the guard below.
+        // The code captures it into a local: lastPeriodStartDate lives in another module (core:domain), so
+        // Kotlin will not smart-cast it to non-null from the guard below.
         val lastPeriodStart = profile?.lastPeriodStartDate
         if (profile == null || !profile.showCycleFeatures || lastPeriodStart == null) return@combine null
         if (sessions.isEmpty()) return@combine null
@@ -94,7 +94,7 @@ class TrendsViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** Report range in days; null = all history. */
+    /** Report range in days. A null value means all history. */
     private val _rangeDays = MutableStateFlow<Int?>(90)
     val rangeDays: StateFlow<Int?> = _rangeDays.asStateFlow()
 
@@ -112,7 +112,7 @@ class TrendsViewModel @Inject constructor(
         filtered.sortedBy { it.startTimeMillis }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** Headline numbers for the selected metric + range; null when fewer than 2 sessions. */
+    /** Headline numbers for the selected metric + range. A null value means fewer than 2 sessions. */
     val trendStats: StateFlow<TrendStats?> = combine(rangedSessions, _selectedMetric) { list, metric ->
         if (list.size < 2) return@combine null
         val values = list.map { valueFor(it, metric) }

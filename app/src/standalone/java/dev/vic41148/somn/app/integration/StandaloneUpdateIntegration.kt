@@ -30,7 +30,7 @@ class StandaloneUpdateIntegration @Inject constructor(
 
     override fun onAppCreated(application: Application) {
         updateScheduler.ensureScheduled()
-        // Kick one immediate check so the Home banner isn't stale on the first frame of a new
+        // Run one immediate check so the Home banner is not stale on the first frame of a new
         // install; the periodic job covers the rest. Gated on the master switch like the worker.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             runCatching {

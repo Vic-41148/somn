@@ -35,7 +35,7 @@ class AnalyticsViewModel @Inject constructor(
     val restModeSince: StateFlow<Long?> = preferencesRepository.restModeSince
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** Report range in days; null = all history. Defaults to 30 so the header reads as "recent". */
+    /** Report range in days (null = all history). Defaults to 30 so the header reads as "recent". */
     private val _rangeDays = MutableStateFlow<Int?>(30)
     val rangeDays: StateFlow<Int?> = _rangeDays.asStateFlow()
 
@@ -52,14 +52,14 @@ class AnalyticsViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** Aggregate stats for the selected range; null = empty range, caller shows empty state. */
+    /** Aggregate stats for the selected range. A null value means an empty range, and the caller shows the empty state. */
     val summary: StateFlow<ReportSummary?> = combine(rangedSessions, restModeSince) { list, since ->
         summarizeSessions(list, since)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /**
-     * R2 vitals dashboard: latest snapshot plus 14-day history, loaded off the main
-     * thread. Null while loading; empty list = no wearable data, screen explains.
+     * R2 vitals dashboard: latest snapshot plus 14-day history, which the code loads off the main
+     * thread. Null while loading. An empty list means no wearable data, and the screen explains it.
      */
     val vitalFlags: StateFlow<List<dev.vic41148.somn.core.domain.usecase.VitalFlag>?> =
         sessions.mapLatest { list ->
@@ -135,7 +135,7 @@ class AnalyticsViewModel @Inject constructor(
                         event.clipPath?.let { path ->
                             val file = java.io.File(path)
                             if (file.exists()) {
-                                // Create file in SAF
+                                // Create the file in SAF
                                 val newFile = rootDoc?.createFile("audio/wav", "somn_audio_${sessionId}_${event.id}.wav")
                                 newFile?.uri?.let { destUri ->
                                     context.contentResolver.openOutputStream(destUri)?.use { out ->
@@ -169,7 +169,7 @@ class AnalyticsViewModel @Inject constructor(
 
     fun observeAudioEvents(sessionId: Long) = sleepRepository.observeAudioEvents(sessionId)
 
-    /** HEALTH-01: one-shot fetch — external vitals are written once per sync, no live-updating Flow needed. */
+    /** HEALTH-01: one-shot fetch. An external sync writes external vitals once per sync, so the screen needs no live-updating Flow. */
     suspend fun getExternalVitals(sessionId: Long) = sleepRepository.getExternalVitals(sessionId)
 
     fun deleteSession(session: SleepSession) {

@@ -53,21 +53,21 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
-     * A freshly generated recovery key, held only until the user dismisses it. It is never read back
+     * The ViewModel holds a freshly generated recovery key only until the user dismisses it. It is never read back
      * out of storage for display — this is the one and only time they can write it down.
      */
     private val _newRecoveryKey = MutableStateFlow<String?>(null)
     val newRecoveryKey: StateFlow<String?> = _newRecoveryKey.asStateFlow()
 
-    /** Set once a restore has replaced the database and the process needs restarting. */
+    /** Set once a restore replaced the database and the process needs restarting. */
     private val _restartRequired = MutableStateFlow(false)
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
 
     init {
-        // Target Sleep Hours used to be purely local ViewModel state: the slider updated
+        // Target Sleep Hours used to be purely local ViewModel state. The slider updated
         // _settings.value but never touched the stored UserProfile, so it always displayed the
-        // hardcoded 8.0f default regardless of the user's actual saved target, and any change
-        // the user made was silently discarded — score calculation, oversleep detection, and
+        // hardcoded 8.0f default regardless of the user's actual saved target. The old code
+        // silently discarded any change the user made — score calculation, oversleep detection, and
         // sleep debt targets all read profile.targetSleepHours directly and never saw the edit.
         collectInto(userProfileRepository.observeProfile()) { state, profile ->
             state.copy(targetSleepHours = profile?.targetSleepHours ?: 8.0f)
@@ -156,8 +156,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Subscribes a DataStore/Room-backed flow and folds each emission into [SettingsState],
-     * logging and swallowing any stream failure (corrupted DataStore file, unexpected Room error)
+     * Subscribes a DataStore/Room-backed flow and folds each emission into [SettingsState].
+     * It logs and swallows any stream failure (corrupted DataStore file, unexpected Room error)
      * so it can never crash the app the moment Settings opens. Mirrors the exception-proofing of
      * [refreshHealthConnectStatus]: a dead flow leaves the last known value in place rather than
      * killing the process. Every init-block subscription funnels through this.
@@ -190,10 +190,10 @@ class SettingsViewModel @Inject constructor(
         val showReadinessCard: Boolean = true,
         /** R2: Rest Mode start timestamp, null when off. */
         val restModeSince: Long? = null,
-        /** Which hemisphere seasonal analysis assumes; AUTO keeps the timezone heuristic. */
+        /** Which hemisphere seasonal analysis assumes. AUTO keeps the timezone heuristic. */
         val hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO,
         val snoreNudgeEnabled: Boolean = true,
-        /** Days sleep-talk recordings are kept; 0 means keep forever. */
+        /** Days sleep-talk recordings are kept. 0 means keep forever. */
         val clipRetentionDays: Int =
             dev.vic41148.somn.core.data.repository.SomnPreferencesRepository.DEFAULT_CLIP_RETENTION_DAYS,
         val darkMode: String = "System",
@@ -201,7 +201,7 @@ class SettingsViewModel @Inject constructor(
         val selectedCaptchaTaskId: String = "math",
         val qrCodeValue: String? = null,
         val backupUri: String? = null,
-        /** Transient error shown when the user picks a backup directory that only grants temporary access. */
+        /** The screen shows a transient error when the user picks a backup directory that only grants temporary access. */
         val backupDirectoryError: String? = null,
         /**
          * Whether a recovery passphrase exists. Without one, backups can only be written in the
@@ -269,8 +269,8 @@ class SettingsViewModel @Inject constructor(
     val yamnetModelState: StateFlow<YamnetModelState> = _yamnetModelState.asStateFlow()
 
     /**
-     * Consent-gated YAMNet toggle: enabling when the model is already on disk is immediate;
-     * otherwise it raises the download-consent dialog. Disabling always just flips the flag.
+     * Consent-gated YAMNet toggle: enabling when the model is already on disk is immediate.
+     * Otherwise it raises the download-consent dialog. Disabling always just flips the flag.
      */
     fun onYamnetToggle(enabled: Boolean) {
         if (!enabled) {
@@ -492,7 +492,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Restores the database from [uri]. [passphrase] is required for encrypted backups; leave null
+     * Restores the database from [uri]. [passphrase] is required for encrypted backups. Leave null
      * for a plaintext one. On success the caller must restart the app — Room still holds the old file.
      */
     fun restoreDatabase(uri: android.net.Uri, passphrase: String?) {

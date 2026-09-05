@@ -19,7 +19,7 @@ import javax.inject.Inject
  * State behind the Home-screen update banner. Every safety decision (backup gate, mandatory backup,
  * download + checksum verification, system installer hand-off) lives in [UpdateFlow] - this VM only
  * carries the banner's ephemeral visibility and progress. "Not now" just hides the card for this
- * session; the permanent "don't nag again" lives in the Settings Updates section.
+ * session; the permanent "do not nag again" lives in the Settings Updates section.
  */
 @HiltViewModel
 class UpdateBannerViewModel @Inject constructor(

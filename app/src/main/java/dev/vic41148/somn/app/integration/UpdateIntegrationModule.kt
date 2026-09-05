@@ -8,7 +8,7 @@ import dagger.multibindings.IntoSet
 
 /**
  * Base contribution into the [UpdateIntegration] set. Every channel (including store) compiles
- * this no-op so the shared UI compiles against a non-empty set; the standalone channel's own
+ * this no-op so the shared UI compiles against a non-empty set. The standalone channel's own
  * module adds the real implementation alongside it.
  */
 @Module

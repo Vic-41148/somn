@@ -143,7 +143,7 @@ fun SleepNavGraph(
     // FGS notification tap-through (SleepTrackingService.EXTRA_OPEN_TRACKING): land straight on
     // the tracking screen so the Wake Up button is always one tap away. Keyed on the activity
     // intent so both cold starts (original intent) and warm taps (MainActivity.onNewIntent ->
-    // setIntent) fire it; launchSingleTop keeps an already-open tracking screen from duplicating.
+    // setIntent) fire it. launchSingleTop keeps an already-open tracking screen from duplicating.
     val activity = LocalContext.current as? ComponentActivity
     LaunchedEffect(activity?.intent) {
         if (activity?.intent?.getBooleanExtra(SleepTrackingService.EXTRA_OPEN_TRACKING, false) == true) {
@@ -191,7 +191,7 @@ fun SleepNavGraph(
             modifier = Modifier
                 .padding(innerPadding)
                 .imePadding(),
-            // Tab switches crossfade (siblings under one bar); detail pushes slide with the
+            // Tab switches crossfade (siblings under one bar). Detail pushes slide with the
             // direction of travel (right-to-left in, left-to-right on pop) so the user can
             // tell at a glance whether back returns to a tab or pops a stack.
             enterTransition = {

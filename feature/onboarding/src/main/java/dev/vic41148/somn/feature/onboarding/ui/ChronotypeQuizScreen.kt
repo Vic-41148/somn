@@ -29,7 +29,7 @@ import dev.vic41148.somn.core.domain.model.Chronotype
 
 /**
  * Reduced Morningness-Eveningness Questionnaire (rMEQ).
- * 5 questions that produce a score mapping to Chronotype.
+ * 5 questions that produce a score that maps to Chronotype.
  *
  * Research doc §2.11: Chronotype is neurologically determined,
  * encoded in circadian genes (PNAS, WashU, 2025).
@@ -171,7 +171,7 @@ fun ChronotypeQuizScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Show result if all answered
+        // Show the result if all answered.
         if (chronotype != Chronotype.UNKNOWN) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedCard(

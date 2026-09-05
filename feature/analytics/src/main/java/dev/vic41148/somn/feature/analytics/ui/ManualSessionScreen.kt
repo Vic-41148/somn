@@ -57,8 +57,8 @@ fun ManualSessionScreen(
     val context = LocalContext.current
 
     // Default to the most common use case - adding last night's sleep the following morning:
-    // woke today (or yesterday, if it's before 7am) at 07:00, went to bed the night before at
-    // 23:00. Both are just starting points; the pickers adjust freely.
+    // woke today (or yesterday, if it is before 7am) at 07:00, went to bed the night before at
+    // 23:00. Both are just starting points. The pickers adjust freely.
     val now = LocalDateTime.now()
     var defaultWake = LocalDateTime.of(now.toLocalDate(), LocalTime.of(7, 0))
     if (defaultWake.isAfter(now)) defaultWake = defaultWake.minusDays(1)
@@ -74,7 +74,7 @@ fun ManualSessionScreen(
     }
 
     val durationMinutes = ((wakeMillis - bedMillis) / 60_000).toInt()
-    // A manual entry is a past night: wake must not be in the future, and a >24h span is a
+    // A manual entry is a past night. Wake must not be in the future. A >24h span is a
     // typo (or a misunderstanding of what counts as one night), not a valid session.
     val isValid = durationMinutes >= 15 && durationMinutes <= 1440 &&
         wakeMillis <= System.currentTimeMillis()
@@ -192,7 +192,7 @@ fun ManualSessionScreen(
     }
 }
 
-/** A full-width button showing the current value; tapping opens the date picker then the time picker. */
+/** A full-width button showing the current value. Tapping it opens the date picker then the time picker. */
 @Composable
 private fun DateTimeField(
     valueMillis: Long,
@@ -206,8 +206,8 @@ private fun DateTimeField(
             DatePickerDialog(
                 context,
                 { _, year, month, day ->
-                    // Date confirmed - chain straight into the time picker so the whole value is
-                    // entered in two taps instead of a picker hunt.
+                    // After the user confirms the date, chain straight into the time picker.
+                    // The user then enters the whole value in two taps instead of a picker hunt.
                     TimePickerDialog(
                         context,
                         { _, hour, minute ->

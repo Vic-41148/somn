@@ -74,8 +74,8 @@ class OnboardingViewModel @Inject constructor(
         _state.update { it.copy(dateOfBirth = date) }
         // Auto-set recommended sleep target based on age. This used to duplicate a subset of
         // UserProfile.recommendedSleepHours's age brackets inline (only 13-18/19-64/else),
-        // collapsing every age under 13 into the 65+ "7.5h" bucket — a young child would be
-        // recommended *less* sleep than an adult instead of the 10-14h they actually need.
+        // collapsing every age under 13 into the 65+ "7.5h" bucket — the old code would
+        // recommend *less* sleep to a young child than to an adult instead of the 10-14h they actually need.
         // Deferring to the canonical property keeps this in sync with the one source of truth.
         val recommended = UserProfile(dateOfBirth = date).recommendedSleepHours
         _state.update { it.copy(targetSleepHours = recommended) }
@@ -89,9 +89,9 @@ class OnboardingViewModel @Inject constructor(
         _state.update { state ->
             state.copy(
                 lifeStage = stage,
-                // Clear the conditional inputs only on opt-out to DEFAULT: DEFAULT keeps
-                // showCycleFeatures true for FEMALE (by design), so a stale lastPeriodStart
-                // from an earlier CYCLING tap would keep driving phase-aware scoring after
+                // Clear the conditional inputs only on opt-out to DEFAULT. DEFAULT keeps
+                // showCycleFeatures true for FEMALE (by design). A stale lastPeriodStart
+                // from an earlier CYCLING tap would still drive phase-aware scoring after
                 // the user opted out via the Default card. Clearing on any other switch
                 // (e.g. CYCLING -> PREGNANT) would silently discard entered data that the
                 // back-navigation round trip could otherwise preserve.
@@ -145,7 +145,7 @@ class OnboardingViewModel @Inject constructor(
             val currentIndex = steps.indexOf(state.currentStep)
             var nextIndex = currentIndex + 1
 
-            // Skip life stage step if not female
+            // Skip the life stage step if not female
             if (steps.getOrNull(nextIndex) == OnboardingStep.LIFE_STAGE && !state.showLifeStageStep) {
                 nextIndex++
             }
@@ -161,7 +161,7 @@ class OnboardingViewModel @Inject constructor(
             val currentIndex = steps.indexOf(state.currentStep)
             var prevIndex = currentIndex - 1
 
-            // Skip life stage step if not female
+            // Skip the life stage step if not female
             if (steps.getOrNull(prevIndex) == OnboardingStep.LIFE_STAGE && !state.showLifeStageStep) {
                 prevIndex--
             }

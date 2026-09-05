@@ -39,10 +39,10 @@ fun BirthDateScreen(
 ) {
     val context = LocalContext.current
 
-    // Body scrolls, footer stays pinned. This was one unscrollable Column whose footer was held
-    // down by a weight(1f) Spacer — fine until the content above outgrew the viewport (a large
-    // system font scale, or the optional sections below expanding), at which point the spacer
-    // collapsed to zero and the buttons were pushed off the bottom with no way to scroll to them.
+    // Body scrolls, footer stays pinned. This was one unscrollable Column. A weight(1f) Spacer
+    // held the footer down. This worked until the content above outgrew the viewport (a large
+    // system font scale, or the optional sections below expanding). Then the spacer
+    // collapsed to zero and pushed the buttons off the bottom with no way to scroll to them.
     Column(
         modifier = Modifier
             .fillMaxSize()

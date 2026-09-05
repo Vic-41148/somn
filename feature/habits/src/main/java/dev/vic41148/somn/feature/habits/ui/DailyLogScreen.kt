@@ -164,7 +164,7 @@ fun DailyLogScreen(
 
         // ---- Correlation insights ----
         // CorrelationInsightsScreen was fully built (its own ViewModel data, UI, and nav-graph
-        // route already existed) but nothing anywhere ever navigated to it — this was the only
+        // route already existed) but nothing anywhere ever navigated to it. This was the only
         // missing piece keeping the whole feature unreachable.
         Spacer(modifier = Modifier.height(12.dp))
         Button(
@@ -206,9 +206,9 @@ private fun HabitSection(
     var expanded by remember { mutableStateOf(false) }
 
     // One animator owns the height change. This Card used to also carry animateContentSize(),
-    // which ran its own tween over the same expand/collapse that AnimatedVisibility below was
-    // already animating on a different spec — the two chased each other, so the card visibly
-    // rubber-banded and every section under it kept sliding long after the content had settled.
+    // which ran its own tween over the same expand/collapse that AnimatedVisibility below already
+    // animated on a different spec. The two chased each other, so the card rubber-banded and
+    // every section under it kept sliding long after the content had settled.
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -220,7 +220,7 @@ private fun HabitSection(
         Column {
             Row(
                 // Padding goes inside the click target, not around it. It used to sit on the
-                // parent Column, which left a 16dp dead border where a tap on the card's own
+                // parent Column, which left a 16dp dead border. A tap on the card's own
                 // edge — visually part of the header — hit nothing at all.
                 modifier = Modifier
                     .fillMaxWidth()
@@ -263,7 +263,7 @@ private fun HabitSection(
 
             AnimatedVisibility(
                 visible = expanded,
-                // Material's motion split: size is spatial, so it springs; opacity is an effect,
+                // Material's motion split: size is spatial, so it springs. Opacity is an effect,
                 // so it uses a short linear-ish fade. The spring is deliberately non-bouncy —
                 // these sections are stacked, and overshoot on one shoves every section below it
                 // past its resting position and back, which is what made taps land on the wrong
@@ -505,8 +505,8 @@ private fun TimeSliders(
 
 @Composable
 private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
-    // Card carries the section tint and a leading type icon now. It used to be a bare
-    // `surface` card with text only — on dark theme surface is near-identical to the
+    // The Card carries the section tint and a leading type icon now. It used to be a bare
+    // `surface` card with text only. On dark theme surface is near-identical to the
     // background, so entries read as loose floating text with a stray X beside them.
     val (icon, tint) = when (log.entry) {
         is HabitEntry.Caffeine -> Icons.Default.Coffee to MaterialTheme.colorScheme.tertiary
@@ -566,8 +566,8 @@ private fun HabitEntry.summary(): String = when (this) {
     is HabitEntry.Alcohol -> "${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Exercise -> "${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Stress -> when (level) {
-        // Every other entry names its own type ("Coffee", "Run", …) — a bare "Calm"
-        // read as a stray label next to the delete button. Stress has no time (it is
+        // Every other entry names its own type ("Coffee", "Run", …). A bare "Calm"
+        // reads as a stray label next to the delete button. Stress has no time (it is
         // an end-of-day rating), so the type name carries the context instead.
         1 -> "Stress: Very calm"
         2 -> "Stress: Calm"

@@ -58,15 +58,15 @@ fun PermissionsScreen(
             }
             // Motion sensing uses the raw TYPE_ACCELEROMETER sensor (AccelerometerCollector),
             // which needs no runtime permission — Activity Recognition and its permission are
-            // unused. Requesting it here was also dead on arrival: it was never declared in
+            // unused. Requesting it here was also dead on arrival: the team never declared it in
             // AndroidManifest.xml, so the dialog could never actually grant it.
             //
-            // Exact alarms are scheduled via AlarmManager.setAlarmClock() (AlarmReceiver),
-            // which is exempt from exact-alarm restrictions on every Android version without
-            // needing SCHEDULE_EXACT_ALARM at all. That permission is also a special-access
+            // The app schedules exact alarms via AlarmManager.setAlarmClock() (AlarmReceiver).
+            // The call is exempt from exact-alarm restrictions on every Android version and needs
+            // no SCHEDULE_EXACT_ALARM at all. That permission is also a special-access
             // grant on API 31+ that a RequestMultiplePermissions dialog cannot obtain in the
-            // first place — only a dedicated Settings deep-link can, which is why this always
-            // showed as "not granted" regardless of what was tapped.
+            // first place — only a dedicated Settings deep-link can. As a result this always
+            // showed as "not granted" regardless of what the user tapped.
             add(
                 PermissionItem(
                     Manifest.permission.RECORD_AUDIO,
@@ -75,10 +75,10 @@ fun PermissionsScreen(
                     required = false
                 )
             )
-            // BODY_SENSORS became a runtime permission on Android 11 (API 30). Somn doesn't read
+            // BODY_SENSORS became a runtime permission on Android 11 (API 30). Somn does not read
             // any sensor behind it directly (accelerometer needs no permission), but Android 14+
-            // refuses to start a foreground service with the "health" type unless this permission
-            // is held — and sleep tracking declares that type. Optional: without it the service
+            // refuses to start a foreground service with the "health" type unless the app holds
+            // this permission. Sleep tracking declares that type. Optional: without it the service
             // still starts, just under the permission-free "specialUse" type.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 add(
@@ -103,10 +103,10 @@ fun PermissionsScreen(
         }
     }
 
-    // Body scrolls, footer stays pinned. This used to be one unscrollable Column whose Continue
-    // button was held down by a weight(1f) Spacer — fine until the content above outgrew the
-    // viewport (a large system font scale, or enough permission rows on a newer SDK), at which
-    // point the spacer collapsed to zero and the button was pushed off the bottom of the screen
+    // Body scrolls, footer stays pinned. This was one unscrollable Column. A weight(1f) Spacer
+    // held the Continue button down. This worked until the content above outgrew the
+    // viewport (a large system font scale, or enough permission rows on a newer SDK). Then
+    // the spacer collapsed to zero and pushed the button off the bottom of the screen
     // with no way to scroll to it.
     Column(
         modifier = Modifier
@@ -153,8 +153,8 @@ fun PermissionsScreen(
             ) {
                 Icon(
                     imageVector = if (isGranted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                    // Unlike the other icons flagged in the audit, this one isn't decorative —
-                    // it's the only indicator of grant status. item.title/description never say
+                    // Unlike the other icons flagged in the audit, this one is not decorative —
+                    // it is the only indicator of grant status. item.title/description never say
                     // whether the permission was actually granted, so a screen reader user had no
                     // way to tell which permissions still needed granting.
                     contentDescription = if (isGranted) "${item.title} granted" else "${item.title} not granted",

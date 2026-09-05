@@ -62,9 +62,9 @@ fun SleepDebtDetailScreen(
     val plan by viewModel.recoveryPlan.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // This screen (reached by tapping the Sleep Debt card on Home) had no TopAppBar/back button
-    // at all and its route hides the bottom nav bar — a dead end with no visible way back short
-    // of the system back gesture.
+    // The user reaches this screen by tapping the Sleep Debt card on Home. It had no TopAppBar/back
+    // button at all and its route hides the bottom nav bar. It is a dead end with no visible way
+    // back short of the system back gesture.
     Scaffold(
         topBar = {
             TopAppBar(

@@ -239,8 +239,8 @@ fun SessionDetailScreen(
             externalVitals?.let { vitals ->
                 if (vitals.hasAnyData) {
                     // sourceApp is stored as a package name (e.g. "com.fitbit.FitbitMobile"), not
-                    // a display name — resolve it here at the UI layer rather than in the data
-                    // layer, so the stable package name stays what's actually persisted.
+                    // a display name. Resolve it here at the UI layer rather than in the data
+                    // layer, so the stable package name stays what is actually persisted.
                     val sourceLabel = remember(vitals.sourceApp) {
                         vitals.sourceApp?.let { resolveAppLabel(context, it) }
                     }
@@ -329,9 +329,8 @@ private fun SessionTagsCard(sessionId: Long, viewModel: AnalyticsViewModel) {
 
 /**
  * Resolves a Health Connect data-origin package name (e.g. "com.fitbit.FitbitMobile") to the
- * Resolves a Health Connect data-origin package name (e.g. "com.fitbit.FitbitMobile") to the
- * app's display label (e.g. "Fitbit"), falling back to the raw package name if it isn't
- * installed/resolvable — never crashes on an unresolvable package.
+ * app's display label (e.g. "Fitbit"). It falls back to the raw package name if it is not
+ * installed/resolvable — it never crashes on an unresolvable package.
  *
  * Uses the plain `getApplicationInfo(String, Int)` overload rather than the API 33+
  * `ApplicationInfoFlags` variant — this module's minSdk is 26.
