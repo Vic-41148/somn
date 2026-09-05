@@ -142,13 +142,12 @@ fun ChronotypeQuizScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             question.options.forEach { option ->
                 val isSelected = answers[qIndex] == option.score
                 OutlinedCard(
                     onClick = { onAnswer(qIndex, option.score) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     border = BorderStroke(
                         width = if (isSelected) 2.dp else 1.dp,
                         color = if (isSelected) MaterialTheme.colorScheme.primary
@@ -163,9 +162,10 @@ fun ChronotypeQuizScreen(
                     Text(
                         text = option.text,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(12.dp)
+                        modifier = Modifier.padding(16.dp)
                     )
                 }
+            }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

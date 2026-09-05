@@ -90,7 +90,7 @@ fun AlarmEditScreen(
         }
 
         // The spinner fades out as the form fades in, so an edit screen opening from the
-        // alarm list doesn't hard-cut between two surfaces (MOTION-04 entrance).
+        // alarm list does not hard-cut between two surfaces (MOTION-04 entrance).
         Box(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(
                 visible = !isInitialized,

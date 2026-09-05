@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **UI standardization pass.** Settings toggles and radio rows have consistent gaps, icon buttons use real spacers instead of leading spaces, back navigation is an arrow everywhere, gutters and rhythm follow the 4/8/12/16/24 scale, and Battery Threshold uses the same slider as the other thresholds. History rings and the Trends chart replay their entrance animation on every range or metric switch.
 - **History header rings match Home.** Same 72dp size and short labels, so the two ring strips read as one component.
 - **Plain-language pass over all user-visible text and code comments.** Every string the user sees (onboarding, Home, alarm, analytics, habits, settings, wind-down, notifications) and every code comment now follows the same plain-language rules: active voice, no contractions, short common words. Copy only — no behavior or meaning changed.
 - **Automated QA guardrails.** The alarm dial's AM/PM-toggle rebuild policy is now covered by unit tests (was only verified by hand on a device), the toggle-then-drag hand check itself is automated in `scripts/verify_alarm_dial.py` (one command, screenshots + pixel assertion), and CI now fails a source-touching commit that does not also update CHANGELOG.md.

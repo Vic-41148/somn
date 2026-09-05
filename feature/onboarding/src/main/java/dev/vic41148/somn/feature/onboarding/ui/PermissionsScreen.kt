@@ -190,15 +190,13 @@ fun PermissionsScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Row(
+        Button(
+            onClick = onNext,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.End
+                .padding(bottom = 24.dp)
         ) {
-            Button(onClick = onNext) {
-                Text("Continue")
-            }
+            Text("Continue")
         }
     }
 }

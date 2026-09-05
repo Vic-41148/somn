@@ -40,7 +40,7 @@ object CaptchaTaskRegistry {
      * the two surfaces can never drift apart on which captcha applies.
      *
      * [nfcAvailable] is the device's NFC capability ([PackageManager.FEATURE_NFC]). An NFC
-     * captcha on a device that can't read tags can never be solved, so it falls back to the
+     * captcha on a device that cannot read tags can never be solved, so it falls back to the
      * global preference (and to math if that is itself the NFC task). Both fallbacks are
      * checked on the *final* task — the NFC fallback can land on a QR task, and a QR captcha
      * with no configured value must never lock the user out either.

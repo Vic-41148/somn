@@ -175,7 +175,7 @@ fun ManualSessionScreen(
                 enabled = isValid,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(56.dp)
             ) {
                 Text("Add Session")
             }

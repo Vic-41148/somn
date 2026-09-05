@@ -90,7 +90,7 @@ fun DailyLogScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
             text = "Today's Log",
@@ -156,7 +156,10 @@ fun DailyLogScreen(
                 icon = Icons.Default.Medication,
                 iconColor = MaterialTheme.colorScheme.primaryContainer
             ) {
-                TextButton(onClick = onNavigateToMedication) {
+                TextButton(
+                    onClick = onNavigateToMedication,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Open medication log →")
                 }
             }
@@ -186,7 +189,7 @@ fun DailyLogScreen(
             Spacer(modifier = Modifier.height(8.dp))
             todayLogs.forEach { log ->
                 LoggedEntryRow(log = log, onDelete = { viewModel.deleteLog(log) })
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
@@ -464,7 +467,7 @@ private fun StressLogForm(onLog: (HabitEntry.Stress) -> Unit) {
                             androidx.compose.ui.graphics.Color.Transparent
                     )
                     .clickable { stressLevel = index + 1 }
-                    .padding(8.dp)
+                    .padding(horizontal = 8.dp, vertical = 12.dp)
             )
         }
     }
@@ -525,7 +528,7 @@ private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

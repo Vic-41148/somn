@@ -41,7 +41,7 @@ class AlarmSchedulerImpl @Inject constructor(
                 
                 val currentDayOfWeek = checkDayInfo.get(Calendar.DAY_OF_WEEK)
                 
-                // If it's today but the time has already passed, we must look for the next occurrence
+                // If it is today but the time has already passed, we must look for the next occurrence
                 if (daysToAdd == 0 && nextTriggerTime.before(now)) {
                     daysToAdd++
                     continue

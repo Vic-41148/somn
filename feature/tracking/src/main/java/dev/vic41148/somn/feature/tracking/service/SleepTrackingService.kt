@@ -236,7 +236,7 @@ class SleepTrackingService : Service() {
     /**
      * Promotes the service to foreground using the correct [android.app.Service.startForeground]
      * overload for the running API level. The overload dispatch needs an explicit
-     * [Build.VERSION.SDK_INT] guard - lint's NewApi check can't prove the three-arg overload
+     * [Build.VERSION.SDK_INT] guard - lint's NewApi check cannot prove the three-arg overload
      * (API 29+) is safe from a delegated value, so the two-arg path is taken below Q with an
      * SDK check. The type passed to the three-arg overload is computed by [startForegroundTypeForApi],
      * the single testable seam (locked in by StartForegroundBranchSelectionTest).
@@ -301,7 +301,7 @@ class SleepTrackingService : Service() {
             if (mode != TrackingMode.SONAR) {
                 serviceScope.launch {
                     // Task 14 (AUDIO-01): rebuild the classifier per-session so a mid-session
-                    // preference change doesn't need a service restart to take effect. Read
+                    // preference change does not need a service restart to take effect. Read
                     // before starting collection so no buffer races the flag on session start.
                     yamnetClassifier?.close()
                     yamnetClassifier = null
@@ -451,7 +451,7 @@ class SleepTrackingService : Service() {
         pendingRawEpoch = rawEpoch
         _finalEpoch.value = rawEpoch
 
-        // Smart alarm uses the raw current stage - it's the freshest signal available (the
+        // Smart alarm uses the raw current stage - it is the freshest signal available (the
         // current epoch has no successor to smooth against yet, so this is what the
         // pre-smoothing code would have used anyway).
         nextAlarmTimeMillis?.let { alarmTime ->
@@ -639,7 +639,7 @@ class SleepTrackingService : Service() {
             openTrackingIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        // A foreground-service notification that can't stop the work it advertises strands the
+        // A foreground-service notification that cannot stop the work it advertises strands the
         // user until the timer runs out - expose the STOP action the service already handles.
         val stopIntent = android.content.Intent(this, SleepTrackingService::class.java).apply {
             action = ACTION_STOP
@@ -685,7 +685,7 @@ enum class TrackingState { IDLE, TRACKING, PAUSED }
  *
  * Android 14+ (targetSdk 34+) enforces the mask at startForeground() time: claiming "health"
  * requires the BODY_SENSORS runtime permission and "microphone" requires RECORD_AUDIO - if a
- * claimed type's permission isn't held, the system throws SecurityException. BODY_SENSORS is only
+ * claimed type's permission is not held, the system throws SecurityException. BODY_SENSORS is only
  * granted if the user opted in during onboarding, so the mask must never assume it. When neither
  * permission is held, it falls back to the permission-free "specialUse" type (declared in the
  * manifest), so the service can still start - audio stays off because [SleepTrackingService]
@@ -734,7 +734,7 @@ internal const val START_FOREGROUND_TWO_ARG = -1
  *
  * Android 14+ (targetSdk 34+) enforces the mask at startForeground() time: the two-arg overload
  * throws MissingForegroundServiceTypeException when the manifest declares multiple types, and the
- * three-arg overload throws SecurityException when a claimed type's runtime permission isn't held
+ * three-arg overload throws SecurityException when a claimed type's runtime permission is not held
  * ("health" requires BODY_SENSORS, "microphone" requires RECORD_AUDIO). BODY_SENSORS is only
  * granted if the user opted in during onboarding, so the service must never assume it - it must
  * only ever claim the types it can prove it holds, falling back to the permission-free

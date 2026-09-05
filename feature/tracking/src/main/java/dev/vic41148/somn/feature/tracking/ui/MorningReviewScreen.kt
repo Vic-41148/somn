@@ -70,7 +70,7 @@ fun MorningReviewScreen(
     // shared lastSession flow. The stop path fills lastSession asynchronously and can race this
     // screen's creation, so a relaunch mid-flow used to show a stale session from a previous
     // night. The detail data (score explanation, epochs, audio) loads once the session row
-    // arrives, so it can't race the stop path's commit either.
+    // arrives, so it cannot race the stop path's commit either.
     LaunchedEffect(sessionFlow?.id) {
         sessionFlow?.let { viewModel.loadSessionDetail(it.id) }
     }
@@ -283,7 +283,8 @@ fun MorningReviewScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-            Text("  Done", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Done", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

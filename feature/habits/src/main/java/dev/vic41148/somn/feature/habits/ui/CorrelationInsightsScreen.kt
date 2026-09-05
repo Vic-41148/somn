@@ -81,7 +81,7 @@ fun CorrelationInsightsScreen(
             .padding(padding)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -157,7 +157,7 @@ fun CorrelationInsightsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
     }
 }
@@ -296,7 +296,7 @@ private fun StrengthBadge(strength: CorrelationStrength, isPositive: Boolean) {
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(bgColor)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Text(
             text = strength.displayName,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.FilledTonalButton
@@ -96,7 +97,7 @@ fun TrackingScreen(
         } else if (isSonar) {
             Text(
                 text = "Sonar active — contactless sensing",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
                 textAlign = TextAlign.Center
             )
@@ -164,8 +165,9 @@ fun TrackingScreen(
                 contentDescription = "Stop tracking",
                 modifier = Modifier.size(24.dp)
             )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "  Wake Up",
+                text = "Wake Up",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )

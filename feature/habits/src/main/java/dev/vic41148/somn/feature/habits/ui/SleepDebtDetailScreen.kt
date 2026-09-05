@@ -82,7 +82,7 @@ fun SleepDebtDetailScreen(
             .padding(padding)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -239,7 +239,7 @@ private fun DebtSummaryCard(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .background(levelColor.copy(alpha = 0.2f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = level.displayName,
