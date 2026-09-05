@@ -24,7 +24,7 @@ import java.time.ZoneId
  * data-driven result. Fewer nights returns null for [ChronotypeAssessment.dataDriven].
  *
  * Research basis §2.11: Chronotype is neurologically determined (Washington University / PNAS 2025).
- * The questionnaire provides an immediate baseline; data-driven detection adds longitudinal validation.
+ * The questionnaire provides an immediate baseline. Data-driven detection adds longitudinal validation.
  */
 class ChronotypeAssessmentUseCase {
 
@@ -95,7 +95,7 @@ class ChronotypeAssessmentUseCase {
     // ---- Chronotype from midpoint ----
 
     /**
-     * Classify chronotype from natural sleep midpoint.
+     * Classify the chronotype from the natural sleep midpoint.
      * Thresholds derived from Munich ChronoType Questionnaire (MCTQ) population data.
      *
      * Note: sleep midpoint is typically in the middle of the night — hence times like

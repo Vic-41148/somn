@@ -2,12 +2,12 @@ package dev.vic41148.somn.core.domain.model
 
 /**
  * A distribution release published to the releases API (GitHub/Forgejo style), capped to the
- * fields the update flow actually needs. The full release object has dozens more; anything else is
- * stripped at parse time so a surprise API field change can't leak into prefs or UI state.
+ * fields the update flow actually needs. The full release object has dozens more. Anything else is
+ * stripped at parse time so a surprise API field change cannot leak into prefs or UI state.
  *
  * [checksumSha256] is the hex sha256 of [apkUrl]'s file - the mandatory integrity gate before any
  * install. Because release APIs carry no versionCode, [versionName] is what [VersionCompare]
- * orders releases by; [versionCode] is only populated when a release supplies one (ours does not).
+ * orders releases by. [versionCode] is only populated when a release supplies one (ours does not).
  */
 data class ReleaseInfo(
     val tag: String,
@@ -27,7 +27,7 @@ data class ReleaseInfo(
 
 /**
  * The release the update checker most recently found and saved for the UI. Persisted so the banner
- * can render without a network round-trip; cleared when the user skips, dismisses, or installs it.
+ * can render without a network round-trip. The system clears it when the user skips, dismisses, or installs it.
  */
 data class StagedRelease(
     val tag: String,
@@ -70,7 +70,7 @@ object VersionCompare {
 
     private fun split(raw: String): Split {
         val trimmed = raw.trim().removePrefix("v").removePrefix("V")
-        // Everything before the first '-' is the base; the tail is the prerelease/build bit.
+        // Everything before the first '-' is the base. The tail is the prerelease/build bit.
         val dash = trimmed.indexOf('-')
         if (dash == -1) return Split(splitDots(trimmed), emptyList())
         return Split(splitDots(trimmed.substring(0, dash)), splitDots(trimmed.substring(dash + 1)))

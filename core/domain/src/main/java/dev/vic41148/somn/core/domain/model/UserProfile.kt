@@ -33,7 +33,7 @@ data class UserProfile(
             Period.between(it, LocalDate.now()).years
         }
 
-    /** Get age-appropriate target sleep hours if user hasn't customised. */
+    /** Get the age-appropriate target sleep hours if the user has not customised them. */
     val recommendedSleepHours: Float
         get() = when (val currentAge = age) {
             null -> 8.0f
@@ -120,7 +120,7 @@ enum class Chronotype(val displayName: String, val meqRange: IntRange?) {
          * Horne & Östberg MEQ's 16-86 range this used to use. The old bands (59-86/42-58/...)
          * were structurally unreachable from a 5-item quiz sum, which silently pushed most
          * users toward evening-type. Rescaled onto the real rMEQ range (4-25), keeping the
-         * existing 5-way typology since it's load-bearing elsewhere (ADHD adjustment, circadian
+         * existing 5-way typology since it is load-bearing elsewhere (ADHD adjustment, circadian
          * UI). No published rMEQ study defines 5 bands specifically — the validated cutoffs
          * are the 3-band 4-11/12-17/18-25 split — so this is an even-width approximation over
          * that range, not a literature value.

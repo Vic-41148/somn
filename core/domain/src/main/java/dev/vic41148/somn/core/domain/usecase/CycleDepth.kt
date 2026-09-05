@@ -22,7 +22,7 @@ data class PhaseRefinement(
     val note: String
 )
 
-/** Post-ovulation temps run ~0.2–0.5°C hotter; this is the shift that moves a phase. */
+/** Post-ovulation temps run ~0.2–0.5°C hotter. This is the shift that moves a phase. */
 const val TEMP_SHIFT_THRESHOLD_C = 0.3f
 const val MIN_TEMP_NIGHTS = 6
 
@@ -77,7 +77,7 @@ fun refinePhase(
     )
 }
 
-/** Luteal-phase sleep coaching for the Outlook sentence; null outside luteal window. */
+/** Luteal-phase sleep coaching for the Outlook sentence. Null outside the luteal window. */
 fun lutealCoaching(phase: MenstrualCyclePhase?): String? = when (phase) {
     MenstrualCyclePhase.LUTEAL ->
         "Luteal phase: efficiency typically dips while temperature runs high — " +
@@ -129,7 +129,7 @@ enum class MenoBand(val displayName: String, val summary: String) {
     );
 
     companion object {
-        /** 0–30 scale; bands split the range in thirds. */
+        /** 0–30 scale. Bands split the range in thirds. */
         fun from(total: Int): MenoBand = when {
             total < 10 -> MINIMAL
             total <= 20 -> MODERATE
@@ -147,7 +147,7 @@ fun scoreMenopause(answers: List<Int>): MenoBand {
 
 // ---- Pregnancy / postpartum trend context ----
 
-/** Banner copy for Trends when the calendar overlay doesn't apply. Null otherwise. */
+/** Banner copy for Trends when the calendar overlay does not apply. Null otherwise. */
 fun lifeStageBanner(
     lifeStageName: String,
     pregnancyTrimester: Int?

@@ -21,9 +21,9 @@ class PostpartumFragmentationUseCase {
     /**
      * @param sessionsByRecency completed sessions ordered newest-first, already
      *   scoped by the caller to a reasonable lookback window (e.g. last 6 weeks)
-     * @param nowMillis reference point weeks are counted back from
+     * @param nowMillis the reference point from which weeks count back
      * @return number of consecutive fragmented weeks ending at [nowMillis], 0 if the
-     *   most recent week isn't fragmented or no sessions exist in it
+     *   most recent week is not fragmented or no sessions exist in it
      */
     operator fun invoke(sessionsByRecency: List<SleepSession>, nowMillis: Long): Int {
         var consecutiveWeeks = 0

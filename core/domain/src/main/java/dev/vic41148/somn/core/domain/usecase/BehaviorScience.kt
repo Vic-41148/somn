@@ -70,10 +70,10 @@ fun tagImpact(tagName: String, nights: List<TaggedNight>): TagImpact? {
     )
 }
 
-/** A material move the user didn't ask about — frequency or metric slide. */
+/** A material move the user did not ask about — frequency or metric slide. */
 data class ShiftFlag(val title: String, val detail: String)
 
-/** 30d-vs-prior-30d mean comparison; fires on a real slide, silent on noise or gains. */
+/** 30d-vs-prior-30d mean comparison. It fires on a real slide, silent on noise or gains. */
 fun efficiencySlide(
     recentEfficiencies: List<Float>,
     priorEfficiencies: List<Float>,

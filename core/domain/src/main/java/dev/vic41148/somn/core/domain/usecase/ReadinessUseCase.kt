@@ -56,7 +56,7 @@ data class ReadinessResult(
 /**
  * Last-night wearable deltas vs the user's own 14-day median. All null when Health
  * Connect vitals are unavailable — the engine degrades to sleep signals (see above).
- * Positive HRV delta is good (higher variability = better recovery); for RHR and
+ * Positive HRV delta is good (higher variability = better recovery). For RHR and
  * temperature, closeness to baseline is good in either direction.
  */
 data class VitalsDeviation(
@@ -161,7 +161,7 @@ fun assessReadiness(
             subs.add(((1f - (kotlin.math.abs(d) - 2f) / 6f).coerceIn(0f, 1f)) * 100)
         }
         vitals.hrvDeltaMs?.let { d ->
-            // Higher-than-baseline HRV is good; only shortfalls deduct.
+            // Higher-than-baseline HRV is good. Only shortfalls deduct.
             subs.add(((1f + d / 10f).coerceIn(0f, 1f)) * 100)
         }
         vitals.tempDeltaCelsius?.let { d ->

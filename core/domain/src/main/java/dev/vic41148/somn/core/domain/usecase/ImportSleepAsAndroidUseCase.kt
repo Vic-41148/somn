@@ -16,13 +16,12 @@ import java.util.TimeZone
  * targets the column layout used by widely-circulated community reverse-engineering write-ups
  * (`Id`, `Tz`, `From`, `To`, `Sched`, `Hours`, `Rating`, `Comment`, `Framerate`, `Snore`, `Noise`,
  * `Cycles`, `DeepSleep`, `LenAdjust`, `Geo`) and is deliberately defensive: columns are matched
- * by header name (case-insensitive) rather than fixed position, unknown/extra columns are
- * ignored, and any row this parser can't confidently map to a real sleep session is skipped and
- * counted rather than guessed at. Only `From`/`To` are load-bearing — a row without both is
+ * by header name (case-insensitive) rather than fixed position. It ignores unknown/extra columns.
+ * It skips and counts any row it cannot confidently map to a real sleep session rather than guess at it. Only `From`/`To` are load-bearing — a row without both is
  * unimportable and is skipped. Everything else (rating, comment, deep-sleep%, timezone, hours) is
  * a best-effort enrichment. This is explicitly a lossy, best-effort import, not a full-fidelity
  * round-trip — Sleep as Android has no equivalent for cycle-phase/pregnancy/ADHD/ASD context,
- * per-epoch sleep stages, or audio events, so none of that carries over. Imported sessions are
+ * per-epoch sleep stages, or audio events, so none of that transfers. Imported sessions are
  * marked in [SleepSession.notes] ("Imported from Sleep as Android: ...") rather than via
  * [SleepSession.isPartial] — that flag has a distinct, narrower meaning elsewhere (REL-02: a
  * tracking session cut short by the service dying mid-night), and reusing it here would make
@@ -70,7 +69,7 @@ class ImportSleepAsAndroidUseCase {
 
             // Real Sleep as Android exports interleave a repeated header row before each record
             // block, not just once at the top of the file. Skip those without counting them as
-            // an import failure — they aren't malformed data, they're structural noise.
+            // an import failure. They are not malformed data. They are structural noise.
             val firstCell = cols.firstOrNull()?.trim()?.lowercase(Locale.US)
             if (headerFirstCell != null && firstCell == headerFirstCell) {
                 repeatedHeaderRows++
@@ -120,7 +119,7 @@ class ImportSleepAsAndroidUseCase {
             }
 
             val rating = ratingIndex.takeIf { it >= 0 }?.let { cols.getOrNull(it)?.toFloatOrNull() }
-            // Sleep as Android's rating is a 0.0-5.0 float; Somn's moodRating is a 1-5 int scale.
+            // Sleep as Android's rating is a 0.0-5.0 float. Somn's moodRating is a 1-5 int scale.
             val moodRating = rating?.let { Math.round(it).coerceIn(0, 5) } ?: 0
             val comment = commentIndex.takeIf { it >= 0 }?.let { cols.getOrNull(it) }?.trim().orEmpty()
             val deepSleepPercent = deepSleepIndex.takeIf { it >= 0 }
@@ -169,11 +168,11 @@ class ImportSleepAsAndroidUseCase {
 
     /**
      * Minimal RFC4180-style CSV row splitter — quote-aware, so a delimiter character inside a
-     * quoted field doesn't split it. Verified against a real Urbandroid-published sample export
+     * quoted field does not split it. Verified against a real Urbandroid-published sample export
      * (urbandroid-team/sleep-csv-to-json): every field is double-quoted, and long diary-style
      * `Comment` fields routinely contain literal commas ("...v dobe komunismu, jsme s nejakyma
      * kamaradkama na ostrove, kolem nehoz...") — the earlier naive `line.split(delimiter)` (this
-     * parser's own doc comment claimed "Sleep as Android doesn't quote fields," which was wrong)
+     * parser's own doc comment claimed "Sleep as Android does not quote fields," which was wrong)
      * would have sheared every such row into misaligned columns. Handles doubled `""` inside a
      * quoted field as an escaped literal quote, per RFC4180.
      */
@@ -209,7 +208,7 @@ class ImportSleepAsAndroidUseCase {
         "dd. MM. yyyy HH:mm"
     )
 
-    /** [zone] is the row's own resolved timezone — parsing in the importing device's zone instead would silently shift every imported timestamp whenever the two differ. */
+    /** [zone] is the row's own resolved timezone. Parsing in the importing device's zone instead would silently shift every imported timestamp whenever the two differ. */
     private fun parseTimestamp(raw: String, zone: TimeZone): Long? {
         val trimmed = raw.trim()
         if (trimmed.isEmpty()) return null

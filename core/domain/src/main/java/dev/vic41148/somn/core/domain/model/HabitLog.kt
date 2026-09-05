@@ -19,9 +19,9 @@ data class HabitLog(
  * Each subtype maps to a distinct log entry in the database.
  *
  * Research basis:
- * §3.1  Caffeine: half-life ~5-6 h; cut-off recommendations ≥6 h before bed.
- * §3.2  Alcohol: fragments REM sleep; reduces efficiency even at low doses.
- * §3.3  Exercise: moderate aerobic → +8 min deep sleep; timing matters.
+ * §3.1  Caffeine: half-life ~5-6 h. Cut-off recommendations ≥6 h before bed.
+ * §3.2  Alcohol: fragments REM sleep. It reduces efficiency even at low doses.
+ * §3.3  Exercise: moderate aerobic → +8 min deep sleep. Timing matters.
  * §3.4  Stress: cortisol elevation → prolonged sleep onset + wakes.
  * §3.5  Stimulant medication: ADHD medication timing critical for sleep onset.
  */

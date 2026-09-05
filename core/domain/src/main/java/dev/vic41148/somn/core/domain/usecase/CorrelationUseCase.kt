@@ -149,9 +149,9 @@ class CorrelationUseCase {
     ): CorrelationResult? {
         val pairs = sessionByDate.keys.mapNotNull { date ->
             val session = sessionByDate[date] ?: return@mapNotNull null
-            // Count exercise on the same day as sleep start OR the day before — an evening
-            // workout logged the same calendar day (before bed) was previously dropped entirely,
-            // since only date.minusDays(1) was queried despite this doc comment's stated intent.
+            // Count exercise on the same day as sleep start OR the day before. The code previously
+            // dropped an evening workout logged the same calendar day (before bed) entirely.
+            // It queried only date.minusDays(1) despite this doc comment's stated intent.
             val exerciseMinutes = (habitsByDate[date].orEmpty() + habitsByDate[date.minusDays(1)].orEmpty())
                 .sumOf { log ->
                     if (log.entry is HabitEntry.Exercise) log.entry.durationMinutes.toDouble() else 0.0
@@ -278,11 +278,11 @@ enum class CorrelationStrength(val displayName: String) {
  * this qualifier exists so the UI never presents a bare-minimum finding as a settled one.
  */
 enum class CorrelationConfidence(val displayName: String, val minNights: Int) {
-    /** 7-13 nights — above the data floor but statistically underpowered; may flip with a few more nights. */
+    /** 7-13 nights — above the data floor but statistically underpowered. It may flip with a few more nights. */
     LOW("Low confidence", 7),
-    /** 14-29 nights — two to four weeks of paired data; pattern is visible but not yet stable. */
+    /** 14-29 nights — two to four weeks of paired data. The pattern is visible but not yet stable. */
     MEDIUM("Medium confidence", 14),
-    /** 30+ nights — a month or more; close to the point where small-to-moderate effects become distinguishable from noise. */
+    /** 30+ nights — a month or more. Close to the point where small-to-moderate effects become distinguishable from noise. */
     HIGH("High confidence", 30);
 
     companion object {

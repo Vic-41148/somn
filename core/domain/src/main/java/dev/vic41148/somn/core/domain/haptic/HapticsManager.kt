@@ -46,7 +46,7 @@ interface HapticsManager {
     fun longPress()
 
     /**
-     * Completion of a background task the user is waiting on but not touching - export, backup,
+     * Completion of a background task the user waits for but does not touch - export, backup,
      * NAS sync finishing. Set [gentle] for relax-state finishes (wind-down exercise ending) where
      * an ease-in envelope beats an abrupt buzz.
      */

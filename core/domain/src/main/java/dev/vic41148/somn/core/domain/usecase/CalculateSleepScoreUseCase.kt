@@ -19,7 +19,7 @@ import kotlin.math.min
  * Score = (Duration × 0.25) + (Efficiency × 0.20) + (DeepSleep% × 0.20)
  *       + (Consistency × 0.20) + (WakeEvents × 0.15)
  *
- * The score is then adjusted upward based on biological factors that the
+ * The use case then adjusts the score upward for biological factors that the
  * user cannot control (menstrual phase, age-appropriate expectations, etc.).
  * This produces both a raw score and an adjusted score with transparent explanations.
  */
@@ -33,7 +33,7 @@ class CalculateSleepScoreUseCase {
     }
 
     /**
-     * Calculate score without profile — backward compatible with existing usage.
+     * Calculate the score without a profile — backward compatible with existing usage.
      */
     operator fun invoke(
         session: SleepSession,
@@ -71,7 +71,7 @@ class CalculateSleepScoreUseCase {
     }
 
     /**
-     * Calculate score WITH biological profile — produces adjusted score with explanations.
+     * Calculate the score WITH a biological profile — produces the adjusted score with explanations.
      */
     fun calculateWithProfile(
         session: SleepSession,
@@ -327,7 +327,7 @@ class CalculateSleepScoreUseCase {
 
     /**
      * Adjust expected wake events based on life stage and age.
-     * Older adults and menopausal women naturally wake more — don't penalise normal biology.
+     * Older adults and menopausal women naturally wake more — do not penalise normal biology.
      */
     private fun adjustWakeExpectation(profile: UserProfile): Int {
         val ageAdjustment = when (profile.age) {

@@ -26,7 +26,7 @@ data class SeasonalAnalysis(
     /** Education or contextual insight, or null if no data. */
     val insight: String?
 ) {
-    /** Whether there's enough data across seasons to draw conclusions. */
+    /** Whether there is enough data across seasons to draw conclusions. */
     val hasMultiSeasonData: Boolean get() = seasonalPatterns.size >= 2
 }
 

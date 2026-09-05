@@ -8,7 +8,7 @@ import dev.vic41148.somn.core.domain.model.ExternalVitalsSnapshot
  * sits inside the personal typical range, a flag when it drifts out, and honesty
  * ("needs more nights") instead of a verdict when history is thin.
  *
- * Pure function, unit-tested; the screen only renders what this returns.
+ * Pure function, unit-tested. The screen only renders what this returns.
  */
 data class VitalFlag(
     val label: String,
@@ -84,7 +84,7 @@ private fun flagOne(
     val hi = sorted[(sorted.size * 0.9).toInt().coerceIn(0, sorted.size - 1)]
     val span = (hi - lo).coerceAtLeast(0f)
     // 10% tolerance outside the band before flagging — vitals wobble night to
-    // night — with a per-vital floor so flat history (span 0) can't flag a 1-bpm
+    // night — with a per-vital floor so flat history (span 0) cannot flag a 1-bpm
     // move while a real shift (half a degree of skin temp) still fires.
     val tol = maxOf(span * 0.1f, minTolerance)
     val inRange = latest >= lo - tol && latest <= hi + tol
