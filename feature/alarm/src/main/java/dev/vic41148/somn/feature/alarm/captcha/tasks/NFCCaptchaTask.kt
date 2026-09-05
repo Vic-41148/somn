@@ -48,7 +48,7 @@ class NFCCaptchaTask : CaptchaTask {
             )
             Spacer(modifier = Modifier.height(32.dp))
             Text(
-                text = "Tap your NFC tag to dismiss",
+                text = "Tap your NFC tag to dismiss the alarm",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )

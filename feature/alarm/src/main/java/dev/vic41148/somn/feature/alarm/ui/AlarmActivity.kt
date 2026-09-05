@@ -253,7 +253,7 @@ private fun AlarmFiringContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = alarmLabel.ifEmpty { "Wake Up!" },
+                text = alarmLabel.ifEmpty { "Wake now!" },
                 style = MaterialTheme.typography.headlineMedium
             )
 
@@ -369,7 +369,7 @@ private fun WakeConfirmScreen(deadlineMillis: Long?, onConfirmAwake: () -> Unit)
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text("I'm Awake")
+                Text("I am Awake")
             }
         }
     }

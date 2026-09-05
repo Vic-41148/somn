@@ -130,7 +130,7 @@ class QRCodeCaptchaTask : CaptchaTask {
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Text(
-                        text = "Scan your configured QR code",
+                        text = "Scan your configured QR code to dismiss the alarm",
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge
                     )

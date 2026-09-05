@@ -133,7 +133,7 @@ fun AlarmListScreen(
                                     )
                                 }
                                 Text(
-                                    text = "Smart wake: ${alarm.wakeWindowMinutes}min window",
+                                    text = "Smart wake: ${alarm.wakeWindowMinutes} min window",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

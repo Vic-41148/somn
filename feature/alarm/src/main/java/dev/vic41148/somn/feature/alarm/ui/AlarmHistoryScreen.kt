@@ -107,7 +107,7 @@ fun AlarmHistoryScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Alarms that ring, get snoozed, dismissed, or missed will show up here.",
+                        text = "Alarms that ring, get snoozed, dismissed, or missed appear here.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

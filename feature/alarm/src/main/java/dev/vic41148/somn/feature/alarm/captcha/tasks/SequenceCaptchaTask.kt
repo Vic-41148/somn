@@ -45,7 +45,7 @@ class SequenceCaptchaTask : CaptchaTask {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Type exactly to dismiss",
+                text = "Type the sequence exactly to dismiss the alarm",
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(24.dp))
