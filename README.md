@@ -5,7 +5,10 @@
 [![CI](https://github.com/Vic-41148/somn/actions/workflows/ci.yml/badge.svg)](https://github.com/Vic-41148/somn/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-Somn uses your phone's accelerometer to track sleep stages overnight — no wearable required. It scores your sleep with age-calibrated algorithms, supports biological profile adjustments (menstrual cycle, pregnancy, neurodivergent profiles), and keeps everything on-device.
+Somn uses the built-in accelerometer to track sleep stages overnight. You do not need a
+wearable. It scores sleep with age-calibrated algorithms. It supports biological profile
+adjustments (menstrual cycle, pregnancy, neurodivergent profiles). It keeps all data on the
+device.
 
 > *"somn"* — from Latin *somnus*, meaning sleep.
 
@@ -28,15 +31,16 @@ Somn uses your phone's accelerometer to track sleep stages overnight — no wear
 - **Sleep debt engine** — running debt with recovery guidance
 - **Circadian intelligence** — chronotype assessment, social jet lag and seasonal analysis
 - **Audio monitoring** — snoring, coughing and sleep-talk detection, with optional on-device YAMNet classification and breathing-rate estimation
-- **Anti-snore nudge** — gentle vibration when snoring is detected
+- **Anti-snore nudge** — gentle vibration when the app detects snoring
 - **Wind-down exercises** — breathing, cognitive shuffle and ADHD cooldown routines
-- **Health Connect integration** — optional, off by default; reads vitals and writes sleep sessions
-- **Encrypted NAS backup** — optional, off by default; AES-256-GCM under a passphrase only you hold
+- **Health Connect integration** — optional, off by default — reads vitals and writes sleep sessions
+- **Encrypted NAS backup** — optional, off by default — AES-256-GCM under a passphrase only you hold
 - **CSV & JSON export** — share sleep data with clinicians
 - **Sleep as Android import** — bring your history across
 - **Tag system** — custom tags for sessions
 - **Material 3 / Dynamic Color** — supports Material You theming on Android 12+
-- **Offline by default** — no account, no cloud, no app-authored telemetry; nothing is uploaded unless you explicitly set up NAS backup
+- **Offline by default** — no account, no cloud, no app-authored telemetry. Somn uploads
+  nothing unless you explicitly set up NAS backup
 
 ### On the Roadmap
 - Brain health insights (glymphatic system education)
@@ -48,7 +52,7 @@ Somn uses your phone's accelerometer to track sleep stages overnight — no wear
 
 ## Architecture
 
-Multi-module Android app following **clean architecture** with unidirectional data flow.
+A multi-module Android app that follows clean architecture and unidirectional data flow.
 
 ```
 app/                    → Application entry point, navigation, DI
@@ -96,10 +100,10 @@ The easiest way to try Somn is the latest release:
 
 - **v0.1.2** — download `app-release-signed.apk` from the
   [releases page](https://github.com/Vic-41148/somn/releases) and open it on your device
-  (Android 8.0 / API 26+). Allow "install unknown apps" when prompted.
+  (Android 8.0 / API 26+). Allow "install unknown apps" when asked.
 
-> **Do not install v0.1.0.** It is deprecated and its release has been removed: tapping the
-> Sleep button (and in some cases Settings) could close the app on Android 14+. Use v0.1.2
+> **Do not install v0.1.0.** It is deprecated. We removed its release. Tapping the
+> Sleep button (and in some cases Settings) can close the app on Android 14+. Use v0.1.2
 > or newer instead.
 
 ### Prerequisites
@@ -114,7 +118,8 @@ git clone https://github.com/Vic-41148/somn.git
 cd somn
 ```
 
-Open in Android Studio, sync Gradle, and run on a device or emulator (API 26+).
+Open the project in Android Studio. Sync Gradle. Run the app on a device or emulator
+(API 26+).
 
 Or build from command line:
 
@@ -124,13 +129,13 @@ Or build from command line:
 
 The APK will be at `app/build/outputs/apk/standalone/debug/app-standalone-debug.apk`.
 
-> `gradle.properties` pins `org.gradle.java.home` to a local path. If your JDK 17 lives
-> elsewhere, override it per-invocation with `-Dorg.gradle.java.home="$JAVA_HOME"` rather
-> than editing the file.
+> `gradle.properties` pins `org.gradle.java.home` to a local path. If the JDK 17 lives
+> elsewhere, override it for each command with `-Dorg.gradle.java.home="$JAVA_HOME"`.
+> Do not edit the file.
 
-> Two `channel` flavors ship: `standalone` (default; self-updater reads GitHub Releases) and
-> `store` (F-Droid/Izzy; no updater code). The build tasks above use the `standalone` channel —
-> the default used for development and CI. To target the store channel, substitute
+> Two `channel` flavors ship: `standalone` (default — self-updater reads GitHub Releases)
+> and `store` (F-Droid/Izzy — no updater code). The build tasks above use the `standalone`
+> channel — the default used for development and CI. To target the store channel, replace
 > `standalone` with `store` throughout (e.g. `assembleStoreDebug`, `testStoreDebugUnitTest`).
 
 ### Tests
@@ -140,27 +145,30 @@ The APK will be at `app/build/outputs/apk/standalone/debug/app-standalone-debug.
 ./gradlew lintStandaloneDebug           # Android Lint (standalone channel)
 ```
 
-CI runs `assembleStandaloneDebug`, `testStandaloneDebugUnitTest testDebugUnitTest` and `lintStandaloneDebug` on every push and PR to `main`
-and `dev`, plus guardrails that fail the build if Google Play Services reappear on the release
-classpath, if the Auto Backup opt-out is dropped, if `INTERNET` starts being contributed by a
-module other than `:core:data`, if emoji appear in any tracked source or docs, or if this
-README's (or CONTRIBUTING.md's) unit-test count drifts from the actual suite total.
+CI runs `assembleStandaloneDebug`, `testStandaloneDebugUnitTest testDebugUnitTest` and
+`lintStandaloneDebug` on every push and PR to `main` and `dev`. Guardrails fail the build
+if one of these conditions occurs:
+- Google Play Services reappear on the release classpath
+- the Auto Backup opt-out disappears
+- a module other than `:core:data` contributes `INTERNET`
+- emoji appear in any tracked source or docs
+- the unit-test count in this README (or CONTRIBUTING.md) differs from the actual suite total
 
 ### Seeding demo data (development)
 
-`scripts/seed-somn-demo.sh` installs the debug build on a connected device and seeds
-**fabricated** state — a demo profile, 7 nights of sleep sessions with sleep epochs, audio
+`scripts/seed-somn-demo.sh` installs the debug build on a connected device. It seeds
+**fabricated** state: a demo profile, 7 nights of sleep sessions with sleep epochs, audio
 events, habit logs, external vitals (HR/HRV/SpO2 as if written by a paired wearable via
-Health Connect), tags and a couple of smart alarms — by writing the Room DB directly via
-`run-as`. It **uninstalls any existing Somn install on the device first**, refuses to run in
-CI, and requires exactly one connected device:
+Health Connect), tags and a couple of smart alarms. The script writes the Room DB directly
+via `run-as`. **It uninstalls any existing Somn install on the device first.** It refuses to
+run in CI. It requires exactly one connected device:
 
 ```bash
 bash scripts/seed-somn-demo.sh --yes                  # baseline MALE profile
 bash scripts/seed-somn-demo.sh --yes --profile cycling  # FEMALE + CYCLING (cycle UI)
 ```
 
-Re-runs are idempotent (same state every time) — see
+Re-runs produce the same state every time. See
 `scripts/seed-somn-demo-checklist.md` for the full procedure and verification steps.
 
 ---
@@ -177,24 +185,24 @@ Re-runs are idempotent (same state every time) — see
 
 ## Privacy
 
-Somn is designed with privacy as a core principle:
+Privacy is a core principle of Somn.
 
-- **No analytics, no crash reporting, no ads** — Somn contains no telemetry of its own and
+- **No analytics, no crash reporting, no ads** — Somn contains no telemetry of its own. It
   never reports anything about you to us or to anyone else
 - **All data stored locally** in an on-device Room database
-- **Excluded from Google's Auto Backup** — your sleep database and any sleep-talk recordings
+- **Excluded from the Google Auto Backup** — your sleep database and any sleep-talk recordings
   are never uploaded to Google Drive, and are not copied during device-to-device transfer
 - **Sensitive data** (menstrual cycle, pregnancy, neurodivergent status) never leaves the device
 - **No account required** — no sign-up, no vendor cloud
 - **Optional NAS backup** — off by default. If you turn it on, backups go only to the
-  self-hosted server you configure, encrypted with AES-256-GCM under a passphrase only you hold
-- **Sleep-talk recordings expire** — deleted automatically after 7 days by default, with a
-  one-tap "delete all recordings" control
+  self-hosted server you configure. AES-256-GCM encrypts them under a passphrase only you hold
+- **Sleep-talk recordings expire** — the app deletes them automatically after 7 days by
+  default. A "delete all recordings" control deletes them with one tap
 - **No Google Play Services** — the release build has zero GMS artifacts on its classpath. QR
   scanning uses [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp), not ML Kit
-- **`INTERNET` is declared by one module** (`core:data`) for one feature (NAS backup), and
-  nothing else in the app makes network requests
-- **Open source** — GPL-3.0; audit the code yourself
+- **One module declares `INTERNET`** (`core:data`) for one feature (NAS backup).
+  Nothing else in the app makes network requests
+- **Open source** — GPL-3.0. Audit the code yourself
 
 Full details — every stored field, every permission, and how to delete anything — are in
 [PRIVACY.md](PRIVACY.md).
@@ -203,11 +211,12 @@ Full details — every stored field, every permission, and how to delete anythin
 
 ## Contributing
 
-Contributions welcome! This is an early-stage project — see **On the Roadmap** above for what's next.
+Contributions are welcome. This is an early-stage project — see **On the Roadmap** above
+for what is next.
 
-Please read [**CONTRIBUTING.md**](CONTRIBUTING.md) first — it covers how to get
-the project building, how to open a pull request against `dev`, what CI checks
-must pass, and the project's coding and privacy conventions.
+Read [**CONTRIBUTING.md**](CONTRIBUTING.md) first. It covers how to build the project, how
+to open a pull request against `dev`, which CI checks must pass, and the coding and privacy
+conventions of the project.
 
 Quick start:
 
@@ -220,7 +229,7 @@ Quick start:
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
+The GNU General Public License v3.0 covers this project. See [LICENSE](LICENSE).
 
 ---
 
