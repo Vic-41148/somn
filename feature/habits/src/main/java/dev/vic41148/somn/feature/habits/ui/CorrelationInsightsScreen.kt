@@ -375,7 +375,7 @@ private fun TagImpactCard(impact: TagImpact) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${impact.taggedAvgScore} tagged vs ${impact.untaggedAvgScore} untagged",
+                text = "${impact.taggedAvgScore} tagged scores vs ${impact.untaggedAvgScore} untagged scores",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -406,7 +406,7 @@ private fun InsufficientDataCard(label: String) {    Card(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Need ${CorrelationUseCase.MIN_DATA_POINTS}+ nights with logged data",
+                    text = "Log data for ${CorrelationUseCase.MIN_DATA_POINTS}+ nights",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -454,7 +454,7 @@ private fun EmptyCorrelationsState() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Log your habits for ${CorrelationUseCase.MIN_DATA_POINTS}+ nights and Somn will reveal your personal sleep patterns.",
+                text = "Log your habits for ${CorrelationUseCase.MIN_DATA_POINTS}+ nights to reveal your personal sleep patterns.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

@@ -349,7 +349,7 @@ private fun AlcoholLogForm(onLog: (HabitEntry.Alcohol) -> Unit) {
 
     Text("Units: ${"%.1f".format(units)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     Text(
-        text = "1 unit = 10 ml pure alcohol (e.g. small wine, single spirit)",
+        text = "1 unit is 10 ml of pure alcohol (a small wine or a single spirit)",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )

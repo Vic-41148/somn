@@ -70,13 +70,13 @@ fun WindDownToolkitScreen(
             WindDownRow(
                 icon = Icons.Filled.SelfImprovement,
                 title = "Breathing Exercise (4-7-8)",
-                subtitle = "Boxes the breath: 4s in, 7s hold, 8s out",
+                subtitle = "The breath follows a box: 4s in, 7s hold, 8s out",
                 onClick = onNavigateToBreathing
             )
             WindDownRow(
                 icon = Icons.Filled.Edit,
                 title = "Cognitive Dump",
-                subtitle = "Write out the loop, then let it go",
+                subtitle = "Write the loop. Then release it.",
                 onClick = onNavigateToCognitiveWindDown
             )
             WindDownRow(

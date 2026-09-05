@@ -72,7 +72,7 @@ fun MenopauseSurveyScreen(
         ) {
             SleepCard {
                 Text(
-                    "How much has each bothered you in the last 2 weeks?",
+                    "How much did each symptom bother you in the last 2 weeks?",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }

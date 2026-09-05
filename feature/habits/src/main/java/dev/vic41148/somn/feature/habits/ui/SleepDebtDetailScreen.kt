@@ -225,7 +225,7 @@ private fun DebtSummaryCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (debtMinutes == 0) "You're all caught up" else "accumulated sleep debt",
+                text = if (debtMinutes == 0) "You are all caught up" else "the accumulated sleep debt",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

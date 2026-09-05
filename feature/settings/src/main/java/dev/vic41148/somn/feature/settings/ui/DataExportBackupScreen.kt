@@ -76,7 +76,7 @@ fun DataExportBackupScreen(
                             context.contentResolver.takePersistableUriPermission(uri, flags)
                         } catch (e: SecurityException) {
                             viewModel.updateBackupUriError(
-                                "Chosen directory grants only temporary access - pick one from a provider that supports persistent access"
+                                "The chosen directory grants only temporary access. Pick a directory from a provider that supports persistent access"
                             )
                             return@rememberLauncherForActivityResult
                         }
@@ -108,7 +108,7 @@ fun DataExportBackupScreen(
                 }
                 if (settings.backupUri != null) {
                     Text(
-                        text = "Auto-backup enabled on alarm dismiss",
+                        text = "Auto-backup runs on alarm dismiss",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
@@ -125,10 +125,10 @@ fun DataExportBackupScreen(
             SettingSection(title = "Recovery Key") {
                 Text(
                     text = if (settings.backupPassphraseSet) {
-                        "Backups are encrypted with your recovery key"
+                        "Your recovery key encrypts the backups"
                     } else {
-                        "No recovery key set. Backups stay on this device only - off-site sync is " +
-                            "disabled, because an upload this phone can't outlive isn't a backup."
+                        "You set no recovery key. Backups stay on this device only. Off-site sync " +
+                            "stays off. An upload is not a backup when it dies with the phone."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = if (settings.backupPassphraseSet) {
@@ -159,8 +159,8 @@ fun DataExportBackupScreen(
                         title = { Text("Replace recovery key?") },
                         text = {
                             Text(
-                                "Backups already written can only be opened with the current key. " +
-                                    "Keep it somewhere safe, or you'll lose access to them."
+                                "You can open the existing backups only with the current key. " +
+                                    "Keep the key somewhere safe. Without the key you lose access to the backups."
                             )
                         },
                         confirmButton = {
@@ -183,8 +183,8 @@ fun DataExportBackupScreen(
                         text = {
                             Column {
                                 Text(
-                                    "This is shown once. Without it, an encrypted backup cannot be " +
-                                        "opened - not by you, and not by us."
+                                    "You see this key once. Without the key you cannot open an encrypted backup. " +
+                                        "We cannot open it either."
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 SelectionContainer {
@@ -198,7 +198,7 @@ fun DataExportBackupScreen(
                         },
                         confirmButton = {
                             TextButton(onClick = { viewModel.dismissRecoveryKey() }) {
-                                Text("I've saved it")
+                                Text("I saved it")
                             }
                         }
                     )
@@ -213,7 +213,7 @@ fun DataExportBackupScreen(
 
                 Text(
                     text = "Replace everything on this device with the contents of a backup file. " +
-                        "Alarms restored this way are re-armed automatically on next app start.",
+                        "The app re-arms the restored alarms automatically on the next app start.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp)
@@ -235,7 +235,7 @@ fun DataExportBackupScreen(
                             Column {
                                 Text(
                                     "This replaces all sleep data on this device. Enter your recovery " +
-                                        "key if the backup is encrypted; leave it blank if not."
+                                        "key if the backup is encrypted. Leave the field blank if the backup is not encrypted."
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 OutlinedTextField(
@@ -262,7 +262,7 @@ fun DataExportBackupScreen(
                 val restartRequired by viewModel.restartRequired.collectAsState()
                 if (restartRequired) {
                     Text(
-                        text = "Restore complete - fully close and reopen Somn to load the restored data.",
+                        text = "Restore is complete. Close Somn fully. Reopen Somn to load the restored data.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp)
@@ -300,8 +300,8 @@ fun DataExportBackupScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Best-effort - Sleep as Android's export format isn't officially documented, " +
-                        "so cycle/biological context, sleep stages, and audio events can't carry over.",
+                    text = "Best effort import. Sleep as Android documents no official export format, " +
+                        "so cycle and biological context, sleep stages, and audio events do not transfer.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

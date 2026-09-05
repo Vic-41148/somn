@@ -92,8 +92,8 @@ fun MedicationLogScreen(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "ADHD stimulants (methylphenidate, amphetamines) have a half-life of 10–14 hours. " +
-                            "Taking them late in the day can significantly delay sleep onset. " +
-                            "Tracking timing helps identify your personal cut-off window.",
+                            "Late doses can delay the onset of sleep. " +
+                            "Timing records help you find your personal cut-off window.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -154,7 +154,7 @@ private fun MedicationEntryForm(onLog: (HabitEntry.Medication) -> Unit) {
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Medication name") },
-                placeholder = { Text("e.g. Ritalin, Adderall, Vyvanse") },
+                placeholder = { Text("For example: Ritalin, Adderall, Vyvanse") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -165,7 +165,7 @@ private fun MedicationEntryForm(onLog: (HabitEntry.Medication) -> Unit) {
                 value = dose,
                 onValueChange = { dose = it },
                 label = { Text("Dose") },
-                placeholder = { Text("e.g. 20mg") },
+                placeholder = { Text("For example: 20mg") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -191,7 +191,7 @@ private fun MedicationEntryForm(onLog: (HabitEntry.Medication) -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Time taken: ${LocalTime.of(hour, 0).format(timeFormatter)}",
+                text = "Time of dose: ${LocalTime.of(hour, 0).format(timeFormatter)}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary

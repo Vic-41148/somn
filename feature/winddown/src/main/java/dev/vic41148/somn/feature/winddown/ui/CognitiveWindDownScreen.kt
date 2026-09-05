@@ -37,7 +37,7 @@ fun CognitiveWindDownScreen(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "Write down any lingering thoughts or worries. They will not be saved permanently, just offloaded for now.",
+                text = "Enter any lingering thoughts or worries. The app saves nothing permanently. The entry leaves your mind for now.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -49,7 +49,7 @@ fun CognitiveWindDownScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                placeholder = { Text("What's on your mind?") },
+                placeholder = { Text("What is on your mind?") },
                 textStyle = MaterialTheme.typography.bodyLarge
             )
 
