@@ -87,6 +87,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation(libs.json.java)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.room.testing)
     testImplementation(libs.robolectric)

@@ -73,10 +73,9 @@ class ReleaseParserTest {
     }
 
     @Test
-    fun `checksum falls back to first bare hash when apk name is unknown`() {
+    fun `checksum refuses bare hash with no apk name`() {
         val body = "release built at 2026-08-30\nhash abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
-        val sha = ReleaseParser.extractChecksumFromBody(body, null)
-        assertEquals("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789", sha)
+        assertNull(ReleaseParser.extractChecksumFromBody(body, null))
     }
 
     @Test

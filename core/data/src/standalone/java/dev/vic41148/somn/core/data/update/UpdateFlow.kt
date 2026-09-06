@@ -64,7 +64,7 @@ class UpdateFlow @Inject constructor(
         }
     }
 
-    /** Downloads → verifies the published checksum → hands to the system installer. No install
+    /** Downloads → verifies checksum + signer → hands to the system installer. No install
      *  happens on a mismatch: the file is deleted and the failure reported. */
     suspend fun downloadAndInstall(
         release: StagedRelease,
@@ -75,6 +75,7 @@ class UpdateFlow @Inject constructor(
         return try {
             updateRepository.downloadApk(url, apk, onProgress)
             updateRepository.verifyChecksum(apk, release.sha256)
+            updateRepository.verifySameSigner(apk)
             val failure = launchSystemInstaller(apk)
             if (failure == null) Outcome.Installing(apk) else Outcome.Failure(failure)
         } catch (e: UpdateException) {
@@ -108,6 +109,7 @@ class UpdateFlow @Inject constructor(
      */
     fun scheduleDowngrade(apkUrl: String?): Outcome {
         if (apkUrl.isNullOrBlank()) return Outcome.NoApk
+        if (!updateRepository.isAllowedHost(apkUrl)) return Outcome.NoApk
         val startedBrowser = try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl)).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

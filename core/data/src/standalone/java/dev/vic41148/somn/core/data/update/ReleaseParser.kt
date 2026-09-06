@@ -15,8 +15,6 @@ object ReleaseParser {
     private val CHECKSUM_LINE =
         Regex("""(?i)^\s*([a-f0-9]{64})\s+(\S+\.apk)\s*$""")
 
-    private val SHA_IN_BODY = Regex("""(?i)([a-f0-9]{64})""")
-
     /** One release object (the `/releases/latest` shape). */
     fun parseLatest(raw: String): ReleaseInfo {
         val json = JSONObject(raw)
@@ -91,7 +89,8 @@ object ReleaseParser {
                 return hash
             }
         }
-        // No recognizably named line: take the first bare 64-hex string as the last resort.
-        return SHA_IN_BODY.find(body)?.groupValues?.get(1)?.lowercase()
+        // No recognizably named line: refuse. A bare 64-hex string from attacker-writable
+        // release notes must never pass the gate on its own.
+        return null
     }
 }

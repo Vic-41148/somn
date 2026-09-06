@@ -89,6 +89,10 @@ class UpdateRepository @Inject constructor(
                         if (read == -1) break
                         output.write(buffer, 0, read)
                         downloaded += read
+                        if (downloaded > MAX_APK_BYTES) {
+                            destFile.delete()
+                            throw IOException("APK exceeded ${MAX_APK_BYTES} bytes")
+                        }
                         if (downloaded % NOTIFY_EVERY_BYTES < DEFAULT_BUFFER_SIZE.toLong()) {
                             onProgress(downloaded, total)
                         }
@@ -110,6 +114,40 @@ class UpdateRepository @Inject constructor(
         if (expectedSha256.isNullOrBlank() || !Checksum.sha256Matches(expectedSha256, actual)) {
             file.delete()
             throw ChecksumMismatchException(expectedSha256, actual)
+        }
+    }
+
+    /**
+     * Authenticity gate: checksum proves the file matches the release notes, this proves the
+     * release notes match the installed app. The downloaded APK must carry the same signing
+     * certificate set, otherwise the file is deleted and the install refused.
+     */
+    fun verifySameSigner(file: File) {
+        val pm = context.packageManager
+        val installed = runCatching {
+            pm.getPackageInfo(
+                context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            ).signingInfo?.apkContentsSigners
+        }.getOrNull()
+        val archive = runCatching {
+            pm.getPackageArchiveInfo(
+                file.absolutePath, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            )?.signingInfo?.apkContentsSigners
+        }.getOrNull()
+        if (installed.isNullOrEmpty() || archive.isNullOrEmpty() || installed.toSet() != archive.toSet()) {
+            file.delete()
+            throw UpdateException("Update is not signed by the same certificate as the installed app.")
+        }
+    }
+
+    /** Hosts an update URL may point at: the API, release pages, and the CDN they redirect to. */
+    fun isAllowedHost(url: String): Boolean {
+        return try {
+            val parsed = URL(url)
+            parsed.protocol.equals("https", ignoreCase = true) &&
+                parsed.host.lowercase() in ALLOWED_UPDATE_HOSTS
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -170,12 +208,29 @@ class UpdateRepository @Inject constructor(
     }
 
     private fun openConnection(url: String): HttpURLConnection {
+        return openCheckedConnection(url, MAX_REDIRECT_HOPS)
+    }
+
+    /**
+     * Follows redirects manually so every hop stays on the host allowlist — the platform
+     * follower would silently land on an attacker's host from a tampered API response.
+     */
+    private fun openCheckedConnection(url: String, hopsLeft: Int): HttpURLConnection {
+        if (!isAllowedHost(url)) throw IOException("Update URL host is not allowed: $url")
+        if (hopsLeft < 0) throw IOException("Too many redirects for $url")
         val connection = URL(url).openConnection() as HttpURLConnection
         connection.connectTimeout = CONNECT_TIMEOUT_MS
         connection.readTimeout = READ_TIMEOUT_MS
-        connection.instanceFollowRedirects = true
+        connection.instanceFollowRedirects = false
         connection.setRequestProperty("Accept", "application/vnd.github+json")
         connection.setRequestProperty("User-Agent", "Somn-UpdateChecker")
+        val status = connection.responseCode
+        if (status in 300..399) {
+            val location = connection.getHeaderField("Location")
+                ?: throw IOException("Redirect without Location for $url")
+            connection.disconnect()
+            return openCheckedConnection(URL(URL(url), location).toString(), hopsLeft - 1)
+        }
         return connection
     }
 
@@ -197,6 +252,14 @@ class UpdateRepository @Inject constructor(
         const val READ_TIMEOUT_MS = 15_000
         const val MAX_BODY_BYTES = 2 * 1024 * 1024
         const val NOTIFY_EVERY_BYTES = 256 * 1024L
+        /** APKs are ~15 MB; anything past this is not our update. */
+        const val MAX_APK_BYTES = 100L * 1024 * 1024
+        const val MAX_REDIRECT_HOPS = 5
+        val ALLOWED_UPDATE_HOSTS = setOf(
+            "api.github.com",
+            "github.com",
+            "objects.githubusercontent.com"
+        )
     }
 }
 

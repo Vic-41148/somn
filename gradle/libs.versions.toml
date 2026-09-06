@@ -61,6 +61,8 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 # SQLCipher (at-rest encryption for the Room DB; 4.x ships 16KB-aligned natives)
 sqlcipher = { group = "net.zetetic", name = "android-database-sqlcipher", version = "4.5.4" }
+# Real org.json for JVM unit tests (android.jar stubs it to null)
+json-java = { group = "org.json", name = "json", version = "20240303" }
 
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
