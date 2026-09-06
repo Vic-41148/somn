@@ -228,6 +228,22 @@ jobs:
           fi
           echo "OK: changelog discipline holds."
 
+  secrets-scan:
+    name: Secrets scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Open-source by definition means the source is public: a committed key, token or
+      # password is compromised the moment it lands. Fails the build on anything
+      # key/token-shaped anywhere in history reachable from this ref.
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+
   style-guardrails:
     name: Style guardrails
     runs-on: ubuntu-latest
