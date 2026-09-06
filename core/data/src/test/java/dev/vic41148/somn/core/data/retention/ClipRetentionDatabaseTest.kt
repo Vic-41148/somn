@@ -40,6 +40,7 @@ class ClipRetentionDatabaseTest {
             .build()
         audioEventDao = db.audioEventDao()
         repository = SleepRepository(
+            db,
             db.sleepSessionDao(),
             db.sleepEpochDao(),
             audioEventDao,

@@ -1,5 +1,7 @@
 package dev.vic41148.somn.core.data.repository
 
+import androidx.room.withTransaction
+import dev.vic41148.somn.core.data.database.SleepDatabase
 import dev.vic41148.somn.core.data.database.dao.SleepEpochDao
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
 import dev.vic41148.somn.core.data.database.dao.AudioEventDao
@@ -22,11 +24,18 @@ import javax.inject.Singleton
 
 @Singleton
 class SleepRepository @Inject constructor(
+    private val database: SleepDatabase,
     private val sessionDao: SleepSessionDao,
     private val epochDao: SleepEpochDao,
     private val audioEventDao: AudioEventDao,
     private val externalVitalsDao: ExternalVitalsDao
 ) {
+
+    /**
+     * Runs [block] in a single Room transaction: a mid-import crash rolls everything back
+     * instead of leaving half an import behind.
+     */
+    suspend fun <R> inTransaction(block: suspend () -> R): R = database.withTransaction(block)
 
     // --- Sessions ---
 

@@ -2,9 +2,11 @@ package dev.vic41148.somn.core.data.repository
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.vic41148.somn.core.data.backup.BoundedInputStream
 import dev.vic41148.somn.core.data.backup.PortableCrypto
 import dev.vic41148.somn.core.data.database.SleepDatabase
 import kotlinx.coroutines.Dispatchers
@@ -116,6 +118,16 @@ class BackupRepository @Inject constructor(
         try {
             val resolver = context.contentResolver
 
+            // Fast reject before a single byte is staged: providers report size up front.
+            // Unknown size (-1) still stages, but the bounded copy below caps it.
+            val declaredSize = resolver.query(backupUri, arrayOf(OpenableColumns.SIZE), null, null, null)
+                ?.use { cursor ->
+                    if (cursor.moveToFirst()) cursor.getLong(0) else -1L
+                } ?: -1L
+            if (declaredSize > MAX_RESTORE_BYTES) {
+                return@withContext RestoreResult.Failure("Backup file is larger than expected")
+            }
+
             val prefix = resolver.openInputStream(backupUri)?.use { input ->
                 ByteArray(SQLITE_HEADER.size).also { buffer ->
                     var offset = 0
@@ -145,10 +157,13 @@ class BackupRepository @Inject constructor(
 
             resolver.openInputStream(backupUri)?.use { input ->
                 staging.outputStream().use { output ->
+                    // Bounded on the way in: a lying provider or a corrupt envelope must fail
+                    // here, not after filling the disk.
+                    val bounded = BoundedInputStream(input, MAX_RESTORE_BYTES)
                     if (encrypted) {
-                        portableCrypto.decrypt(input, output, passphrase!!.toCharArray())
+                        portableCrypto.decrypt(bounded, output, passphrase!!.toCharArray())
                     } else {
-                        input.copyTo(output)
+                        bounded.copyTo(output)
                     }
                 }
             } ?: return@withContext RestoreResult.Failure("Could not open the backup file")

@@ -3,6 +3,8 @@ package dev.vic41148.somn.app.updates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.vic41148.somn.core.data.backup.MAX_CSV_IMPORT_BYTES
+import dev.vic41148.somn.core.data.backup.readBoundedText
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.update.UpdateBackupStore
@@ -101,25 +103,26 @@ class UpdateRestoreViewModel @Inject constructor(
             offer.file.name.endsWith(".zip", ignoreCase = true) -> {
                 ZipFile(offer.file).use { zip ->
                     val entry = zip.getEntry("somn_export.csv") ?: error("Backup contains no somn_export.csv")
-                    zip.getInputStream(entry).use { it.readBytes().toString(Charsets.UTF_8) }
+                    zip.getInputStream(entry).readBoundedText(MAX_CSV_IMPORT_BYTES, Charsets.UTF_8)
                 }
             }
-            else -> offer.file.readText()
+            else -> offer.file.inputStream().readBoundedText(MAX_CSV_IMPORT_BYTES, Charsets.UTF_8)
         }
         val result = importSleepAsAndroid(csv)
+        val scored = result.sessions.map { session ->
+            session.copy(sleepScore = calculateScore(session).totalScore)
+        }
         var count = 0
-        for (session in result.sessions) {
-            val newId = sleepRepository.createSession(
-                session.startTimeMillis,
-                session.timezoneId,
-                session.sessionType
-            )
-            val scored = session.copy(
-                id = newId,
-                sleepScore = calculateScore(session).totalScore
-            )
-            sleepRepository.completeSession(scored)
-            count++
+        sleepRepository.inTransaction {
+            for (session in scored) {
+                val newId = sleepRepository.createSession(
+                    session.startTimeMillis,
+                    session.timezoneId,
+                    session.sessionType
+                )
+                sleepRepository.completeSession(session.copy(id = newId))
+                count++
+            }
         }
         count
     }

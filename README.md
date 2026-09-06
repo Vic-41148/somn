@@ -152,7 +152,7 @@ The APK will be at `app/build/outputs/apk/standalone/debug/app-standalone-debug.
 ### Tests
 
 ```bash
-./gradlew testStandaloneDebugUnitTest testDebugUnitTest   # 293 unit tests (full suite)
+./gradlew testStandaloneDebugUnitTest testDebugUnitTest   # 308 unit tests (full suite)
 ./gradlew lintStandaloneDebug           # Android Lint (standalone channel)
 ```
 

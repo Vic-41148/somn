@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Bounded ingestion everywhere.** One shared `BoundedInputStream` caps NAS listings (2 MB), CSV imports (8 MB), and backup-restore staging (256 MB, pre-checked via provider size); imports now insert atomically so a crash can no longer leave a half-imported history.
 - **Release provenance.** Every GitHub release now ships a CycloneDX SBOM and a keyless Sigstore bundle over `SHA256SUMS.txt`; the README documents the verify commands. Release signing fixed to the standalone channel.
 - **Version derives from the git tag.** `versionCode`/`versionName` come from `git describe` (v0.1.2 → 1002 / "0.1.2") so tags, builds, and the self-updater can never disagree.
 - **Declare `ACCESS_LOCAL_NETWORK` early.** Inert at targetSdk 36; the runtime request lands in the NAS-setup flow with the targetSdk 37 bump, before Android 17 enforcement breaks WebDAV sync.

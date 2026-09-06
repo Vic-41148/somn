@@ -27,9 +27,11 @@ import java.io.File
 import javax.inject.Inject
 
 import dev.vic41148.somn.core.data.repository.BackupRepository
+import dev.vic41148.somn.core.data.backup.MAX_CSV_IMPORT_BYTES
 import dev.vic41148.somn.core.data.backup.NasClient
 import dev.vic41148.somn.core.data.backup.NasSyncWorker
 import dev.vic41148.somn.core.data.backup.PortableCrypto
+import dev.vic41148.somn.core.data.backup.readBoundedText
 import dev.vic41148.somn.core.domain.model.NasConfig
 import dev.vic41148.somn.core.domain.model.NasProtocol
 import androidx.work.OneTimeWorkRequestBuilder
@@ -605,8 +607,7 @@ class SettingsViewModel @Inject constructor(
             _importStatus.value = "Importing..."
             try {
                 val csv = context.contentResolver.openInputStream(uri)
-                    ?.bufferedReader()
-                    ?.use { it.readText() }
+                    ?.readBoundedText(MAX_CSV_IMPORT_BYTES, Charsets.UTF_8)
                     ?: run {
                         _importStatus.value = "Import failed: couldn't read the selected file."
                         return@launch
@@ -614,17 +615,20 @@ class SettingsViewModel @Inject constructor(
 
                 val result = importSleepAsAndroid(csv)
 
-                for (session in result.sessions) {
-                    val newId = sleepRepository.createSession(
-                        session.startTimeMillis,
-                        session.timezoneId,
-                        session.sessionType
-                    )
-                    val scored = session.copy(
-                        id = newId,
-                        sleepScore = calculateScore(session).totalScore
-                    )
-                    sleepRepository.completeSession(scored)
+                // Score first (pure CPU), then insert atomically: a crash mid-import rolls
+                // back to zero rows instead of a half-imported history.
+                val scored = result.sessions.map { session ->
+                    session.copy(sleepScore = calculateScore(session).totalScore)
+                }
+                sleepRepository.inTransaction {
+                    for (session in scored) {
+                        val newId = sleepRepository.createSession(
+                            session.startTimeMillis,
+                            session.timezoneId,
+                            session.sessionType
+                        )
+                        sleepRepository.completeSession(session.copy(id = newId))
+                    }
                 }
 
                 _importStatus.value = buildString {

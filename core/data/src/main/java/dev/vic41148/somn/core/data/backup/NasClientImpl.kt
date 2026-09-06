@@ -23,6 +23,11 @@ class NasClientImpl @Inject constructor(
         private const val TAG = "NasClientImpl"
         private const val CONNECT_TIMEOUT = 10_000
         private const val READ_TIMEOUT = 30_000
+        /**
+         * PROPFIND listings are small XML; anything past this from a NAS is a
+         * misconfiguration or a hostile box, never a directory listing.
+         */
+        internal const val MAX_LISTING_BYTES = 2L * 1024 * 1024
 
         /**
          * Pure so the scheme decision can be tested directly — this is the line that used to leak
@@ -167,9 +172,12 @@ class NasClientImpl @Inject constructor(
             if (code !in 200..299) {
                 return emptyList()
             }
+            if (conn.contentLengthLong > MAX_LISTING_BYTES) {
+                return emptyList()
+            }
 
             // Simple href extraction — good enough for file listing
-            val body = conn.inputStream.bufferedReader().readText()
+            val body = conn.inputStream.readBoundedText(MAX_LISTING_BYTES, Charsets.UTF_8)
 
             val hrefRegex = Regex("<D:href>(.*?)</D:href>", RegexOption.IGNORE_CASE)
             hrefRegex.findAll(body)
