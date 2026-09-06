@@ -19,6 +19,20 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// Version derives from the git tag (v0.1.2 → code 1002, name "0.1.2") so the tag,
+// the built APK, and what the self-updater compares can never disagree. Falls back
+// to the last released values when git is unavailable (source tarball builds).
+val releaseTag: String = runCatching {
+    providers.exec { commandLine("git", "describe", "--tags", "--abbrev=0") }
+        .standardOutput.asText.get().trim()
+}.getOrDefault("v0.1.2")
+val releaseParts: List<Int> = releaseTag.trimStart('v').split(".").map { it.toIntOrNull() ?: 0 }
+val derivedVersionCode: Int =
+    (releaseParts.getOrElse(0) { 0 }) * 1_000_000 +
+        (releaseParts.getOrElse(1) { 0 }) * 1_000 +
+        (releaseParts.getOrElse(2) { 0 })
+val derivedVersionName: String = releaseParts.joinToString(".")
+
 android {
     namespace = "dev.vic41148.somn.app"
     compileSdk = 36
@@ -27,10 +41,17 @@ android {
         applicationId = "dev.vic41148.somn"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = derivedVersionCode
+        versionName = derivedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            // Phones only: x86/x86_64 exist for emulators and cost ~14 MB of .so weight
+            // (TF Lite runtime + QR scanner ship per-ABI natives). Physical devices are
+            // arm64 (or armv7), so the store channel drops the emulator ABIs.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -90,6 +111,9 @@ android {
             // the loader extracts them at install time, which defeats the page-aligned mmap the
             // 16KB ABI requires. False keeps them uncompressed and aligned inside the APK.
             useLegacyPackaging = false
+            // YAMNet runs on the CPU Interpreter (YamnetAudioClassifier) — the OpenCL GPU
+            // delegate .so ships inside the LiteRT AAR unused (~6 MB across ABIs).
+            excludes += "**/libLiteRtClGlAccelerator.so"
         }
     }
 }
