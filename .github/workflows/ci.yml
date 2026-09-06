@@ -202,6 +202,16 @@ jobs:
           fi
           echo "OK: store APK has no updater permission or classes."
 
+      # Play blocks updates with unaligned natives, and real 16KB-page hardware crashes
+      # on them — re-checked every push because any native-dependency bump can regress it.
+      # Reuses the store release APK assembled above; alignment is a property of the .so,
+      # so one channel's artifact proves the dependency set.
+      - name: 16KB page alignment of bundled natives
+        run: |
+          set -euo pipefail
+          APK=$(ls app/build/outputs/apk/store/release/*.apk | head -1)
+          bash scripts/check-16kb-alignment.sh "$APK"
+
   changelog-guardrail:
     name: Changelog kept in sync
     runs-on: ubuntu-latest
