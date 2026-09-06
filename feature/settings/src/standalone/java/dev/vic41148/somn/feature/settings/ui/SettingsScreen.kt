@@ -248,6 +248,20 @@ fun SettingsScreen(
 
         // About
         SettingSection(title = "About") {
+            SettingToggle(
+                title = "Lock Somn on start",
+                checked = settings.appLockEnabled,
+                onCheckedChange = { viewModel.updateAppLockEnabled(it) }
+            )
+            Text(
+                text = "Ask for biometrics or the device PIN before showing your sleep " +
+                    "data. Tracking, alarms, and backups keep running while locked.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

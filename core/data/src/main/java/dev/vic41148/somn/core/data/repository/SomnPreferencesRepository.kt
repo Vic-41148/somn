@@ -139,6 +139,7 @@ class SomnPreferencesRepository @Inject constructor(
         val UPDATE_STAGED_RELEASE = stringPreferencesKey("update_staged_release")
         val UPDATE_RESTORE_PROMPT_SHOWN = booleanPreferencesKey("update_restore_prompt_shown")
         val BYSTANDER_NOTICE_SHOWN = booleanPreferencesKey("bystander_notice_shown")
+        val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -582,6 +583,19 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateBystanderNoticeShown(shown: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.BYSTANDER_NOTICE_SHOWN] = shown }
+    }
+
+    /**
+     * Opt-in app lock. Gates the UI at cold start only — background tracking, alarms, and
+     * workers keep running, because an overnight sleep tracker that stops tracking while
+     * locked would be broken by design. At-rest data stays SQLCipher-encrypted regardless.
+     */
+    val appLockEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.APP_LOCK_ENABLED] ?: false }
+
+    suspend fun updateAppLockEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.APP_LOCK_ENABLED] = enabled }
     }
 
     private fun encodeStagedRelease(r: dev.vic41148.somn.core.domain.model.StagedRelease): String {

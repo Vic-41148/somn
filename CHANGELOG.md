@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Opt-in app lock.** *Settings → About → Lock Somn on start* gates the UI behind biometrics or the device credential at cold start; tracking, alarms, and workers keep running by design.
 - **Full wipe.** *Settings → Delete everything* clears all sessions, habits, tags, clips, and preferences; the app restarts as a fresh install. Privacy policy updated: clip deletion keeps event rows, local-only is not seizure-proof, crash logs stay on-device.
 - **Crash reports without telemetry.** A redacted stack trace is written to app-private storage on crash; Settings → About copies the latest one for a bug report. Nothing ever leaves the device on its own.
 - **Open source licenses screen.** Settings → About lists every bundled dependency and its license, generated at build time (FOSS AboutLibraries, no Play Services).

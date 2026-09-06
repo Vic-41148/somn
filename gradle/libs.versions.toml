@@ -101,6 +101,9 @@ zxingcpp = { group = "io.github.zxing-cpp", name = "android", version.ref = "zxi
 # DocumentFile
 documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 
+# App lock (stable 1.1.0 — the 1.4.x alpha line is watched, not chased).
+biometric = { group = "androidx.biometric", name = "biometric", version = "1.1.0" }
+
 # Passphrase strength estimation for custom backup passphrases (zxcvbn, no network).
 zxcvbn = { group = "com.nulab-inc", name = "zxcvbn", version = "1.9.0" }
 

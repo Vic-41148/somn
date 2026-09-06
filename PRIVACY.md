@@ -137,7 +137,9 @@ is disclosed as a non-free dependency for F-Droid purposes.
 
 Local-only storage protects against network collection, not physical access: someone holding
 your unlocked phone — or a forensic image of it — can read what is on it. Your lock screen
-is part of this app's privacy story, not separate from it.
+is part of this app's privacy story, not separate from it. *Settings → About → Lock Somn on
+start* adds a biometric/device-PIN gate at cold start; tracking, alarms, and backups keep
+running while locked, so the gate covers what is on screen, not background work.
 
 ## How these claims are kept honest
 

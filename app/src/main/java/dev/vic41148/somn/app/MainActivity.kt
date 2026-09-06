@@ -2,7 +2,6 @@ package dev.vic41148.somn.app
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.fragment.app.FragmentActivity
 import dev.vic41148.somn.app.integration.UpdateIntegration
+import dev.vic41148.somn.app.lock.AppLockGate
 import dev.vic41148.somn.app.navigation.SleepNavGraph
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
@@ -26,7 +27,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     @Inject lateinit var profileRepository: UserProfileRepository
     @Inject lateinit var preferencesRepository: SomnPreferencesRepository
@@ -78,10 +79,12 @@ class MainActivity : ComponentActivity() {
                             // Channel-scoped components that must render above the nav graph:
                             // standalone wraps for haptics + shows the first-launch restore prompt.
                             ProvideHaptics(delegate = hapticsManager) {
-                                SleepNavGraph(
-                                    isOnboardingCompleted = isOnboardingCompleted ?: false,
-                                    updateIntegrations = updateIntegrations
-                                )
+                                AppLockGate(preferencesRepository = preferencesRepository) {
+                                    SleepNavGraph(
+                                        isOnboardingCompleted = isOnboardingCompleted ?: false,
+                                        updateIntegrations = updateIntegrations
+                                    )
+                                }
                                 updateIntegrations.forEach { it.RestorePrompt() }
                             }
                         }

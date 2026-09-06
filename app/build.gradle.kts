@@ -162,5 +162,8 @@ dependencies {
     // Open-source licenses screen (FOSS AboutLibraries, not GMS oss-licenses-plugin).
     implementation(libs.aboutlibraries)
 
+    // Opt-in app lock: biometric or device credential at cold start.
+    implementation(libs.biometric)
+
     testImplementation(libs.junit)
 }

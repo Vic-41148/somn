@@ -158,6 +158,9 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.bystanderNoticeShown) { state, shown ->
             state.copy(bystanderNoticeShown = shown)
         }
+        collectInto(preferencesRepository.appLockEnabled) { state, enabled ->
+            state.copy(appLockEnabled = enabled)
+        }
     }
 
     /**
@@ -205,6 +208,8 @@ class SettingsViewModel @Inject constructor(
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
         /** One-time notice shown: the mic hears everyone in the room, not just the owner. */
         val bystanderNoticeShown: Boolean = false,
+        /** Opt-in cold-start lock (biometric or device credential). Off by default. */
+        val appLockEnabled: Boolean = false,
         val selectedCaptchaTaskId: String = "math",
         val qrCodeValue: String? = null,
         val backupUri: String? = null,
@@ -468,6 +473,12 @@ class SettingsViewModel @Inject constructor(
     fun dismissBystanderNotice() {
         viewModelScope.launch {
             preferencesRepository.updateBystanderNoticeShown(true)
+        }
+    }
+
+    fun updateAppLockEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.updateAppLockEnabled(enabled)
         }
     }
 
