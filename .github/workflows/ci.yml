@@ -125,7 +125,7 @@ jobs:
   privacy-guardrails:
     name: Privacy guardrails
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v7
@@ -180,6 +180,27 @@ jobs:
                    grep -A1 'uses-permission#android.permission.INTERNET' "$REPORT"; exit 1; }
           fi
           echo "OK: backup opt-out intact, INTERNET scoped to :core:data."
+
+      # The self-updater (and its REQUEST_INSTALL_PACKAGES permission) is a standalone-channel
+      # exclusive. F-Droid treats a bundled updater as a trust violation, not just a wrong build,
+      # so the store flavor must provably contain neither — checked on the built artifact, not
+      # on source layout, because manifest merging is exactly what could leak them across flavors.
+      - name: Store flavor carries no self-updater
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleStoreRelease -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+          APK=$(ls app/build/outputs/apk/store/release/*.apk | head -1)
+          echo "Inspecting $APK"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          if "$BT/aapt2" dump badging "$APK" | grep -q 'REQUEST_INSTALL_PACKAGES'; then
+            echo "::error::REQUEST_INSTALL_PACKAGES leaked into the store APK"
+            exit 1
+          fi
+          if unzip -p "$APK" 'classes*.dex' | grep -qa 'core/data/update/'; then
+            echo "::error::updater classes (core/data/update) present in the store dex"
+            exit 1
+          fi
+          echo "OK: store APK has no updater permission or classes."
 
   changelog-guardrail:
     name: Changelog kept in sync
