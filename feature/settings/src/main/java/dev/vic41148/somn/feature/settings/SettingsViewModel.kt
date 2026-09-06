@@ -15,11 +15,13 @@ import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,6 +66,11 @@ class SettingsViewModel @Inject constructor(
     /** Set once a restore replaced the database and the process needs restarting. */
     private val _restartRequired = MutableStateFlow(false)
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
+
+    // Declared before the init block on purpose: init launches ~30 collectors that write
+    // this, and on a cold entry (main thread busy verifying classes) a fast resume can
+    // win the race against the rest of construction — a later declaration NPEs under R8.
+    private val _settings = MutableStateFlow(SettingsState())
 
     init {
         // Target Sleep Hours used to be purely local ViewModel state. The slider updated
@@ -244,8 +251,15 @@ class SettingsViewModel @Inject constructor(
             dev.vic41148.somn.core.domain.haptic.HapticsIntensity.STANDARD
     )
 
-    private val _settings = MutableStateFlow(SettingsState())
-    val settings: StateFlow<SettingsState> = _settings.asStateFlow()
+    // (Declaration lives above the first init block; see there.)
+    // Debounced because the ~30 init-block collectors fire as one burst on entry and every
+    // update used to recompose this 900-line screen mid-animation; steady-state toggles
+    // pick up a 50ms UI lag nobody can feel. Logic needing the freshest value reads
+    // _settings directly.
+    @OptIn(FlowPreview::class)
+    val settings: StateFlow<SettingsState> = _settings
+        .debounce(50)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SettingsState())
 
     /** R5: profile for gating the menopause check-in entry (peri/meno stages only). */
     val userProfile = userProfileRepository.observeProfile()

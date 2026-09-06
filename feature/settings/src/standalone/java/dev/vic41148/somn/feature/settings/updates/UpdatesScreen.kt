@@ -47,6 +47,7 @@ fun UpdatesScreen(
     viewModel: UpdatesViewModel = hiltViewModel()
 ) {
     val history by viewModel.history.collectAsState()
+    val currentVersionName by viewModel.currentVersionName.collectAsState()
     val historyLoading by viewModel.historyLoading.collectAsState()
     val historyError by viewModel.historyError.collectAsState()
     val staged by viewModel.staged.collectAsState()
@@ -76,7 +77,7 @@ fun UpdatesScreen(
         }
 
         Text(
-            text = "Installed: Somn ${viewModel.currentVersionName}",
+            text = "Installed: Somn ${currentVersionName}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -143,7 +144,7 @@ fun UpdatesScreen(
                 for (release in history) {
                     ReleaseHistoryRow(
                         release = release,
-                        isCurrent = release.versionName == viewModel.currentVersionName,
+                        isCurrent = release.versionName == currentVersionName,
                         isStaged = release.tag == staged.tag,
                         isDisabled = phase is UpdatesViewModel.Phase.DowngradePreparing,
                         onDowngrade = { viewModel.requestDowngrade(release) }

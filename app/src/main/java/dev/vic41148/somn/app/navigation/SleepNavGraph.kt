@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessAlarm
 import androidx.compose.material.icons.filled.BarChart
@@ -15,8 +16,6 @@ import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -155,28 +154,31 @@ fun SleepNavGraph(
     }
 
     Scaffold(
+        // Transparent so the floating dock reads as floating: no opaque band is
+        // painted behind the pill and its popped bubble.
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         bottomBar = {
             if (!hideBottomBar) {
-                NavigationBar {
-                    bottomNavScreens.forEach { screen ->
-                        NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = screen.label) },
-                            label = { Text(screen.label) },
-                            selected = currentDestination?.hierarchy?.any {
-                                it.route == screen.route
-                            } == true,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                // Index from the destination hierarchy so back navigation and deep links
+                // glide the dock notch too, not just taps.
+                val selectedIndex = bottomNavScreens.indexOfFirst { screen ->
+                    currentDestination?.hierarchy?.any {
+                        it.route == screen.route
+                    } == true
+                }.coerceAtLeast(0)
+                SomnBottomBar(
+                    screens = bottomNavScreens,
+                    selectedIndex = selectedIndex,
+                    onSelect = { screen ->
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
-                        )
-                    }
-                }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
             }
         }
     ) { innerPadding ->

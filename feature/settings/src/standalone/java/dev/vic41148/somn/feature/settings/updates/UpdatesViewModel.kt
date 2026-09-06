@@ -12,6 +12,7 @@ import dev.vic41148.somn.core.data.update.UpdateScheduler
 import dev.vic41148.somn.core.domain.haptic.HapticsManager
 import dev.vic41148.somn.core.domain.model.ReleaseInfo
 import dev.vic41148.somn.core.domain.model.StagedRelease
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,7 +75,20 @@ class UpdatesViewModel @Inject constructor(
 
     private var pendingRelease: StagedRelease? = null
 
+    // Declared before the init block on purpose: init launches coroutines that write this,
+    // and on a cold entry (main thread busy verifying classes) an IO resume can win the
+    // race against the rest of construction — a later declaration NPEs under R8.
+    private val _currentVersionName = MutableStateFlow("")
+    val currentVersionName: StateFlow<String> = _currentVersionName.asStateFlow()
+
     init {
+        viewModelScope.launch(Dispatchers.IO) {
+            _currentVersionName.value = try {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
+            } catch (e: Exception) {
+                ""
+            }
+        }
         viewModelScope.launch {
             preferencesRepository.updateAutoCheck.collect { _autoCheck.value = it }
         }
@@ -91,13 +105,9 @@ class UpdatesViewModel @Inject constructor(
         }
     }
 
-    val currentVersionName: String =
-        try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
-        } catch (e: Exception) {
-            ""
-        }
-
+    // PackageManager is binder IPC: resolving it in init would hitch the Settings
+    // tab animation on cold entry, so it loads on IO and the UI fills in a frame later.
+    // (Declaration lives above the init block; see there.)
     fun setAutoCheck(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.updateUpdateAutoCheck(enabled)

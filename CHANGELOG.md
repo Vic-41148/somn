@@ -7,6 +7,10 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Bottom bar is a floating dock.** The stock tab bar is replaced by a pill dock: press or drag and a bubble carrying the tab icon pops out under the finger (morphing circle to squircle), release and it sinks back. Drag scrub-selects across tabs with haptics; taps, back navigation, and TalkBack keep working as before.
+- **Settings entry no longer hitches the tab animation.** The 900-line screen is a `LazyColumn` so cold entry composes visible rows only, the 30-collector state burst is debounced, and `PackageManager` lookups moved off the main thread. Cold entry dropped from ~1300ms of hitches to ~800ms, warm from ~800ms to ~400ms.
+- **Release-only crash on Settings entry.** Init-launched coroutines could resume before later-declared state finished constructing on cold entry (main thread busy verifying classes), NPEing under R8. State written from init is now declared first; retrace-verified on-device.
+
 - **Encrypted backup paths rebuilt without ATTACH.** sqlcipher-android runs every statement on a pooled connection, so `ATTACH` never survives to the next call and the old export/migration/restore silently produced empty files. All three paths now copy schema plus rows in pages with no cross-statement state, verify without mutating the file version, and allow Room's own indices through the schema gate.
 - **Plaintext migration steps its export.** `sqlcipher-android` does not execute a `SELECT sqlcipher_export` passed to `rawExecSQL`, so upgrades from pre-encryption installs produced an empty file and crashed on launch. Both export sites now step the query.
 - **Licenses screen covers the YAMNet model.** The runtime-downloaded model is not a Gradle dependency, so it gets its own attribution line below the generated list.

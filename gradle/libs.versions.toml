@@ -42,6 +42,9 @@ compose-animation = { group = "androidx.compose.animation", name = "animation" }
 compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 
+# Shape morphing for the bottom dock bubble (circle -> squircle under press).
+graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version = "1.0.1" }
+
 # Activity & Core
 activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.9.3" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.15.0" }
