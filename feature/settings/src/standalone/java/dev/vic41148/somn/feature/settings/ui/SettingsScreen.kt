@@ -1046,7 +1046,8 @@ fun SettingsScreen(
                         text = {
                             Text(
                                 "This downloads the ~4 MB YAMNet audio model once over the " +
-                                    "internet (HTTPS, checksum-verified). It then runs entirely " +
+                                    "internet (HTTPS, checksum-verified, open-source Apache-2.0). " +
+                                    "It then runs entirely " +
                                     "on-device - audio never leaves your phone."
                             )
                         },
