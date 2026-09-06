@@ -71,7 +71,9 @@ fun PermissionsScreen(
                 PermissionItem(
                     Manifest.permission.RECORD_AUDIO,
                     "Microphone (optional)",
-                    "Snoring detection, sleep talk recording, and breathing analysis",
+                    "Snoring detection, sleep talk recording, and breathing analysis. " +
+                        "The mic hears the whole room, not just you — if someone shares " +
+                        "your bed or bedroom, they should know recording is on.",
                     required = false
                 )
             )

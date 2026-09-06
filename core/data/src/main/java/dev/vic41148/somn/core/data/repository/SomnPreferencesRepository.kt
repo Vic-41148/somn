@@ -138,6 +138,7 @@ class SomnPreferencesRepository @Inject constructor(
         val UPDATE_SKIPPED_VERSION = stringPreferencesKey("update_skipped_version")
         val UPDATE_STAGED_RELEASE = stringPreferencesKey("update_staged_release")
         val UPDATE_RESTORE_PROMPT_SHOWN = booleanPreferencesKey("update_restore_prompt_shown")
+        val BYSTANDER_NOTICE_SHOWN = booleanPreferencesKey("bystander_notice_shown")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -567,6 +568,15 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateUpdateRestorePromptShown(shown: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.UPDATE_RESTORE_PROMPT_SHOWN] = shown }
+    }
+
+    /** One-time partner/bystander audio notice, shown when continuous-mic tracking is chosen. */
+    val bystanderNoticeShown: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.BYSTANDER_NOTICE_SHOWN] ?: false }
+
+    suspend fun updateBystanderNoticeShown(shown: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.BYSTANDER_NOTICE_SHOWN] = shown }
     }
 
     private fun encodeStagedRelease(r: dev.vic41148.somn.core.domain.model.StagedRelease): String {

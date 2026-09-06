@@ -489,6 +489,9 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (!settings.bystanderNoticeShown) {
+                    BystanderNoticeDialog(onDismiss = { viewModel.dismissBystanderNotice() })
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider()

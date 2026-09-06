@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Bystander audio notice.** Mic rationale now says the room is recorded, not just you; choosing continuous-mic sonar mode shows a one-time dialog asking that bed/bedroom sharers know recording is on.
 - **Health Connect rationale screen.** A dedicated activity answers `ACTION_SHOW_PERMISSIONS_RATIONALE` for the pre-Android-14 Health Connect app path; the 14+ alias already existed.
 - **Custom backup passphrases must be strong.** User-chosen recovery passphrases now need zxcvbn score 3+; the generated 160-bit key stays the recommended path.
 - **Exports go through Storage Access Framework.** CSV and ZIP exports now write to a user-picked file instead of a cache copy passed to a share sheet; stale pre-SAF cache exports are deleted.

@@ -155,6 +155,9 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.clipRetentionDays) { state, days ->
             state.copy(clipRetentionDays = days)
         }
+        collectInto(preferencesRepository.bystanderNoticeShown) { state, shown ->
+            state.copy(bystanderNoticeShown = shown)
+        }
     }
 
     /**
@@ -200,6 +203,8 @@ class SettingsViewModel @Inject constructor(
             dev.vic41148.somn.core.data.repository.SomnPreferencesRepository.DEFAULT_CLIP_RETENTION_DAYS,
         val darkMode: String = "System",
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
+        /** One-time notice shown: the mic hears everyone in the room, not just the owner. */
+        val bystanderNoticeShown: Boolean = false,
         val selectedCaptchaTaskId: String = "math",
         val qrCodeValue: String? = null,
         val backupUri: String? = null,
@@ -440,6 +445,12 @@ class SettingsViewModel @Inject constructor(
     fun updateTrackingMode(mode: TrackingMode) {
         viewModelScope.launch {
             preferencesRepository.updateTrackingMode(mode)
+        }
+    }
+
+    fun dismissBystanderNotice() {
+        viewModelScope.launch {
+            preferencesRepository.updateBystanderNoticeShown(true)
         }
     }
 
