@@ -71,6 +71,19 @@
             </intent-filter>
         </activity-alias>
 
+        <!--
+          Pre-Android-14 path, when Health Connect is a separate app: it fires
+          ACTION_SHOW_PERMISSIONS_RATIONALE when the user taps through from its own
+          permission screen. Same story as the in-app toggle, standalone screen.
+        -->
+        <activity
+            android:name=".health.HealthRationaleActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
         <!-- FileProvider for CSV export sharing -->
         <provider
             android:name="androidx.core.content.FileProvider"
