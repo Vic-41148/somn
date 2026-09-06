@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Encrypted backup paths rebuilt without ATTACH.** sqlcipher-android runs every statement on a pooled connection, so `ATTACH` never survives to the next call and the old export/migration/restore silently produced empty files. All three paths now copy schema plus rows in pages with no cross-statement state, verify without mutating the file version, and allow Room's own indices through the schema gate.
 - **Plaintext migration steps its export.** `sqlcipher-android` does not execute a `SELECT sqlcipher_export` passed to `rawExecSQL`, so upgrades from pre-encryption installs produced an empty file and crashed on launch. Both export sites now step the query.
 - **Licenses screen covers the YAMNet model.** The runtime-downloaded model is not a Gradle dependency, so it gets its own attribution line below the generated list.
 - **YAMNet download names its license.** The opt-in consent dialog now says the model is open-source Apache-2.0, alongside the existing size, HTTPS, and checksum disclosure.
