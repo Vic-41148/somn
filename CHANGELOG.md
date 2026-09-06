@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Release provenance.** Every GitHub release now ships a CycloneDX SBOM and a keyless Sigstore bundle over `SHA256SUMS.txt`; the README documents the verify commands. Release signing fixed to the standalone channel.
 - **Version derives from the git tag.** `versionCode`/`versionName` come from `git describe` (v0.1.2 → 1002 / "0.1.2") so tags, builds, and the self-updater can never disagree.
 - **Declare `ACCESS_LOCAL_NETWORK` early.** Inert at targetSdk 36; the runtime request lands in the NAS-setup flow with the targetSdk 37 bump, before Android 17 enforcement breaks WebDAV sync.
 - **SQLCipher migrated to `sqlcipher-android` 4.10.0.** The old `android-database-sqlcipher` 4.5.x line is end-of-life and its natives are 4KB-aligned; the new artifact is 16KB-aligned on all ABIs (verified with `readelf` on the release APK). Package `net.sqlcipher.database` → `net.zetetic.database.sqlcipher`, `SupportFactory` → `SupportOpenHelperFactory`, native load via `System.loadLibrary` once.
