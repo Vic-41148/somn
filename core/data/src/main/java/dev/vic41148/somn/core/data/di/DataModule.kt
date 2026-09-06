@@ -42,7 +42,7 @@ object DataModule {
             .openHelperFactory(
                 // At-rest encryption: SQLCipher with a Keystore-wrapped random key. First
                 // launch on a v0.1.2 install migrates the plaintext DB in place.
-                net.sqlcipher.database.SupportFactory(keyManager.getOrCreatePassphrase())
+                net.zetetic.database.sqlcipher.SupportOpenHelperFactory(keyManager.getOrCreatePassphrase())
             )
             .addMigrations(*ALL_MIGRATIONS)
             // v1 predates exportSchema and never shipped. Every later version migrates properly.

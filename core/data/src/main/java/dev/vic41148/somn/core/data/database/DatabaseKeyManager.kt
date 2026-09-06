@@ -5,8 +5,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.vic41148.somn.core.data.backup.EncryptionUtils
 import java.io.File
 import java.security.SecureRandom
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
+import net.zetetic.database.sqlcipher.SQLiteDatabase
 
 /**
  * Owns the SQLCipher passphrase for the Room DB. The 256-bit key is generated once via
@@ -29,6 +31,9 @@ class DatabaseKeyManager @Inject constructor(
      * the crash window where a previous run persisted the key but died mid-migration.
      */
     fun getOrCreatePassphrase(): ByteArray {
+        // Room opens through SupportOpenHelperFactory right after this returns, so the
+        // native library must already be loaded on every path, not just migration ones.
+        loadNative()
         val keyFile = keyFile()
         val key = if (keyFile.exists()) {
             encryption.decryptBytes(keyFile.readBytes())
@@ -55,6 +60,18 @@ class DatabaseKeyManager @Inject constructor(
     private fun keyFile(): File = File(context.filesDir, "db_key.bin")
 
     private fun dbFile(): File = context.getDatabasePath(SleepDatabase.DATABASE_NAME)
+
+    /**
+     * Loads the SQLCipher native library once. The new `sqlcipher-android` API loads via
+     * plain `System.loadLibrary` (no `loadLibs(Context)`), which must not run twice.
+     */
+    private val nativeLoaded = AtomicBoolean(false)
+
+    private fun loadNative() {
+        if (nativeLoaded.compareAndSet(false, true)) {
+            System.loadLibrary("sqlcipher")
+        }
+    }
 
     /** Tables a restore candidate may contain, besides Room/SQLite system objects. */
     val knownTables: Set<String> = setOf(
@@ -89,15 +106,15 @@ class DatabaseKeyManager @Inject constructor(
      * result opens before swapping; the caller closes Room first.
      */
     fun importPlaintextCopy(src: File) {
-        net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+        loadNative()
         val key = getOrCreatePassphrase()
         val hex = key.joinToString("") { "%02x".format(it) }
         val target = dbFile()
         val tmp = File(target.parent, "${target.name}.importing")
         if (tmp.exists()) tmp.delete()
-        val plain = net.sqlcipher.database.SQLiteDatabase.openDatabase(
-            src.absolutePath, "", null,
-            net.sqlcipher.database.SQLiteDatabase.OPEN_READONLY
+        val plain = SQLiteDatabase.openDatabase(
+            src.absolutePath, null,
+            SQLiteDatabase.OPEN_READONLY, null
         ) ?: error("Cannot open restore candidate.")
         try {
             plain.rawExecSQL("ATTACH DATABASE '${tmp.absolutePath}' AS encrypted KEY \"x'$hex'\";")
@@ -139,11 +156,11 @@ class DatabaseKeyManager @Inject constructor(
                     db.close()
                 }
             } else {
-                net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+                loadNative()
                 val hex = key.joinToString("") { "%02x".format(it) }
-                val db = net.sqlcipher.database.SQLiteDatabase.openDatabase(
-                    file.absolutePath, "", null,
-                    net.sqlcipher.database.SQLiteDatabase.OPEN_READONLY
+                val db = SQLiteDatabase.openDatabase(
+                    file.absolutePath, null,
+                    SQLiteDatabase.OPEN_READONLY, null
                 ) ?: return false
                 try {
                     db.rawExecSQL("PRAGMA key = \"x'$hex'\";")
@@ -190,14 +207,14 @@ class DatabaseKeyManager @Inject constructor(
         val db = dbFile()
         if (!db.exists()) return
         if (!isPlaintextSQLite(db)) return
-        net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+        loadNative()
         val tmp = File(db.parent, "${db.name}.migrating")
         if (tmp.exists()) tmp.delete()
-        var plain: net.sqlcipher.database.SQLiteDatabase? = null
+        var plain: SQLiteDatabase? = null
         try {
-            plain = net.sqlcipher.database.SQLiteDatabase.openDatabase(
-                db.absolutePath, "", null,
-                net.sqlcipher.database.SQLiteDatabase.OPEN_READWRITE
+            plain = SQLiteDatabase.openDatabase(
+                db.absolutePath, null,
+                SQLiteDatabase.OPEN_READWRITE, null
             )
             val hex = passphrase.joinToString("") { "%02x".format(it) }
             plain.rawExecSQL(
@@ -228,11 +245,11 @@ class DatabaseKeyManager @Inject constructor(
     /** True when [file] is a SQLCipher database that [passphrase] opens. */
     fun isEncryptedSQLite(file: File, passphrase: ByteArray): Boolean {
         return try {
-            net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+            loadNative()
             val hex = passphrase.joinToString("") { "%02x".format(it) }
-            val db = net.sqlcipher.database.SQLiteDatabase.openDatabase(
-                file.absolutePath, "", null,
-                net.sqlcipher.database.SQLiteDatabase.OPEN_READONLY
+            val db = SQLiteDatabase.openDatabase(
+                file.absolutePath, null,
+                SQLiteDatabase.OPEN_READONLY, null
             ) ?: return false
             try {
                 db.rawExecSQL("PRAGMA key = \"x'$hex'\";")

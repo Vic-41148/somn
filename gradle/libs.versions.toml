@@ -59,8 +59,11 @@ room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
-# SQLCipher (at-rest encryption for the Room DB; 4.x ships 16KB-aligned natives)
-sqlcipher = { group = "net.zetetic", name = "android-database-sqlcipher", version = "4.5.4" }
+# SQLCipher (at-rest encryption for the Room DB). `sqlcipher-android` (not the EOL
+# `android-database-sqlcipher` 4.5.x, whose natives are 4KB-aligned): 16KB-aligned
+# since 4.6.1, maintainer-verified for 4.10.0; 4.18.0 needs compileSdk 37 which this
+# project does not target yet. See https://www.zetetic.net/sqlcipher/sqlcipher-for-android-migration/
+sqlcipher = { group = "net.zetetic", name = "sqlcipher-android", version = "4.10.0" }
 # Real org.json for JVM unit tests (android.jar stubs it to null)
 json-java = { group = "org.json", name = "json", version = "20240303" }
 
