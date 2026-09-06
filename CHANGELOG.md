@@ -7,6 +7,9 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **History range pills are centered.** The Week/Month/3 mo/All chips were left-aligned with dead space on the right; they now sit centered with even gaps.
+- **History and Alarms headers match the other tabs.** Both screens had their own `TopAppBar`, which painted a surface band across the top and double-applied the status-bar inset so they sat lower than Home/Habits/Settings. They now use the same plain headline row in content (bulk-select/delete/export and add/history actions kept), with zero inner insets like Settings.
+- **Settings search.** A search field under the Settings title filters the ~20 sections by title and keywords (try "backup", "vibrate", or "QR"); sections that don't match leave the list, footers stay out of results, and a clear button resets. Query survives scrolling and rotation.
 - **Bottom bar is a floating dock.** The stock tab bar is replaced by a pill dock: press or drag and a bubble carrying the tab icon pops out under the finger (morphing circle to squircle), release and it sinks back. Drag scrub-selects across tabs with haptics; taps, back navigation, and TalkBack keep working as before.
 - **Dock keeps no dead band over content.** The press bubble used to sit in a reserved strip above the pill, which read as a black band slicing the card above it. The dock now floats over content with no slot reserve at all — the bubble overflows only while pressed, and tab screens end with clearance so nothing hides under the pill.
 - **Settings entry no longer hitches the tab animation.** The 900-line screen is a `LazyColumn` so cold entry composes visible rows only, the 30-collector state burst is debounced, and `PackageManager` lookups moved off the main thread. Cold entry dropped from ~1300ms of hitches to ~800ms, warm from ~800ms to ~400ms.

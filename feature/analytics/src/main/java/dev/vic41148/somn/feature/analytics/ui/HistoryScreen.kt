@@ -1,16 +1,15 @@
 package dev.vic41148.somn.feature.analytics.ui
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -102,14 +101,32 @@ fun HistoryScreen(
     }
 
     androidx.compose.material3.Scaffold(
+        // Same deal as SettingsScreen: this sits inside the app-level Scaffold's NavHost,
+        // which already consumed the system-bar insets. Re-applying them here double-pads
+        // the top and pushes the screen down next to the other tabs.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         // Lifted clear of the floating dock, which overlays content.
         snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = 88.dp)) },
-        topBar = {
-            androidx.compose.material3.TopAppBar(
-                title = {
-                    Text(if (selectedIds.isNotEmpty()) "${selectedIds.size} Selected" else "History")
-                },
-                navigationIcon = {
+    ) { padding ->
+        // One LazyColumn for the whole screen. The header (range, summary, filter) used to
+        // sit in a fixed Column above a nested list. The top half of the screen never
+        // scrolled and the list fought for the remaining space. Everything scrolls as one
+        // now, the way a report should read.
+        var filterExpanded by remember { mutableStateOf(false) }
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Header matches the other tabs (plain headline + actions, no TopAppBar
+            // surface band), so this lines up exactly with Home/Habits/Settings.
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     if (selectedIds.isNotEmpty()) {
                         IconButton(onClick = { viewModel.clearBulkSelection() }) {
                             Icon(
@@ -118,8 +135,13 @@ fun HistoryScreen(
                             )
                         }
                     }
-                },
-                actions = {
+                    Text(
+                        text = if (selectedIds.isNotEmpty()) "${selectedIds.size} Selected" else "History",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
                     if (selectedIds.isNotEmpty()) {
                         IconButton(onClick = { viewModel.deleteSelectedSessions() }) {
                             Icon(
@@ -142,21 +164,8 @@ fun HistoryScreen(
                         }
                     }
                 }
-            )
-        }
-    ) { padding ->
-        // One LazyColumn for the whole screen. The header (range, summary, filter) used to
-        // sit in a fixed Column above a nested list. The top half of the screen never
-        // scrolled and the list fought for the remaining space. Everything scrolls as one
-        // now, the way a report should read.
-        var filterExpanded by remember { mutableStateOf(false) }
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+            }
+
             // Range selector — stats header and list both follow this.
             item {
                 ReportRangeRow(
@@ -333,10 +342,8 @@ private fun ReportRangeRow(
 ) {
     val options = listOf(7 to "Week", 30 to "Month", 90 to "3 mo", null to "All")
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
     ) {
         options.forEach { (days, label) ->
             FilterChip(

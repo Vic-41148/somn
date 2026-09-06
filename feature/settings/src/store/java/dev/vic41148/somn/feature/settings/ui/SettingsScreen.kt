@@ -19,6 +19,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -35,8 +39,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -133,6 +139,40 @@ fun SettingsScreen(
         if (isGranted) showQrSetup = true
     }
     val listState = rememberLazyListState()
+    // Settings search lives above the LazyColumn: item-scoped remember would reset
+    // the query whenever the field scrolls out of view (same reason the other
+    // form state is hoisted). Each section below declares its own match terms.
+    // (No Updates section on this channel — store builds ship no self-updater.)
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+    val searchTrimmed = searchQuery.trim()
+    fun settingMatches(vararg haystacks: String): Boolean =
+        searchTrimmed.isBlank() || haystacks.any { it.contains(searchTrimmed, ignoreCase = true) }
+    val showSleepTarget = settingMatches("Sleep Target", "target", "goal", "hours", "bedtime")
+    val showRecovery = settingMatches("Recovery", "rest mode", "sick", "injured", "streak", "baseline")
+    val showCycle = settingMatches("Cycle & hormones", "cycle", "hormone", "menopause", "period", "check-in", "symptom")
+    val showHaptics = settingMatches("Haptics", "haptic", "vibration", "vibrate", "feedback", "intensity", "tap")
+    val showAbout = settingMatches("About", "about", "app lock", "lock", "biometric", "PIN", "license", "open source", "version")
+    val showAppearance = settingMatches("Appearance", "appearance", "theme", "dark", "light", "wallpaper", "dynamic color", "morning ready")
+    val showWakeVerify = settingMatches("Wake-Up Verification", "wake", "verification", "awake", "confirm", "alarm")
+    val showSnore = settingMatches("Anti-Snore Nudge", "snore", "snoring", "nudge", "vibrate")
+    val showSleepTalk = settingMatches("Sleep-Talk Recordings", "sleep talk", "recording", "microphone", "audio", "clip", "retention", "delete")
+    val showDeleteData = settingMatches("Delete Data", "delete", "erase", "wipe", "purge", "reset", "remove")
+    val showSensor = settingMatches("Sensor Mode", "sensor", "accelerometer", "sonar", "tracking mode", "contactless", "pets", "nightstand")
+    val showBattery = settingMatches("Battery Threshold", "battery", "threshold", "standby", "percent", "level")
+    val showOversleep = settingMatches("Oversleep Threshold", "oversleep", "target", "late", "past")
+    val showSeasonal = settingMatches("Seasonal Analysis", "seasonal", "season", "timezone", "hemisphere", "winter", "summer")
+    val showCaptcha = settingMatches("Alarm CAPTCHA", "captcha", "alarm", "dismiss", "task", "QR", "math", "camera")
+    val showExport = settingMatches("Data Export & Backup", "export", "backup", "restore", "import", "CSV", "JSON", "recovery key")
+    val showNas = settingMatches("NAS Sync", "NAS", "sync", "WebDAV", "server", "host", "self-hosted", "upload", "HTTPS", "password")
+    val showHealth = settingMatches("Health Connect", "health", "connect", "sync", "share")
+    val showExperimental = settingMatches("Experimental", "experimental", "beta", "YAMNet", "ML", "model", "audio classification", "download")
+    val showWindDown = settingMatches("Wind-Down Toolkit", "wind down", "wind-down", "toolkit", "breathing", "relax", "cognitive", "ADHD", "cooldown")
+    val anySectionVisible = showSleepTarget || showRecovery || showCycle ||
+        showHaptics || showAbout || showAppearance || showWakeVerify || showSnore ||
+        showSleepTalk || showDeleteData || showSensor || showBattery || showOversleep ||
+        showSeasonal || showCaptcha || showExport || showNas || showHealth ||
+        showExperimental || showWindDown
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -149,8 +189,30 @@ fun SettingsScreen(
             )
         }
 
-        // Sleep Target
+        // Search sits right under the title so it is visible on entry; sections
+        // below only compose when they match.
         item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search settings") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search settings") },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
+            )
+        }
+
+        // Sleep Target
+        if (showSleepTarget) item {
             SettingSection(title = "Sleep Target") {
                 SliderWithValueLabel(
                     value = settings.targetSleepHours,
@@ -165,7 +227,7 @@ fun SettingsScreen(
 
         // R2 Rest Mode — sick/injured nights stop counting: streak freezes, sick
         // nights leave baselines and correlations, Outlook switches to recovery copy.
-        item {
+        if (showRecovery) item {
             SettingSection(title = "Recovery") {
                 SettingToggle(
                     title = "Rest Mode",
@@ -188,7 +250,7 @@ fun SettingsScreen(
 
         // R5: menopause check-in lives here so the peri/meno stages Somn already
         // models get Oura's questionnaire mechanic as pure UI over prefs.
-        item {
+        if (showCycle) item {
             if (profile?.showMenopauseFeatures == true) {
                 SettingSection(title = "Cycle & hormones") {
                     Text(
@@ -211,7 +273,7 @@ fun SettingsScreen(
         // feel the current combo without triggering a real event, and a note when the system-level
         // toggle would mute some effects. Near the top because it affects the whole app, not a
         // single feature.
-        item {
+        if (showHaptics) item {
             SettingSection(title = "Haptics") {
                 SettingToggle(
                     title = "Haptic Feedback",
@@ -275,7 +337,7 @@ fun SettingsScreen(
         // so the shared app navigation graph compiles against both flavor variants.
 
         // About
-        item {
+        if (showAbout) item {
             SettingSection(title = "About") {
                 SettingToggle(
                     title = "Lock Somn on start",
@@ -324,7 +386,7 @@ fun SettingsScreen(
         }
 
         // Appearance (THEME-01)
-        item {
+        if (showAppearance) item {
             SettingSection(title = "Appearance") {
                 SettingToggle(
                     title = "Match My Wallpaper",
@@ -340,7 +402,7 @@ fun SettingsScreen(
         }
 
         // Wake-Up Verification (WAKE-01/02)
-        item {
+        if (showWakeVerify) item {
             SettingSection(title = "Wake-Up Verification") {
                 SettingToggle(
                     title = "Confirm You Are Awake",
@@ -362,7 +424,7 @@ fun SettingsScreen(
         }
 
         // Anti-Snore Nudge
-        item {
+        if (showSnore) item {
             SettingSection(title = "Anti-Snore Nudge") {
                 SettingToggle(
                     title = "Vibrate on Snoring",
@@ -374,7 +436,7 @@ fun SettingsScreen(
 
         // Sleep-talk recording retention. These clips are the most sensitive thing the app
         // stores, so the retention window is surfaced here rather than buried in a backup screen.
-        item {
+        if (showSleepTalk) item {
             SettingSection(title = "Sleep-Talk Recordings") {
                 val retentionDays = settings.clipRetentionDays
                 Text(
@@ -434,7 +496,7 @@ fun SettingsScreen(
         // R2 per-category purge — Oura-style selective deletion without an account to
         // delete. Each category confirms separately; each reports through the shared
         // deletion status snackbar.
-        item {
+        if (showDeleteData) item {
             SettingSection(title = "Delete Data") {
                 OutlinedButton(
                     onClick = { confirmingHabitPurge = true },
@@ -545,7 +607,7 @@ fun SettingsScreen(
         }
 
         // Tracking (sensor selection + standby control)
-        item {
+        if (showSensor) item {
             SettingSection(title = "Sensor Mode") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -629,7 +691,7 @@ fun SettingsScreen(
         }
 
         // Battery Threshold
-        item {
+        if (showBattery) item {
             SettingSection(title = "Battery Threshold") {
                 Text(
                     text = "${settings.batteryThreshold}%",
@@ -658,7 +720,7 @@ fun SettingsScreen(
         
 
         // Oversleep Threshold (SESS-03)
-        item {
+        if (showOversleep) item {
             SettingSection(title = "Oversleep Threshold") {
                 val hours = settings.oversleepThresholdMinutes / 60
                 val mins = settings.oversleepThresholdMinutes % 60
@@ -692,7 +754,7 @@ fun SettingsScreen(
         // Seasonal Analysis - hemisphere override for the seasons used in circadian insights.
         // The default AUTO uses the device-timezone heuristic; travelers near the equator or on
         // the wrong side of a timezone boundary can pin the correct hemisphere here.
-        item {
+        if (showSeasonal) item {
             SettingSection(title = "Seasonal Analysis") {
                 Text(
                     text = "Seasons are detected from your timezone. If the app labels the wrong " +
@@ -728,7 +790,7 @@ fun SettingsScreen(
         
 
         // Alarm CAPTCHA
-        item {
+        if (showCaptcha) item {
             SettingSection(title = "Alarm CAPTCHA") {
                 val hasCameraPermission = ContextCompat.checkSelfPermission(
                     context, Manifest.permission.CAMERA
@@ -819,7 +881,7 @@ fun SettingsScreen(
         // Data export / backup / import is the one section that outgrew a card - pushing ~6 URLs,
         // file pickers and destructive actions into a single scrolling group. Moved to its own
         // screen; this row is just the pointer.
-        item {
+        if (showExport) item {
             SettingSection(title = "Data Export & Backup") {
                 Row(
                     modifier = Modifier
@@ -852,7 +914,7 @@ fun SettingsScreen(
         
 
         // NAS / Self-Hosted Backup
-        item {
+        if (showNas) item {
             SettingSection(title = "NAS Sync (Self-Hosted)") {
                 SettingToggle(
                     title = "Enable NAS Sync",
@@ -998,7 +1060,7 @@ fun SettingsScreen(
         
 
         // Health Connect (HEALTH-01..04)
-        item {
+        if (showHealth) item {
             SettingSection(title = "Health Connect") {
                 val healthConnectContract = remember(viewModel) { viewModel.healthConnectPermissionsContract() }
                 val permissionLauncher = rememberLauncherForActivityResult(
@@ -1062,7 +1124,7 @@ fun SettingsScreen(
         
 
         // Experimental: YAMNet audio classification (Task 14, AUDIO-01)
-        item {
+        if (showExperimental) item {
             SettingSection(title = "Experimental") {
                 val yamnetState by viewModel.yamnetModelState.collectAsState()
 
@@ -1146,7 +1208,7 @@ fun SettingsScreen(
         
 
         // Wind-Down Toolkit
-        item {
+        if (showWindDown) item {
             SettingSection(title = "Wind-Down Toolkit") {
                 Button(
                     onClick = onNavigateToBreathing,
@@ -1174,7 +1236,8 @@ fun SettingsScreen(
         // About - version comes from the installed package (PackageInfo) so it always matches the
         // channel actually installed (0.1.2 vs 0.1.2-store and future releases), never a stale
         // hardcoded constant.
-        item {
+        // Footers stay out of search results — they are version furniture, not settings.
+        if (searchTrimmed.isBlank()) item {
             // PackageManager is binder IPC: resolving it during composition would hitch
             // the tab animation, so the footer fills in a frame later.
             val appVersion by produceState(initialValue = "") {
@@ -1189,12 +1252,21 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        item {
+        if (searchTrimmed.isBlank()) item {
             Text(
                 text = "Open source • Privacy first • No subscriptions",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+        if (searchTrimmed.isNotBlank() && !anySectionVisible) {
+            item {
+                Text(
+                    text = "No settings match \"$searchTrimmed\".",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
     }

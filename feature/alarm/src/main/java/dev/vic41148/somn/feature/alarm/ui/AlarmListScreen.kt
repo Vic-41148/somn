@@ -2,9 +2,11 @@ package dev.vic41148.somn.feature.alarm.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +20,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,7 +38,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.Alarm
 import dev.vic41148.somn.feature.alarm.AlarmViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmListScreen(
     onAddAlarm: () -> Unit,
@@ -49,16 +48,11 @@ fun AlarmListScreen(
     val alarms by viewModel.alarms.collectAsState()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Alarms") },
-                actions = {
-                    IconButton(onClick = onHistory) {
-                        Icon(Icons.Default.History, contentDescription = "Alarm history")
-                    }
-                }
-            )
-        },
+        // Same deal as SettingsScreen: this sits inside the app-level Scaffold's NavHost,
+        // which already consumed the system-bar insets. Re-applying them here double-pads
+        // the top and pushes the screen down next to the other tabs. The header below is
+        // a plain headline row (no TopAppBar surface band) for the same reason.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 // The floating dock overlays content — keep the FAB clear of it.
@@ -76,20 +70,42 @@ fun AlarmListScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "No alarms set",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Tap + to create your first smart alarm",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Alarms",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onHistory) {
+                        Icon(Icons.Default.History, contentDescription = "Alarm history")
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "No alarms set",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Tap + to create your first smart alarm",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         } else {
             LazyColumn(
@@ -99,6 +115,23 @@ fun AlarmListScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Alarms",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = onHistory) {
+                            Icon(Icons.Default.History, contentDescription = "Alarm history")
+                        }
+                    }
+                }
                 items(alarms, key = { it.id }) { alarm ->
                     Card(
                         modifier = Modifier
