@@ -31,7 +31,9 @@ app, and each can be granted or revoked later from Android's app settings.
 - **Microphone** (`RECORD_AUDIO`) — audio is analysed in memory to classify snoring, coughing
   and talking. Except for the sleep-talk clips described below, audio is never written to disk
   and never transmitted. Declining it only disables audio-based features; motion tracking is
-  unaffected.
+  unaffected. Note the mic hears the whole room, not just you: if someone shares your bed or
+  bedroom, they should know recording is on. Choosing continuous-mic sonar tracking shows a
+  one-time reminder of exactly this.
 - **Motion sensors** (`BODY_SENSORS`, `HIGH_SAMPLING_RATE_SENSORS`) — movement drives sleep-stage
   classification. `BODY_SENSORS` became a runtime permission on Android 11 (API 30) and is
   requested during onboarding; on Android 14+ it is what lets sleep tracking run as the
@@ -56,6 +58,8 @@ These are the most sensitive files the app produces, so:
   *Settings → Sleep-Talk Recordings*.
 - *Settings → Delete all recordings now* destroys every clip immediately.
 - Deleting a session deletes its clips.
+- Deleting a clip removes the audio file, not the event row: the timestamp, type, and loudness
+  stay in your history, exactly like a session you kept. Only *Delete everything* removes those too.
 
 ## Google Auto Backup: off
 
@@ -84,8 +88,12 @@ Somn never uploads anything on its own initiative.
 
 ## No telemetry, and no third-party SDKs that phone home
 
-Somn contains no analytics, no crash reporting, no advertising, and no tracking of any kind. It
+Somn contains no analytics, no advertising, and no tracking of any kind. It
 does not report usage, errors, or your existence to anyone, including us.
+
+Crash reports are the one exception with an asterisk: when the app crashes, a redacted stack
+trace is written to app-private storage and stays there. Nothing uploads it — attaching it to
+a bug report is a deliberate *Settings → About → Copy latest crash report* action by you.
 
 The app deliberately avoids Google Play Services. Earlier versions used Google's ML Kit for QR
 scanning, which pulled in `play-services-basement` and Google's Cloud Client Telemetry transport
@@ -97,11 +105,12 @@ classpath.
 
 ### Prebuilt binaries
 
-For transparency, the app ships three things it does not build from source:
+For transparency, the app ships two things it does not build from source, plus one model it
+downloads at your request:
 
-- `core/audio/src/main/assets/yamnet.tflite` — Google's YAMNet audio-event classifier, Apache-2.0,
-  used on-device for optional snoring/coughing/talking classification. It never sends anything
-  anywhere.
+- YAMNet audio-event classifier — Google's model ([tfhub.dev/google/yamnet/1](https://tfhub.dev/google/yamnet/1),
+  Apache-2.0), downloaded on demand for optional snoring/coughing/talking classification and
+  verified by SHA-256 before use. It never sends anything anywhere. Not bundled in the APK.
   SHA-256: `10c95ea3eb9a7bb4cb8bddf6feb023250381008177ac162ce169694d05c317de`
 - `com.google.ai.edge.litert:litert` — the LiteRT/TensorFlow Lite runtime, Apache-2.0, from Maven
   Central, that executes the model above.
@@ -122,7 +131,13 @@ is disclosed as a non-free dependency for F-Droid purposes.
 
 - Individual sessions: delete from the history screen; clips go with them.
 - All recordings: *Settings → Delete all recordings now*.
-- Everything: uninstall Somn. Nothing survives it — there is no cloud copy and no Auto Backup.
+- Everything: *Settings → Delete everything* wipes all sessions, habits, tags, recordings, and
+  settings, and the app restarts as a fresh install. Uninstalling also removes everything —
+  there is no cloud copy and no Auto Backup.
+
+Local-only storage protects against network collection, not physical access: someone holding
+your unlocked phone — or a forensic image of it — can read what is on it. Your lock screen
+is part of this app's privacy story, not separate from it.
 
 ## How these claims are kept honest
 

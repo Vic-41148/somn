@@ -208,6 +208,11 @@ class SomnPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Full wipe support: drops every preference, onboarding-completed included. */
+    suspend fun clearAll() {
+        context.dataStore.edit { it.clear() }
+    }
+
     suspend fun updateBackupUri(uri: String?) {
         context.dataStore.edit { preferences ->
             if (uri == null) {

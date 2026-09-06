@@ -442,6 +442,23 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Full wipe: all sessions, habits, tags, clips, and preferences. Clearing preferences
+     * last means onboarding shows again on next launch — a wiped app restarts as a fresh
+     * install, which is the honest behavior, not a half-logged-in limbo.
+     */
+    fun wipeEverything() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                sleepRepository.deleteAllData()
+                preferencesRepository.clearAll()
+                "All data deleted"
+            } catch (e: Exception) {
+                "Failed to delete data: ${e.message}"
+            }
+        }
+    }
+
     fun updateTrackingMode(mode: TrackingMode) {
         viewModelScope.launch {
             preferencesRepository.updateTrackingMode(mode)

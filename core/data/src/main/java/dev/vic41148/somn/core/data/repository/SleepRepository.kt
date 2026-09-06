@@ -37,6 +37,18 @@ class SleepRepository @Inject constructor(
      */
     suspend fun <R> inTransaction(block: suspend () -> R): R = database.withTransaction(block)
 
+    /**
+     * Full wipe: every clip file on disk, then every table. Preferences are cleared
+     * separately by the caller (they live in another repository). The DB key file stays —
+     * a fresh empty database under the same key is exactly a fresh install.
+     */
+    suspend fun deleteAllData() {
+        audioEventDao.getEventsWithClips().forEach { entity ->
+            entity.clipPath?.let { path -> runCatching { java.io.File(path).delete() } }
+        }
+        database.clearAllTables()
+    }
+
     // --- Sessions ---
 
     suspend fun createSession(

@@ -450,6 +450,45 @@ fun SettingsScreen(
                     }
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            var confirmingFullWipe by remember { mutableStateOf(false) }
+            OutlinedButton(
+                onClick = { confirmingFullWipe = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Delete everything")
+            }
+            if (confirmingFullWipe) {
+                AlertDialog(
+                    onDismissRequest = { confirmingFullWipe = false },
+                    title = { Text("Delete everything?") },
+                    text = {
+                        Text(
+                            "Every sleep session, habit log, tag, recording, and setting " +
+                                "on this device will be permanently deleted. Somn restarts " +
+                                "as a fresh install. This cannot be undone."
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            confirmingFullWipe = false
+                            viewModel.wipeEverything()
+                        }) {
+                            Text(
+                                "Delete everything",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { confirmingFullWipe = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
         }
 
         // Tracking (sensor selection + standby control)
