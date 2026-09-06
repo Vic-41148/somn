@@ -15,26 +15,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,8 +50,7 @@ import java.util.Date
 import java.util.Locale
 import android.content.Context
 import android.content.pm.PackageManager
-import android.media.MediaPlayer
-import android.net.Uri
+import dev.vic41148.somn.core.ui.components.AudioTimeline
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +72,11 @@ fun SessionDetailScreen(
 
     val dateFormat = SimpleDateFormat("EEEE, MMM d, yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
+
+    var selectedAudioEventId by remember { mutableStateOf<Long?>(null) }
+    val clipPlayer = rememberAudioClipPlayer { path ->
+        withContext(Dispatchers.IO) { viewModel.playableClip(path) }
+    }
 
     Scaffold(
         topBar = {
@@ -162,16 +161,33 @@ fun SessionDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Audio Timeline (Phase 3)
-            dev.vic41148.somn.core.ui.components.AudioTimeline(
-                events = audioEvents,
-                sessionStartTime = session.startTimeMillis,
-                sessionDurationMillis = (session.endTimeMillis - session.startTimeMillis).coerceAtLeast(1000),
-                modifier = Modifier.padding(vertical = 16.dp),
-                onSeekTo = { timestamp ->
-                    // Handle seeking/playback if implements
+            // Audio timeline: tapping a marker selects it and plays its clip, if kept.
+            if (audioEvents.isNotEmpty()) {
+                SleepCard(title = "Audio timeline") {
+                    AudioTimeline(
+                        events = audioEvents,
+                        sessionStartTime = session.startTimeMillis,
+                        sessionDurationMillis = (session.endTimeMillis - session.startTimeMillis).coerceAtLeast(1000),
+                        startLabel = timeFormat.format(Date(session.startTimeMillis)),
+                        endLabel = timeFormat.format(Date(session.endTimeMillis)),
+                        selectedEventId = selectedAudioEventId,
+                        onEventSelected = { event ->
+                            selectedAudioEventId = event.id
+                            event.clipPath?.let { clipPlayer.play(event) }
+                        }
+                    )
+                    val selected = audioEvents.find { it.id == selectedAudioEventId }
+                    if (selected != null && selected.clipPath == null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "No recording kept for this event.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Audio Events Summary
             if (audioEvents.isNotEmpty()) {
@@ -188,73 +204,15 @@ fun SessionDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Sleep Talk Clips
-            val talkEvents = audioEvents.filter { it.type == AudioEventType.TALK && it.clipPath != null }
-            if (talkEvents.isNotEmpty()) {
-                val context = LocalContext.current
-                val scope = rememberCoroutineScope()
-                val mediaPlayer = remember { MediaPlayer() }
-                var tempClip by remember { mutableStateOf<java.io.File?>(null) }
-                DisposableEffect(mediaPlayer) {
-                    onDispose {
-                        mediaPlayer.release()
-                        tempClip?.takeIf { it.name.startsWith("play_") }?.delete()
-                    }
-                }
-
-                SleepCard(title = "Sleep Talk Recordings") {
-                    talkEvents.forEach { event ->
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = "Talk clip at ${timeFormat.format(Date(event.timestampMillis))}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            },
-                            supportingContent = {
-                                Text(
-                                    text = "${event.durationSeconds}s",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            },
-                            trailingContent = {
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        try {
-                                            // Sealed clips decrypt to a temp copy; legacy clips
-                                            // play in place. Old temp copies never linger.
-                                            tempClip?.takeIf { it.name.startsWith("play_") }?.delete()
-                                            val file = withContext(Dispatchers.IO) {
-                                                viewModel.playableClip(event.clipPath!!)
-                                            }
-                                            if (file.name.startsWith("play_")) tempClip = file
-                                            mediaPlayer.reset()
-                                            mediaPlayer.setOnPreparedListener { it.start() }
-                                            mediaPlayer.setOnCompletionListener {
-                                                tempClip?.takeIf { f -> f.name.startsWith("play_") }?.delete()
-                                                tempClip = null
-                                            }
-                                            mediaPlayer.setOnErrorListener { _, what, extra ->
-                                                android.util.Log.e("SessionDetailScreen",
-                                                    "Talk clip playback failed: what=$what extra=$extra")
-                                                true
-                                            }
-                                            mediaPlayer.setDataSource(context, Uri.fromFile(file))
-                                            // prepareAsync() instead of prepare() — the latter blocks
-                                            // synchronously on the calling thread, which here is the
-                                            // main/UI thread inside a click handler.
-                                            mediaPlayer.prepareAsync()
-                                        } catch (e: Exception) {
-                                            android.util.Log.e("SessionDetailScreen", "Failed to play talk clip", e)
-                                        }
-                                    }
-                                }) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = "Play")
-                                }
-                            }
-                        )
-                    }
-                }
+            // Recordings: every event that kept a clip, with one shared player.
+            val clipEvents = audioEvents.filter { it.clipPath != null }
+            if (clipEvents.isNotEmpty()) {
+                AudioRecordingsCard(
+                    events = clipEvents,
+                    player = clipPlayer,
+                    formatTime = { millis -> timeFormat.format(Date(millis)) },
+                    selectedEventId = selectedAudioEventId
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             }
 

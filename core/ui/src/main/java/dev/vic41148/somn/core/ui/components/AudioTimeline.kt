@@ -1,132 +1,200 @@
 package dev.vic41148.somn.core.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import dev.vic41148.somn.core.ui.theme.AudioEventCough
-import dev.vic41148.somn.core.ui.theme.AudioEventSnore
-import dev.vic41148.somn.core.ui.theme.AudioEventTalk
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.model.AudioEventType
-import kotlin.math.max
+import dev.vic41148.somn.core.ui.theme.AudioEventCough
+import dev.vic41148.somn.core.ui.theme.AudioEventSnore
+import dev.vic41148.somn.core.ui.theme.AudioEventTalk
+import kotlin.math.abs
+
+/** Screen-reader and legend label per audio event type. */
+fun AudioEventType.label(): String = when (this) {
+    AudioEventType.TALK -> "Talk"
+    AudioEventType.SNORE -> "Snore"
+    AudioEventType.COUGH -> "Cough"
+    AudioEventType.ANOMALY -> "Other"
+}
 
 /**
- * A horizontal, scrollable timeline component for audio events.
- * Supports zoom and pan gestures.
+ * Full-session audio event strip: one tappable marker per event, bar height scaled by
+ * loudness, full alpha for events that kept a recording. Tapping a marker calls
+ * [onEventSelected] — the caller decides whether that plays a clip. Wrap in [SleepCard].
  */
 @Composable
 fun AudioTimeline(
     events: List<AudioEvent>,
     sessionStartTime: Long,
     sessionDurationMillis: Long,
+    startLabel: String,
+    endLabel: String,
     modifier: Modifier = Modifier,
-    onSeekTo: (Long) -> Unit = {}
+    selectedEventId: Long? = null,
+    onEventSelected: (AudioEvent) -> Unit = {}
 ) {
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableFloatStateOf(0f) }
-    
-    val scrollState = rememberScrollState()
-    
-    // Base width (e.g. 1 pixel per second)
-    val baseWidthPx = sessionDurationMillis / 1000f
-    
+    if (events.isEmpty() || sessionDurationMillis <= 0) return
+
+    val talkColor = AudioEventTalk
+    val snoreColor = AudioEventSnore
+    val coughColor = AudioEventCough
+    val otherColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    val selectionColor = MaterialTheme.colorScheme.primary
+    fun AudioEvent.color() = when (type) {
+        AudioEventType.TALK -> talkColor
+        AudioEventType.SNORE -> snoreColor
+        AudioEventType.COUGH -> coughColor
+        AudioEventType.ANOMALY -> otherColor
+    }
+
+    val counts = remember(events) { events.groupingBy { it.type }.eachCount() }
+    val summary = remember(events, counts) {
+        "Audio timeline: " + AudioEventType.entries.mapNotNull { type ->
+            counts[type]?.let { "${it} ${type.label().lowercase()}" }
+        }.joinToString(", ")
+    }
+    val density = LocalDensity.current
+
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "Audio Timeline",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        BoxWithConstraints(
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            AudioEventType.entries.forEach { type ->
+                val count = counts[type] ?: return@forEach
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        modifier = Modifier.size(10.dp),
+                        shape = CircleShape,
+                        color = when (type) {
+                            AudioEventType.TALK -> talkColor
+                            AudioEventType.SNORE -> snoreColor
+                            AudioEventType.COUGH -> coughColor
+                            AudioEventType.ANOMALY -> otherColor
+                        }
+                    ) {}
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${type.label()} ($count)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(1f, 10f)
+                .height(96.dp)
+                .semantics {
+                    contentDescription = summary
+                    role = Role.Image
+                }
+                .pointerInput(events, sessionStartTime, sessionDurationMillis) {
+                    detectTapGestures { tap ->
+                        val slopPx = with(density) { 24.dp.toPx() }
+                        val hit = events.minByOrNull { event ->
+                            val centerX =
+                                ((event.timestampMillis - sessionStartTime).toFloat() /
+                                    sessionDurationMillis) * size.width
+                            abs(tap.x - centerX)
+                        }
+                        hit?.let { event ->
+                            val centerX =
+                                ((event.timestampMillis - sessionStartTime).toFloat() /
+                                    sessionDurationMillis) * size.width
+                            if (abs(tap.x - centerX) <= slopPx) onEventSelected(event)
+                        }
                     }
                 }
         ) {
-            val totalWidth = (maxWidth.value * scale).dp
-            
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .horizontalScroll(scrollState)
-            ) {
-                Canvas(
-                    modifier = Modifier
-                        .width(totalWidth)
-                        .fillMaxHeight()
-                        .graphicsLayer() // Caches drawing
-                        .pointerInput(Unit) {
-                            detectTransformGestures { _, pan, _, _ ->
-                                // Handle the tap separately or via click
-                            }
-                        }
-                        .pointerInput(events) {
-                            detectTransformGestures { centroid, _, _, _ ->
-                                val timestamp = (centroid.x / size.width) * sessionDurationMillis
-                                onSeekTo((timestamp + sessionStartTime).toLong())
-                            }
-                        }
-                ) {
-                    val canvasWidth = size.width
-                    val canvasHeight = size.height
-                    
-                    // Draw the baseline
-                    drawLine(
-                        color = Color.Gray.copy(alpha = 0.3f),
-                        start = Offset(0f, canvasHeight / 2),
-                        end = Offset(canvasWidth, canvasHeight / 2),
-                        strokeWidth = 2f
+            val barMinPx = with(density) { 6.dp.toPx() }
+            drawLine(
+                color = gridColor,
+                start = Offset(0f, size.height),
+                end = Offset(size.width, size.height),
+                strokeWidth = 2f
+            )
+            events.forEach { event ->
+                val fraction =
+                    ((event.timestampMillis - sessionStartTime).toFloat() / sessionDurationMillis)
+                        .coerceIn(0f, 1f)
+                val startX = fraction * size.width
+                val width = maxOf(
+                    (event.durationSeconds * 1000f / sessionDurationMillis) * size.width,
+                    barMinPx
+                )
+                // Loudness-scaled bar so a loud cough reads louder than a faint snore.
+                val loudness =
+                    ((event.intensityDecibels - 30) / 60f).coerceIn(0f, 1f)
+                val barHeight = size.height * (0.3f + 0.7f * loudness)
+                val hasClip = event.clipPath != null
+                drawRoundRect(
+                    color = event.color().copy(alpha = if (hasClip) 1f else 0.45f),
+                    topLeft = Offset(startX, size.height - barHeight),
+                    size = Size(width, barHeight),
+                    cornerRadius = CornerRadius(4f, 4f)
+                )
+                if (event.id == selectedEventId) {
+                    drawRoundRect(
+                        color = selectionColor,
+                        topLeft = Offset(startX - 2f, size.height - barHeight - 2f),
+                        size = Size(width + 4f, barHeight + 4f),
+                        cornerRadius = CornerRadius(6f, 6f),
+                        style = Stroke(width = 3f)
                     )
-                    
-                    // Visible window logic
-                    val scrollOffset = scrollState.value.toFloat()
-                    val visibleWidth = size.width / scale
-                    
-                    // Only draw events that are potentially visible
-                    events.forEach { event ->
-                        val startX = ((event.timestampMillis - sessionStartTime).toFloat() / sessionDurationMillis) * canvasWidth
-                        val eventWidth = (event.durationSeconds.toFloat() * 1000 / sessionDurationMillis) * canvasWidth
-                        
-                        // Optimized drawing: check if event is in visible range
-                        if (startX + eventWidth >= scrollOffset && startX <= scrollOffset + visibleWidth * scale) {
-                            val color = when (event.type) {
-                                AudioEventType.TALK -> AudioEventTalk
-                                AudioEventType.SNORE -> AudioEventSnore
-                                AudioEventType.COUGH -> AudioEventCough
-                                else -> Color.Gray
-                            }
-                            
-                            val rectHeight = if (event.type == AudioEventType.TALK) canvasHeight * 0.8f else canvasHeight * 0.4f
-                            
-                            drawRect(
-                                color = color.copy(alpha = 0.7f),
-                                topLeft = Offset(startX, (canvasHeight - rectHeight) / 2),
-                                size = Size(max(4f, eventWidth), rectHeight)
-                            )
-                        }
-                    }
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = startLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = endLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
