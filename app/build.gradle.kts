@@ -9,6 +9,8 @@ plugins {
     alias(libs.plugins.ksp)
     // CycloneDX SBOM for the release artifact (FOSS, no GMS anywhere near it).
     alias(libs.plugins.cyclonedx)
+    // Generates R.raw.aboutlibraries from dependency metadata for the license screen.
+    alias(libs.plugins.aboutlibraries.plugin)
 }
 
 // Release signing credentials live in keystore.properties (gitignored) so the keystore password
@@ -156,6 +158,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // Open-source licenses screen (FOSS AboutLibraries, not GMS oss-licenses-plugin).
+    implementation(libs.aboutlibraries)
 
     testImplementation(libs.junit)
 }

@@ -104,6 +104,9 @@ documentfile = { group = "androidx.documentfile", name = "documentfile", version
 # Passphrase strength estimation for custom backup passphrases (zxcvbn, no network).
 zxcvbn = { group = "com.nulab-inc", name = "zxcvbn", version = "1.9.0" }
 
+# Open-source license screen (FOSS, no GMS — oss-licenses-plugin is disqualified).
+aboutlibraries = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version = "14.2.1" }
+
 # Testing
 junit = { group = "junit", name = "junit", version = "4.13.2" }
 compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }
@@ -137,3 +140,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 cyclonedx = { id = "org.cyclonedx.bom", version = "3.4.1" }
+aboutlibraries-plugin = { id = "com.mikepenz.aboutlibraries.plugin", version = "14.2.1" }

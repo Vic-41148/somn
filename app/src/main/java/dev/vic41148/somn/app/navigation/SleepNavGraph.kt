@@ -52,6 +52,7 @@ import dev.vic41148.somn.feature.habits.ui.DailyLogScreen
 import dev.vic41148.somn.feature.habits.ui.MedicationLogScreen
 import dev.vic41148.somn.feature.habits.ui.SleepDebtDetailScreen
 import dev.vic41148.somn.feature.onboarding.ui.OnboardingFlow
+import dev.vic41148.somn.app.settings.LicensesScreen
 import dev.vic41148.somn.feature.settings.ui.DataExportBackupScreen
 import dev.vic41148.somn.feature.settings.ui.MenopauseSurveyScreen
 import dev.vic41148.somn.feature.settings.ui.SettingsScreen
@@ -314,7 +315,8 @@ fun SleepNavGraph(
                     onNavigateToBreathing = { navController.navigate("breathing_exercise") },
                     onNavigateToCognitiveWindDown = { navController.navigate("cognitive_winddown") },
                     onNavigateToADHDCooldown = { navController.navigate("adhd_cooldown") },
-                    onNavigateToMenoSurvey = { navController.navigate("meno_survey") }
+                    onNavigateToMenoSurvey = { navController.navigate("meno_survey") },
+                    onNavigateToLicenses = { navController.navigate("licenses") }
                 )
             }
 
@@ -470,6 +472,12 @@ fun SleepNavGraph(
 
             composable("data_export") {
                 DataExportBackupScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("licenses") {
+                LicensesScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

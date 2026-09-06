@@ -65,7 +65,8 @@ fun SettingsScreen(
     onNavigateToBreathing: () -> Unit = {},
     onNavigateToCognitiveWindDown: () -> Unit = {},
     onNavigateToADHDCooldown: () -> Unit = {},
-    onNavigateToMenoSurvey: () -> Unit = {}
+    onNavigateToMenoSurvey: () -> Unit = {},
+    onNavigateToLicenses: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
@@ -244,6 +245,35 @@ fun SettingsScreen(
             onNavigateToUpdates = onNavigateToUpdates,
             onNavigateToBackupSetup = onNavigateToDataExport
         )
+
+        // About
+        SettingSection(title = "About") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable(onClick = onNavigateToLicenses)
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Open source licenses",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Every bundled library and its license",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         // Appearance (THEME-01)
         SettingSection(title = "Appearance") {
@@ -692,8 +722,7 @@ fun SettingsScreen(
         // Data export / backup / import is the one section that outgrew a card - pushing ~6 URLs,
         // file pickers and destructive actions into a single scrolling group. Moved to its own
         // screen; this row is just the pointer.
-        SettingSection(title = "Data Export & Backup") {
-            Row(
+        SettingSection(title = "Data Export & Backup") {            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
@@ -723,8 +752,7 @@ fun SettingsScreen(
         
 
         // NAS / Self-Hosted Backup
-        SettingSection(title = "NAS Sync (Self-Hosted)") {
-            SettingToggle(
+        SettingSection(title = "NAS Sync (Self-Hosted)") {            SettingToggle(
                 title = "Enable NAS Sync",
                 checked = settings.nasEnabled,
                 onCheckedChange = { viewModel.updateNasEnabled(it) }

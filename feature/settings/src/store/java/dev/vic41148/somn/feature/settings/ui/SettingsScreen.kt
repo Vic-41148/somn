@@ -64,7 +64,8 @@ fun SettingsScreen(
     onNavigateToBreathing: () -> Unit = {},
     onNavigateToCognitiveWindDown: () -> Unit = {},
     onNavigateToADHDCooldown: () -> Unit = {},
-    onNavigateToMenoSurvey: () -> Unit = {}
+    onNavigateToMenoSurvey: () -> Unit = {},
+    onNavigateToLicenses: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsState()
@@ -241,6 +242,35 @@ fun SettingsScreen(
         // Store-channel builds (F-Droid / IzzyOnDroid / Accrescent) ship no self-updater, so the
         // Updates section is absent here. The onNavigateToUpdates parameter stays in the signature
         // so the shared app navigation graph compiles against both flavor variants.
+
+        // About
+        SettingSection(title = "About") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable(onClick = onNavigateToLicenses)
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Open source licenses",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Every bundled library and its license",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         // Appearance (THEME-01)
         SettingSection(title = "Appearance") {
