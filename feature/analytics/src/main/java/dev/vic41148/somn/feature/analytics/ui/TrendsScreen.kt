@@ -180,7 +180,11 @@ fun TrendsScreen(
                     xLabels = listOf(
                         trendDateFormat.format(Date(sessions.first().startTimeMillis)),
                         trendDateFormat.format(Date(sessions.last().startTimeMillis))
-                    )
+                    ),
+                    tableEntries = sessions.map {
+                        trendDateFormat.format(Date(it.startTimeMillis)) to
+                            formatAxisValue(viewModel.valueFor(it, selectedMetric), selectedMetric)
+                    }
                 )
                 if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
                     Text(

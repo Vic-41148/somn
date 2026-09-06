@@ -4,12 +4,21 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -64,10 +73,43 @@ fun TrendLineChart(
     /** Formats a Y value for the axis labels — callers pass metric-aware formatting. */
     yLabel: (Float) -> String = { it.toInt().toString() },
     /** [first, last] date captions drawn under the chart's left/right edges. */
-    xLabels: List<String> = emptyList()
+    xLabels: List<String> = emptyList(),
+    /**
+     * Pre-formatted (date, value) rows for the "View as table" toggle. Empty means no
+     * toggle — the chart is then the only representation, which is only acceptable when
+     * the caller already shows the same numbers as text nearby.
+     */
+    tableEntries: List<Pair<String, String>> = emptyList()
 ) {
     val allPoints = series.flatten()
     if (allPoints.isEmpty()) return
+
+    var showTable by remember { mutableStateOf(false) }
+
+    if (showTable && tableEntries.isNotEmpty()) {
+        Column(modifier = modifier.fillMaxWidth()) {
+            TableToggleRow(showTable = true, onToggle = { showTable = false })
+            tableEntries.forEach { (date, value) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+        return
+    }
 
     val minX = allPoints.minOf { it.timestampMillis }
     val maxX = allPoints.maxOf { it.timestampMillis }
@@ -98,6 +140,10 @@ fun TrendLineChart(
     // Time-series Canvas drawing never inherits RTL mirroring — mirror the X mapping and
     // the edge captions explicitly. The Y gutter stays left; only the time axis flips.
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
+    if (tableEntries.isNotEmpty()) {
+        TableToggleRow(showTable = false, onToggle = { showTable = true })
+    }
 
     Canvas(
         modifier = modifier
@@ -244,6 +290,20 @@ fun TrendLineChart(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Right-aligned chart/table switch shared by the chart components. */
+@Composable
+internal fun TableToggleRow(showTable: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = onToggle) {
+            Text(if (showTable) "View as chart" else "View as table")
         }
     }
 }

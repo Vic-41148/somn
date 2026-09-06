@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.audio.SonarCollector
 import dev.vic41148.somn.core.domain.model.TrackingMode
-import dev.vic41148.somn.core.ui.components.Hypnogram
+import dev.vic41148.somn.core.ui.components.HypnogramWithTable
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 import dev.vic41148.somn.feature.tracking.service.TrackingState
 import kotlinx.coroutines.delay
@@ -141,7 +141,7 @@ fun TrackingScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             val liveStages = remember(epochs) { epochs.takeLast(60).map { it.stage } }
-            Hypnogram(
+            HypnogramWithTable(
                 stages = liveStages,
                 modifier = Modifier.fillMaxWidth(),
                 height = 80.dp

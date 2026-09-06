@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -57,7 +59,11 @@ fun SleepScoreRing(
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.size(size)
+        modifier = modifier
+            .size(size)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Sleep score $score, ${ScoreTier.of(score).label}"
+            }
     ) {
         Canvas(modifier = Modifier.size(size)) {
             val sweepAngle = 360f * animatedProgress

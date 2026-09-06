@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.ui.components.ColorLegendItem
-import dev.vic41148.somn.core.ui.components.Hypnogram
+import dev.vic41148.somn.core.ui.components.HypnogramWithTable
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.PillRow
 import dev.vic41148.somn.core.ui.components.SleepCard
@@ -148,7 +148,7 @@ fun MorningReviewScreen(
         if (epochs.isNotEmpty()) {
             SleepCard(title = "Sleep Stages") {
                 val hypnogramStages = remember(epochs) { epochs.map { it.stage } }
-                Hypnogram(
+                HypnogramWithTable(
                     stages = hypnogramStages,
                     modifier = Modifier.fillMaxWidth(),
                     height = 100.dp

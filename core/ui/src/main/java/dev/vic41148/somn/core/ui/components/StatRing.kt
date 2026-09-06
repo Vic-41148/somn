@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,13 +65,15 @@ fun StatRing(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = if (onClick != null) {
+        modifier = (if (onClick != null) {
             modifier.clickable(
                 onClickLabel = "Show details for $label",
                 role = Role.Button,
                 onClick = onClick
             )
-        } else modifier
+        } else modifier).semantics(mergeDescendants = true) {
+            contentDescription = "$label: $value" + (sublabel?.let { ", $it" } ?: "")
+        }
     ) {
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size)) {
             Canvas(modifier = Modifier.size(size)) {
