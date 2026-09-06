@@ -34,6 +34,9 @@ class SomnApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Zero-telemetry crash capture first: nothing leaves the device, the log just waits
+        // in app-private storage until the user copies it out of Settings → About.
+        dev.vic41148.somn.core.data.diagnostics.CrashLogStore.install(this)
         scheduleWeeklyReport()
         scheduleClipRetention()
         scheduleLocalBackup()

@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Crash reports without telemetry.** A redacted stack trace is written to app-private storage on crash; Settings → About copies the latest one for a bug report. Nothing ever leaves the device on its own.
 - **Open source licenses screen.** Settings → About lists every bundled dependency and its license, generated at build time (FOSS AboutLibraries, no Play Services).
 - **Charts have text alternatives.** Hypnogram and trend charts get a "View as table" toggle with real text rows; score and stat rings announce their values to screen readers.
 - **Charts mirror in RTL locales.** The audio timeline, hypnogram, and trend chart flip their time axes (plus tap hit-testing and edge captions) when the layout direction is RTL; standard layouts already mirror for free.
