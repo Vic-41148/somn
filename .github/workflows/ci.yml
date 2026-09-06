@@ -106,6 +106,13 @@ jobs:
       - name: Android Lint
         run: ./gradlew lintStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
+      # androidTest sources are invisible to every task above: unit-test compilation never
+      # touches them and assemble skips them, so a backup-integrity change once broke them
+      # for weeks unnoticed. Compiling the test APK needs no emulator — running it still
+      # does, on a maintainer device before release.
+      - name: Compile instrumented tests
+        run: ./gradlew :core:data:assembleStandaloneDebugAndroidTest :core:audio:assembleStandaloneDebugAndroidTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

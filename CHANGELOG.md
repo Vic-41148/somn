@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Instrumented backup tests match production.** The restore suite now runs against an encrypted live database, covers a valid-but-foreign schema (unknown tables and triggers are refused), and CI compiles the test APK so this rot cannot recur silently.
 - **Updater signer check works back to API 26.** The authenticity gate used an API-28-only API unconditionally; it now falls back to the v1 signature path on older devices instead of crashing.
 - **Opt-in app lock.** *Settings → About → Lock Somn on start* gates the UI behind biometrics or the device credential at cold start; tracking, alarms, and workers keep running by design.
 - **Full wipe.** *Settings → Delete everything* clears all sessions, habits, tags, clips, and preferences; the app restarts as a fresh install. Privacy policy updated: clip deletion keeps event rows, local-only is not seizure-proof, crash logs stay on-device.

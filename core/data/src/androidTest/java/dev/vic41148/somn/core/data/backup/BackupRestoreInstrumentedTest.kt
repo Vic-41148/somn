@@ -7,11 +7,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import dev.vic41148.somn.core.data.database.ALL_MIGRATIONS
+import dev.vic41148.somn.core.data.database.DatabaseKeyManager
 import dev.vic41148.somn.core.data.database.SleepDatabase
 import dev.vic41148.somn.core.data.database.entity.SleepSessionEntity
 import dev.vic41148.somn.core.data.repository.BackupRepository
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import kotlinx.coroutines.runBlocking
+import net.zetetic.database.sqlcipher.SQLiteDatabase as CipherDatabase
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -23,6 +26,9 @@ import java.io.File
  * behaviour or the Android Keystore faithfully enough to trust here, and both are load-bearing:
  * the WAL is why a naive file copy loses the most recent night, and the Keystore is why the old
  * NAS payload could never be restored anywhere.
+ *
+ * The live database is encrypted exactly like production (SQLCipher + Keystore-wrapped key), so
+ * restore paths that branch on ciphertext-vs-plaintext are exercised for real.
  */
 @RunWith(AndroidJUnit4::class)
 class BackupRestoreInstrumentedTest {
@@ -31,6 +37,7 @@ class BackupRestoreInstrumentedTest {
     private val portableCrypto = PortableCrypto()
     private val passphrase = "TEST-PASS-PHRASE-0001"
 
+    private lateinit var keyManager: DatabaseKeyManager
     private lateinit var database: SleepDatabase
     private lateinit var repository: BackupRepository
 
@@ -39,12 +46,14 @@ class BackupRestoreInstrumentedTest {
     @Before
     fun setUp() {
         deleteDatabaseFiles()
+        keyManager = DatabaseKeyManager(context, EncryptionUtils())
         database = openDatabase()
         repository = BackupRepository(
             context = context,
             preferencesRepository = SomnPreferencesRepository(context, EncryptionUtils()),
             database = database,
-            portableCrypto = portableCrypto
+            portableCrypto = portableCrypto,
+            keyManager = keyManager
         )
     }
 
@@ -159,9 +168,9 @@ class BackupRestoreInstrumentedTest {
         insertMarkerSession()
         repository.checkpointWal()
 
-        // The path existing users are on until they set a recovery key.
+        // A genuine plaintext backup, as written before a recovery key exists.
         val plain = File(context.cacheDir, "backup-test-plain.db")
-        repository.databaseFile().copyTo(plain, overwrite = true)
+        keyManager.exportDecryptedCopy(database.openHelper.writableDatabase, plain)
         database.clearAllTables()
         repository.checkpointWal()
 
@@ -171,10 +180,34 @@ class BackupRestoreInstrumentedTest {
         assertThat(markerRowsIn(repository.databaseFile())).isEqualTo(1)
     }
 
+    @Test
+    fun restoreRejectsAValidDatabaseWithUnknownTablesOrTriggers() = runBlocking {
+        insertMarkerSession()
+        repository.checkpointWal()
+
+        // Structurally valid SQLite, but not ours: an unknown table plus a trigger, which the
+        // schema allowlist must refuse before the live database is touched.
+        val foreign = File(context.cacheDir, "backup-test-foreign.db")
+        if (foreign.exists()) foreign.delete()
+        val raw = SQLiteDatabase.openOrCreateDatabase(foreign.path, null)
+        raw.execSQL("CREATE TABLE attacker_table (id INTEGER PRIMARY KEY, payload TEXT)")
+        raw.execSQL("INSERT INTO attacker_table VALUES (1, 'x')")
+        raw.execSQL(
+            "CREATE TRIGGER evil AFTER INSERT ON attacker_table BEGIN SELECT 1; END"
+        )
+        raw.close()
+
+        val result = repository.restoreDatabase(Uri.fromFile(foreign), passphrase = null)
+
+        assertThat(result).isInstanceOf(BackupRepository.RestoreResult.Failure::class.java)
+        assertThat(markerRowsIn(repository.databaseFile())).isEqualTo(1)
+    }
+
     // ---- Helpers ----
 
     private fun openDatabase(): SleepDatabase =
         Room.databaseBuilder(context, SleepDatabase::class.java, SleepDatabase.DATABASE_NAME)
+            .openHelperFactory(SupportOpenHelperFactory(keyManager.getOrCreatePassphrase()))
             .addMigrations(*ALL_MIGRATIONS)
             .build()
 
@@ -189,11 +222,18 @@ class BackupRestoreInstrumentedTest {
         )
     }
 
-    /** Counts marker rows by opening the file directly, bypassing Room's cache and the WAL. */
+    /**
+     * Counts marker rows by opening the file directly, bypassing Room's cache and the WAL.
+     * Opens with the test key: the live file is SQLCipher-encrypted exactly like production.
+     */
     private fun markerRowsIn(file: File): Int {
         if (!file.exists()) return 0
-        val db = SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
+        val hex = keyManager.getOrCreatePassphrase().joinToString("") { "%02x".format(it) }
+        val db = CipherDatabase.openDatabase(
+            file.path, null, CipherDatabase.OPEN_READONLY, null
+        ) ?: return 0
         return db.use {
+            it.rawExecSQL("PRAGMA key = \"x'$hex'\";")
             it.rawQuery(
                 "SELECT COUNT(*) FROM sleep_sessions WHERE startTimeMillis = ?",
                 arrayOf(markerStart.toString())
