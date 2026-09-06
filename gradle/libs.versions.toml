@@ -101,6 +101,9 @@ zxingcpp = { group = "io.github.zxing-cpp", name = "android", version.ref = "zxi
 # DocumentFile
 documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 
+# Passphrase strength estimation for custom backup passphrases (zxcvbn, no network).
+zxcvbn = { group = "com.nulab-inc", name = "zxcvbn", version = "1.9.0" }
+
 # Testing
 junit = { group = "junit", name = "junit", version = "4.13.2" }
 compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }

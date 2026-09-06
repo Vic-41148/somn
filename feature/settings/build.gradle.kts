@@ -72,6 +72,9 @@ dependencies {
     // WorkManager for NAS sync triggers
     implementation(libs.work.runtime)
 
+    // zxcvbn strength gate for user-chosen backup passphrases
+    implementation(libs.zxcvbn)
+
     // Tests — guardedCollect flow-failure guard (collectInto's exception-proofing)
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

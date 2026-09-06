@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Custom backup passphrases must be strong.** User-chosen recovery passphrases now need zxcvbn score 3+; the generated 160-bit key stays the recommended path.
 - **Exports go through Storage Access Framework.** CSV and ZIP exports now write to a user-picked file instead of a cache copy passed to a share sheet; stale pre-SAF cache exports are deleted.
 - **Release logs carry no paths.** `Log.e` sites that logged clip paths, NAS hosts, remote paths, or backup names now log the exception class only — release builds keep `Log.e`, so anything else would survive stripping.
 - **Bounded ingestion everywhere.** One shared `BoundedInputStream` caps NAS listings (2 MB), CSV imports (8 MB), and backup-restore staging (256 MB, pre-checked via provider size); imports now insert atomically so a crash can no longer leave a half-imported history.

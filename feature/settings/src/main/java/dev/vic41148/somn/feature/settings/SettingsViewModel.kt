@@ -14,6 +14,7 @@ import dev.vic41148.somn.core.domain.usecase.ExportJsonUseCase
 import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -475,11 +477,22 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Lets the user supply their own passphrase instead of a generated key. */
+    /**
+     * Lets the user supply their own passphrase instead of a generated key. Custom input must
+     * reach zxcvbn score 3 ("safely unguessable") — a backup passphrase guards every night of
+     * sleep data, so "1234" failing loudly here is the feature working.
+     */
     fun setRecoveryPassphrase(passphrase: String) {
         viewModelScope.launch {
             if (passphrase.isBlank()) {
                 _exportStatus.value = "Recovery passphrase cannot be empty"
+                return@launch
+            }
+            val score = withContext(Dispatchers.Default) {
+                runCatching { com.nulabinc.zxcvbn.Zxcvbn().measure(passphrase).score }.getOrDefault(0)
+            }
+            if (score < 3) {
+                _exportStatus.value = "That passphrase is too weak — use a longer, less predictable one"
                 return@launch
             }
             preferencesRepository.updateBackupPassphrase(passphrase)
