@@ -113,7 +113,9 @@ class AudioClipPlayer(
                 }
                 mediaPlayer.prepareAsync()
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to play clip", e)
+                // No throwable and no path: setDataSource embeds the clip path in the
+                // exception, and Log.e survives release stripping.
+                Log.e(TAG, "Failed to play clip (${e.javaClass.simpleName})")
                 state = ClipPlayback.Failed(event.id, "Could not play this recording.")
             }
         }

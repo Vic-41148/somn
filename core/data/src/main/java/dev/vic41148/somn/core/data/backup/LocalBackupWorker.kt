@@ -32,7 +32,7 @@ class LocalBackupWorker @AssistedInject constructor(
             backupRepository.performSilentBackup()
             Result.success()
         } catch (e: Exception) {
-            Log.e(TAG, "Local backup failed", e)
+            Log.e(TAG, "Local backup failed (${e.javaClass.simpleName})")
             Result.retry()
         }
     }

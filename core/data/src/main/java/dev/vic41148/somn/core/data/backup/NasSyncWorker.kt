@@ -49,7 +49,7 @@ class NasSyncWorker @AssistedInject constructor(
             backupRepository.performSilentBackup()
             Log.d(TAG, "Local backup complete")
         } catch (e: Exception) {
-            Log.e(TAG, "Local backup failed", e)
+            Log.e(TAG, "Local backup failed (${e.javaClass.simpleName})")
         }
 
         // 2. Check if NAS enabled
@@ -113,7 +113,7 @@ class NasSyncWorker @AssistedInject constructor(
                     Log.d(TAG, "Synced + pruned: ${clipFile.name}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to sync clip: $clipPath", e)
+                Log.e(TAG, "Failed to sync clip (${e.javaClass.simpleName})")
             }
         }
 
@@ -140,7 +140,7 @@ class NasSyncWorker @AssistedInject constructor(
                 Log.w(TAG, "Database missing at ${dbFile.path} — no snapshot uploaded")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "DB upload failed", e)
+            Log.e(TAG, "DB upload failed (${e.javaClass.simpleName})")
         } finally {
             staging.delete()
         }

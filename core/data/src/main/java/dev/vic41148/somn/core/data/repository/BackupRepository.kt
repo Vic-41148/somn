@@ -204,10 +204,10 @@ class BackupRepository @Inject constructor(
                 )
             }
 
-            Log.i(TAG, "Database restored from $backupUri")
+            Log.i(TAG, "Database restored")
             RestoreResult.SuccessRestartRequired
         } catch (e: Exception) {
-            Log.e(TAG, "Restore failed", e)
+            Log.e(TAG, "Restore failed (${e.javaClass.simpleName})")
             RestoreResult.Failure(e.message ?: "Restore failed")
         } finally {
             staging.delete()
@@ -260,7 +260,7 @@ class BackupRepository @Inject constructor(
                 ?: return
             context.contentResolver.openOutputStream(destDoc.uri, "wt")?.use(write)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed writing $destName to backup tree", e)
+            Log.e(TAG, "Failed writing to backup tree (${e.javaClass.simpleName})")
         }
     }
 }
