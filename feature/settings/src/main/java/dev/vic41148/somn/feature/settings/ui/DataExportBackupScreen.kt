@@ -272,8 +272,15 @@ fun DataExportBackupScreen(
             }
 
             SettingSection(title = "Export & Import") {
+                val csvLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.CreateDocument("text/csv")
+                ) { uri ->
+                    if (uri != null) {
+                        viewModel.exportCsvTo(context, uri)
+                    }
+                }
                 Button(
-                    onClick = { viewModel.exportData(context) },
+                    onClick = { csvLauncher.launch("sleep_data_export.csv") },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null)
@@ -283,8 +290,15 @@ fun DataExportBackupScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                val zipLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.CreateDocument("application/zip")
+                ) { uri ->
+                    if (uri != null) {
+                        viewModel.exportAllDataZipTo(context, uri)
+                    }
+                }
                 Button(
-                    onClick = { viewModel.exportAllDataZip(context) },
+                    onClick = { zipLauncher.launch("somn_export.zip") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors()
                 ) {

@@ -1,8 +1,6 @@
 package dev.vic41148.somn.feature.settings
 
 import android.content.Context
-import android.content.Intent
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.vic41148.somn.core.data.repository.HealthConnectRepository
@@ -523,29 +521,21 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun exportData(context: Context) {
+    /**
+     * CSV export through Storage Access Framework: the user picks the destination, so no
+     * cache copy ever exists to leak or linger. Also deletes the pre-SAF cache exports so
+     * older installs do not keep one lying around.
+     */
+    fun exportCsvTo(context: Context, uri: android.net.Uri) {
         viewModelScope.launch {
             try {
                 val sessions = sleepRepository.getRecentSessions(1000)
                 val csv = exportCsv(sessions)
-
-                val file = File(context.cacheDir, "sleep_data_export.csv")
-                file.writeText(csv)
-
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
-
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/csv"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Export Sleep Data"))
-
-                _exportStatus.value = "Export ready!"
+                context.contentResolver.openOutputStream(uri, "wt")?.use { out ->
+                    out.write(csv.toByteArray(Charsets.UTF_8))
+                } ?: error("Could not open the destination")
+                deleteLegacyCacheExports(context)
+                _exportStatus.value = "Export saved."
             } catch (e: Exception) {
                 _exportStatus.value = "Export failed: ${e.message}"
             }
@@ -557,43 +547,37 @@ class SettingsViewModel @Inject constructor(
     private val _importStatus = MutableStateFlow<String?>(null)
     val importStatus: StateFlow<String?> = _importStatus.asStateFlow()
 
-    /** DATA-01: full-fidelity JSON alongside the existing flat CSV, bundled as one ZIP to share. */
-    fun exportAllDataZip(context: Context) {
+    /** DATA-01: full-fidelity JSON alongside the existing flat CSV, written to a user-picked file. */
+    fun exportAllDataZipTo(context: Context, uri: android.net.Uri) {
         viewModelScope.launch {
             try {
                 val sessions = sleepRepository.getRecentSessions(1000)
                 val csv = exportCsv(sessions)
                 val json = exportJson(sessions)
 
-                val file = File(context.cacheDir, "somn_export.zip")
-                java.util.zip.ZipOutputStream(file.outputStream()).use { zip ->
-                    zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.csv"))
-                    zip.write(csv.toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
+                context.contentResolver.openOutputStream(uri, "wt")?.use { out ->
+                    java.util.zip.ZipOutputStream(out).use { zip ->
+                        zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.csv"))
+                        zip.write(csv.toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
 
-                    zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.json"))
-                    zip.write(json.toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                }
-
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
-
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/zip"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Export All Sleep Data"))
-
-                _exportStatus.value = "Export ready!"
+                        zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.json"))
+                        zip.write(json.toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                    }
+                } ?: error("Could not open the destination")
+                deleteLegacyCacheExports(context)
+                _exportStatus.value = "Export saved."
             } catch (e: Exception) {
                 _exportStatus.value = "Export failed: ${e.message}"
             }
         }
+    }
+
+    /** One-way cleanup of the pre-SAF share flow's cache files. */
+    private fun deleteLegacyCacheExports(context: Context) {
+        File(context.cacheDir, "sleep_data_export.csv").delete()
+        File(context.cacheDir, "somn_export.zip").delete()
     }
 
     /**
