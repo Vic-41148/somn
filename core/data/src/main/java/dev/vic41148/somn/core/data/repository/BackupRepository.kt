@@ -19,16 +19,19 @@ class BackupRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferencesRepository: SomnPreferencesRepository,
     private val database: SleepDatabase,
-    private val portableCrypto: PortableCrypto
+    private val portableCrypto: PortableCrypto,
+    private val keyManager: dev.vic41148.somn.core.data.database.DatabaseKeyManager
 ) {
     companion object {
         private const val TAG = "BackupRepository"
 
         /** Name the DB is written under inside the backup tree. */
         const val DB_BACKUP_NAME = "sleep_tracker.db"
-
         /** Same payload, passphrase-encrypted. Only one of the two is present in a given backup. */
         const val DB_BACKUP_NAME_ENCRYPTED = "sleep_tracker.db.enc"
+
+        /** Staging cap: databases are megabytes; anything past this is not our backup. */
+        const val MAX_RESTORE_BYTES = 256L * 1024 * 1024
 
         const val PREFS_BACKUP_NAME = "somn_prefs.preferences_pb"
 
@@ -66,8 +69,16 @@ class BackupRepository @Inject constructor(
             val passphrase = preferencesRepository.getBackupPassphrase()
             if (passphrase != null) {
                 val kek = portableCrypto.deriveKek(passphrase.toCharArray())
-                writeToDocumentTree(documentTree, DB_BACKUP_NAME_ENCRYPTED) { output ->
-                    dbFile.inputStream().use { portableCrypto.encrypt(it, output, kek) }
+                // Envelope a plaintext export, never the live ciphertext file: the envelope
+                // must restore on installs holding a different database key.
+                val plain = File.createTempFile("backup-plain", ".db", context.cacheDir)
+                try {
+                    keyManager.exportDecryptedCopy(database.openHelper.writableDatabase, plain)
+                    writeToDocumentTree(documentTree, DB_BACKUP_NAME_ENCRYPTED) { output ->
+                        plain.inputStream().use { portableCrypto.encrypt(it, output, kek) }
+                    }
+                } finally {
+                    plain.delete()
                 }
                 // Drop any plaintext copy left by a pre-passphrase backup so the two do not diverge.
                 documentTree.findFile(DB_BACKUP_NAME)?.delete()
@@ -121,19 +132,14 @@ class BackupRepository @Inject constructor(
                 return@withContext RestoreResult.Failure("This backup is encrypted — enter your recovery passphrase")
             }
 
-            // Anything that is neither a portable envelope nor a raw database has to be rejected
-            // here, by name. Falling through would copy it verbatim and fail the SQLite check below
-            // with "check the recovery passphrase" — advice that can never work for a Keystore blob,
-            // leaving the user retyping a key that was never the problem.
-            if (!encrypted && !prefix.startsWithSqliteHeader()) {
+            // A device-bound Keystore blob from an older Somn names its own failure: no key
+            // the user types can ever open it. Everything else stages for validation below —
+            // including raw ciphertext backups, which carry no SQLite header by design.
+            if (!encrypted && !prefix.startsWithSqliteHeader() && looksLikeLegacyKeystoreBlob(prefix)) {
                 return@withContext RestoreResult.Failure(
-                    if (looksLikeLegacyKeystoreBlob(prefix)) {
-                        "This backup was encrypted with a device-bound key from an older version of " +
-                            "Somn and can only be restored on the device that wrote it. No recovery " +
-                            "key can open it."
-                    } else {
-                        "This file is not a Somn backup"
-                    }
+                    "This backup was encrypted with a device-bound key from an older version of " +
+                        "Somn and can only be restored on the device that wrote it. No recovery " +
+                        "key can open it."
                 )
             }
 
@@ -147,21 +153,41 @@ class BackupRepository @Inject constructor(
                 }
             } ?: return@withContext RestoreResult.Failure("Could not open the backup file")
 
-            if (!looksLikeSqlite(staging)) {
-                return@withContext RestoreResult.Failure(
-                    "Backup did not decrypt to a valid database — check the recovery passphrase"
-                )
+            if (staging.length() > MAX_RESTORE_BYTES) {
+                return@withContext RestoreResult.Failure("Backup file is larger than expected")
             }
 
-            // Only now is it safe to touch the live database.
-            checkpointWal()
-            database.close()
-
+            val key = keyManager.getOrCreatePassphrase()
             val target = databaseFile()
-            staging.copyTo(target, overwrite = true)
-            // The old -wal/-shm describe the *previous* database and would corrupt the restored one.
-            File("${target.path}-wal").delete()
-            File("${target.path}-shm").delete()
+            if (looksLikeSqlite(staging)) {
+                if (!keyManager.passesIntegrityCheck(staging, null)) {
+                    return@withContext RestoreResult.Failure(
+                        "Backup failed its integrity check and was not restored"
+                    )
+                }
+                // Only now is it safe to touch the live database.
+                checkpointWal()
+                database.close()
+                keyManager.importPlaintextCopy(staging)
+            } else if (keyManager.isEncryptedSQLite(staging, key)) {
+                // Raw ciphertext backup from this install (no-passphrase backups copy the live
+                // file). It only opens with this install's key.
+                if (!keyManager.passesIntegrityCheck(staging, key)) {
+                    return@withContext RestoreResult.Failure(
+                        "Backup failed its integrity check and was not restored"
+                    )
+                }
+                checkpointWal()
+                database.close()
+                staging.copyTo(target, overwrite = true)
+                // The old -wal/-shm describe the *previous* database and would corrupt the restored one.
+                File("${target.path}-wal").delete()
+                File("${target.path}-shm").delete()
+            } else {
+                return@withContext RestoreResult.Failure(
+                    "This file is not a readable Somn backup"
+                )
+            }
 
             Log.i(TAG, "Database restored from $backupUri")
             RestoreResult.SuccessRestartRequired

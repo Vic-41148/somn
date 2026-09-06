@@ -56,6 +56,130 @@ class DatabaseKeyManager @Inject constructor(
 
     private fun dbFile(): File = context.getDatabasePath(SleepDatabase.DATABASE_NAME)
 
+    /** Tables a restore candidate may contain, besides Room/SQLite system objects. */
+    val knownTables: Set<String> = setOf(
+        "alarm_events", "alarms", "audio_events", "external_vitals", "habit_logs",
+        "session_tags", "sleep_epochs", "sleep_sessions", "tags", "user_profile"
+    )
+
+    private val systemObjects: Set<String> = setOf(
+        "android_metadata", "sqlite_sequence", "room_master_table"
+    )
+
+    /**
+     * Exports the live encrypted DB to a plaintext file for portable (passphrase) backups,
+     * which must restore on installs holding a different key. Runs on Room's own open
+     * handle, so no key juggling here.
+     */
+    fun exportDecryptedCopy(
+        db: androidx.sqlite.db.SupportSQLiteDatabase,
+        dest: File
+    ) {
+        if (dest.exists()) dest.delete()
+        db.execSQL("ATTACH DATABASE '${dest.absolutePath}' AS plain KEY '';")
+        try {
+            db.query("SELECT sqlcipher_export('plain');").use { it.moveToFirst() }
+        } finally {
+            db.execSQL("DETACH DATABASE plain;")
+        }
+    }
+
+    /**
+     * Imports a validated plaintext staging file as the new live encrypted DB. Verifies the
+     * result opens before swapping; the caller closes Room first.
+     */
+    fun importPlaintextCopy(src: File) {
+        net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+        val key = getOrCreatePassphrase()
+        val hex = key.joinToString("") { "%02x".format(it) }
+        val target = dbFile()
+        val tmp = File(target.parent, "${target.name}.importing")
+        if (tmp.exists()) tmp.delete()
+        val plain = net.sqlcipher.database.SQLiteDatabase.openDatabase(
+            src.absolutePath, "", null,
+            net.sqlcipher.database.SQLiteDatabase.OPEN_READONLY
+        ) ?: error("Cannot open restore candidate.")
+        try {
+            plain.rawExecSQL("ATTACH DATABASE '${tmp.absolutePath}' AS encrypted KEY \"x'$hex'\";")
+            plain.rawExecSQL("SELECT sqlcipher_export('encrypted');")
+            plain.rawExecSQL("DETACH DATABASE encrypted;")
+        } finally {
+            plain.close()
+        }
+        if (!isEncryptedSQLite(tmp, key)) {
+            tmp.delete()
+            error("Import produced no readable encrypted database.")
+        }
+        tmp.renameTo(target)
+        listOf("-wal", "-shm", "-journal").forEach { suffix ->
+            File(target.parent, "${target.name}$suffix").delete()
+        }
+    }
+
+    /** True when [file] opens with [key] (null = plaintext attempt) and is structurally sound. */
+    fun passesIntegrityCheck(file: File, key: ByteArray?): Boolean {
+        return try {
+            if (key == null) {
+                val db = android.database.sqlite.SQLiteDatabase.openDatabase(
+                    file.absolutePath, null,
+                    android.database.sqlite.SQLiteDatabase.OPEN_READONLY
+                )
+                try {
+                    val ok = db.rawQuery("PRAGMA integrity_check", null).use {
+                        it.moveToFirst() && it.getString(0).equals("ok", ignoreCase = true)
+                    }
+                    ok && cleanSchema(
+                        db.rawQuery("SELECT type, name FROM sqlite_master", null).use { c ->
+                            buildList {
+                                while (c.moveToNext()) add(c.getString(0) to c.getString(1))
+                            }
+                        }
+                    )
+                } finally {
+                    db.close()
+                }
+            } else {
+                net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
+                val hex = key.joinToString("") { "%02x".format(it) }
+                val db = net.sqlcipher.database.SQLiteDatabase.openDatabase(
+                    file.absolutePath, "", null,
+                    net.sqlcipher.database.SQLiteDatabase.OPEN_READONLY
+                ) ?: return false
+                try {
+                    db.rawExecSQL("PRAGMA key = \"x'$hex'\";")
+                    val ok = db.rawQuery("PRAGMA integrity_check", null)?.use { c ->
+                        c.moveToFirst() && c.getString(0).equals("ok", ignoreCase = true)
+                    } ?: false
+                    ok && cleanSchema(
+                        db.rawQuery("SELECT type, name FROM sqlite_master", null)?.use { c ->
+                            buildList {
+                                while (c.moveToNext()) add(c.getString(0) to c.getString(1))
+                            }
+                        } ?: emptyList()
+                    )
+                } finally {
+                    db.close()
+                }
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Rejects triggers, views, and unknown tables outright — a restore candidate must be a
+     * plain data file matching our schema, never executable SQL objects we did not create.
+     */
+    private fun cleanSchema(objects: List<Pair<String, String>>): Boolean {
+        return objects.all { (type, name) ->
+            when (type) {
+                "table", "index" -> name in knownTables || name in systemObjects ||
+                    name.startsWith("sqlite_") || name.startsWith("room_")
+                else -> false
+            }
+        }
+    }
+
     /**
      * One-time upgrade for installs that predate encryption: exports a plaintext DB into a
      * fresh encrypted file (SQLCipher `sqlcipher_export`), swaps it in, deletes the plaintext
@@ -101,17 +225,24 @@ class DatabaseKeyManager @Inject constructor(
         file.inputStream().use { it.read(header) }
         return header.toString(Charsets.US_ASCII).startsWith("SQLite format 3\u0000")
     }
-
-    private fun isEncryptedSQLite(file: File, passphrase: ByteArray): Boolean {
+    /** True when [file] is a SQLCipher database that [passphrase] opens. */
+    fun isEncryptedSQLite(file: File, passphrase: ByteArray): Boolean {
         return try {
             net.sqlcipher.database.SQLiteDatabase.loadLibs(context)
             val hex = passphrase.joinToString("") { "%02x".format(it) }
             val db = net.sqlcipher.database.SQLiteDatabase.openDatabase(
-                file.absolutePath, hex.toCharArray(), null,
+                file.absolutePath, "", null,
                 net.sqlcipher.database.SQLiteDatabase.OPEN_READONLY
-            )
-            db.close()
-            true
+            ) ?: return false
+            try {
+                db.rawExecSQL("PRAGMA key = \"x'$hex'\";")
+                db.rawQuery("SELECT count(*) FROM sqlite_master", null)?.use {
+                    it.moveToFirst()
+                }
+                true
+            } finally {
+                db.close()
+            }
         } catch (_: Exception) {
             false
         }

@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Backup integrity + sealed portable backups.** PBKDF2 iterations from backup headers are clamped, restores run `integrity_check` plus a table allowlist (no triggers/views), staging is size-capped, and passphrase backups now envelope a plaintext export so they restore on installs with a different key. Release builds strip `Log` calls.
 - **Updater verifies what it installs.** Downloads now check the APK signature against the installed app (checksum alone is not authenticity), release-note hash fallback is gone, downloads stay on the GitHub host allowlist across redirects, and APKs are size-capped. Dead updater unit tests are wired back into CI.
 - **At-rest encryption.** The Room DB is now SQLCipher-encrypted with a Keystore-wrapped random key (existing installs migrate their plaintext DB in place), sensitive prefs (NAS endpoint, QR value, backup URI, menopause answers) are sealed, and new sleep audio clips are AES-GCM sealed (legacy clips keep playing until retention prunes them).
 - **Alarms survive reboot + no more plaintext backups in shared storage.** `BootReceiver` is now registered, so enabled alarms re-arm after a reboot. The mandatory pre-update backup stays in app-private storage only — the mirror to public Downloads is gone, so no plaintext backup lands in shared storage anymore.

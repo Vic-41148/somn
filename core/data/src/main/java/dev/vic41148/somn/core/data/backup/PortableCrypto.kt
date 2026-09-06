@@ -52,6 +52,9 @@ class PortableCrypto @Inject constructor() {
         /** OWASP guidance for PBKDF2-HMAC-SHA512. */
         const val DEFAULT_ITERATIONS = 210_000
 
+        /** Upper bound accepted from untrusted backup headers (see decrypt clamp). */
+        const val MAX_ITERATIONS = 2_000_000
+
         private const val SALT_LEN = 16
         private const val GCM_IV_LEN = 12
         private const val GCM_TAG_BITS = 128
@@ -233,6 +236,11 @@ class PortableCrypto @Inject constructor() {
         require(kdfId == KDF_PBKDF2_HMAC_SHA512) { "Unsupported KDF id $kdfId" }
 
         val iterations = readInt(input)
+        // Attacker-controlled header field: clamp before it reaches PBKDF2, or a malicious
+        // backup burns CPU unbounded. Legit backups use DEFAULT_ITERATIONS.
+        require(iterations in 1..MAX_ITERATIONS) {
+            "Refusing backup with iteration count $iterations (max $MAX_ITERATIONS)"
+        }
         val salt = readFully(input, readByte(input))
         val wrapIv = readFully(input, GCM_IV_LEN)
         val wrappedDek = readFully(input, readShort(input))
