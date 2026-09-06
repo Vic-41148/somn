@@ -123,20 +123,44 @@ class UpdateRepository @Inject constructor(
      * certificate set, otherwise the file is deleted and the install refused.
      */
     fun verifySameSigner(file: File) {
-        val pm = context.packageManager
-        val installed = runCatching {
-            pm.getPackageInfo(
-                context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-            ).signingInfo?.apkContentsSigners
-        }.getOrNull()
-        val archive = runCatching {
-            pm.getPackageArchiveInfo(
-                file.absolutePath, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
-            )?.signingInfo?.apkContentsSigners
-        }.getOrNull()
+        val installed = runCatching { installedSigners() }.getOrNull()
+        val archive = runCatching { archiveSigners(file) }.getOrNull()
         if (installed.isNullOrEmpty() || archive.isNullOrEmpty() || installed.toSet() != archive.toSet()) {
             file.delete()
             throw UpdateException("Update is not signed by the same certificate as the installed app.")
+        }
+    }
+
+    /**
+     * signingInfo needs API 28; below that the deprecated GET_SIGNATURES path still reports
+     * the same v1 signers. Without this branch the gate would crash instead of failing safe
+     * on the minSdk 26-27 devices the manifest still supports.
+     */
+    private fun installedSigners(): Array<android.content.pm.Signature>? {
+        val pm = context.packageManager
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            pm.getPackageInfo(
+                context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            ).signingInfo?.apkContentsSigners
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getPackageInfo(
+                context.packageName, android.content.pm.PackageManager.GET_SIGNATURES
+            ).signatures
+        }
+    }
+
+    private fun archiveSigners(file: File): Array<android.content.pm.Signature>? {
+        val pm = context.packageManager
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            pm.getPackageArchiveInfo(
+                file.absolutePath, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+            )?.signingInfo?.apkContentsSigners
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getPackageArchiveInfo(
+                file.absolutePath, android.content.pm.PackageManager.GET_SIGNATURES
+            )?.signatures
         }
     }
 
