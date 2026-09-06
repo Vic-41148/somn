@@ -39,6 +39,8 @@ fun DataExportBackupScreen(
     LaunchedEffect(exportStatus) {
         exportStatus?.let { snackbarHostState.showSnackbar(it) }
     }
+    // Recovery key and passphrase fields live here: no screenshots or switcher thumbnail.
+    dev.vic41148.somn.core.ui.components.SecureScreen()
     LaunchedEffect(importStatus) {
         importStatus?.let { snackbarHostState.showSnackbar(it) }
     }

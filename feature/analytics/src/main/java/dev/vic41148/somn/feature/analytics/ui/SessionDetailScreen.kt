@@ -73,6 +73,9 @@ fun SessionDetailScreen(
     val dateFormat = SimpleDateFormat("EEEE, MMM d, yyyy", Locale.getDefault())
     val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
 
+    // Sleep-talk clips live here: no screenshots, no recordings, no switcher thumbnail.
+    dev.vic41148.somn.core.ui.components.SecureScreen()
+
     var selectedAudioEventId by remember { mutableStateOf<Long?>(null) }
     val clipPlayer = rememberAudioClipPlayer { path ->
         withContext(Dispatchers.IO) { viewModel.playableClip(path) }
