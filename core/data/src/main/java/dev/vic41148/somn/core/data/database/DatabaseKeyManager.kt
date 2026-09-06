@@ -118,10 +118,14 @@ class DatabaseKeyManager @Inject constructor(
         ) ?: error("Cannot open restore candidate.")
         try {
             plain.rawExecSQL("ATTACH DATABASE '${tmp.absolutePath}' AS encrypted KEY \"x'$hex'\";")
-            plain.rawExecSQL("SELECT sqlcipher_export('encrypted');")
+            // Stepped, not exec'd: in sqlcipher-android rawExecSQL does not step a SELECT,
+            // so the export silently produces nothing.
+            plain.rawQuery("SELECT sqlcipher_export('encrypted');", null)?.use {
+                it.moveToFirst()
+            }
             plain.rawExecSQL("DETACH DATABASE encrypted;")
         } finally {
-            plain.close()
+            plain?.close()
         }
         if (!isEncryptedSQLite(tmp, key)) {
             tmp.delete()
@@ -220,7 +224,9 @@ class DatabaseKeyManager @Inject constructor(
             plain.rawExecSQL(
                 "ATTACH DATABASE '${tmp.absolutePath}' AS encrypted KEY \"x'$hex'\";"
             )
-            plain.rawExecSQL("SELECT sqlcipher_export('encrypted');")
+            plain.rawQuery("SELECT sqlcipher_export('encrypted');", null)?.use {
+                it.moveToFirst()
+            }
             plain.rawExecSQL("DETACH DATABASE encrypted;")
         } finally {
             plain?.close()

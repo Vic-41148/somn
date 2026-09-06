@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Plaintext migration steps its export.** `sqlcipher-android` does not execute a `SELECT sqlcipher_export` passed to `rawExecSQL`, so upgrades from pre-encryption installs produced an empty file and crashed on launch. Both export sites now step the query.
 - **Licenses screen covers the YAMNet model.** The runtime-downloaded model is not a Gradle dependency, so it gets its own attribution line below the generated list.
 - **YAMNet download names its license.** The opt-in consent dialog now says the model is open-source Apache-2.0, alongside the existing size, HTTPS, and checksum disclosure.
 - **Instrumented backup tests match production.** The restore suite now runs against an encrypted live database, covers a valid-but-foreign schema (unknown tables and triggers are refused), and CI compiles the test APK so this rot cannot recur silently.
