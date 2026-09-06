@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Declare `ACCESS_LOCAL_NETWORK` early.** Inert at targetSdk 36; the runtime request lands in the NAS-setup flow with the targetSdk 37 bump, before Android 17 enforcement breaks WebDAV sync.
 - **SQLCipher migrated to `sqlcipher-android` 4.10.0.** The old `android-database-sqlcipher` 4.5.x line is end-of-life and its natives are 4KB-aligned; the new artifact is 16KB-aligned on all ABIs (verified with `readelf` on the release APK). Package `net.sqlcipher.database` → `net.zetetic.database.sqlcipher`, `SupportFactory` → `SupportOpenHelperFactory`, native load via `System.loadLibrary` once.
 - **Audio timeline + recordings rebuilt.** Timeline is now a labeled card (legend with counts, start/end times, loudness-scaled markers, tap-to-select with TalkBack summary) and clips play through one proper player: speech routing, play/pause/stop, progress, and a visible error when a file will not play. All kept clips (talk, snore, cough) are listed.
 - **Backup integrity + sealed portable backups.** PBKDF2 iterations from backup headers are clamped, restores run `integrity_check` plus a table allowlist (no triggers/views), staging is size-capped, and passphrase backups now envelope a plaintext export so they restore on installs with a different key. Release builds strip `Log` calls.

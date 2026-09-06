@@ -16,6 +16,10 @@
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Dormant until targetSdk 37: Android 17 gates LAN traffic (the WebDAV NAS sync)
+        behind ACCESS_LOCAL_NETWORK. Declaring now is inert at target 36; the runtime
+        request belongs in the NAS-setup flow in the same change that bumps targetSdk. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <!-- REL-03: package visibility for OEM-specific battery/autostart settings deep links -->
     <queries>
