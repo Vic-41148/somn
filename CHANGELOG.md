@@ -8,6 +8,7 @@ the tag — keep section headers unique and tag-containing (for example
 ## Unreleased
 
 - **Bottom bar is a floating dock.** The stock tab bar is replaced by a pill dock: press or drag and a bubble carrying the tab icon pops out under the finger (morphing circle to squircle), release and it sinks back. Drag scrub-selects across tabs with haptics; taps, back navigation, and TalkBack keep working as before.
+- **Dock keeps no dead band over content.** The press bubble used to sit in a reserved strip above the pill, which read as a black band slicing the card above it. The dock now floats over content with no slot reserve at all — the bubble overflows only while pressed, and tab screens end with clearance so nothing hides under the pill.
 - **Settings entry no longer hitches the tab animation.** The 900-line screen is a `LazyColumn` so cold entry composes visible rows only, the 30-collector state burst is debounced, and `PackageManager` lookups moved off the main thread. Cold entry dropped from ~1300ms of hitches to ~800ms, warm from ~800ms to ~400ms.
 - **Release-only crash on Settings entry.** Init-launched coroutines could resume before later-declared state finished constructing on cold entry (main thread busy verifying classes), NPEing under R8. State written from init is now declared first; retrace-verified on-device.
 

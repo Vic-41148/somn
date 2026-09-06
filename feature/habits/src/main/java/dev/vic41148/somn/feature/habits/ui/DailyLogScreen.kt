@@ -194,6 +194,9 @@ fun DailyLogScreen(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+        // The floating dock overlays content (no Scaffold slot), so the column
+        // ends with clearance for it instead of running underneath the pill.
+        Spacer(modifier = Modifier.height(72.dp))
     }
 }
 

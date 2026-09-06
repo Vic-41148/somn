@@ -61,6 +61,8 @@ fun AlarmListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
+                // The floating dock overlays content — keep the FAB clear of it.
+                modifier = Modifier.padding(bottom = 88.dp),
                 onClick = onAddAlarm,
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
@@ -157,6 +159,11 @@ fun AlarmListScreen(
                             }
                         }
                     }
+                }
+                // The floating dock overlays content (no Scaffold slot) — trailing
+                // clearance so the last card scrolls clear of the pill.
+                item {
+                    Spacer(modifier = Modifier.height(88.dp))
                 }
             }
         }

@@ -112,8 +112,10 @@ fun MetricChip(
 
 /**
  * The only sanctioned row for [MetricChip]s. Fixes the row height to the tallest pill
- * ([IntrinsicSize.Min]) so siblings with shorter text stretch instead of floating —
- * pair with `Modifier.weight(1f)` on each chip for equal widths.
+ * ([IntrinsicSize.Max]) so every sibling fits its content fully and shorter ones stretch
+ * via `fillMaxHeight` instead of floating — pair with `Modifier.weight(1f)` on each chip
+ * for equal widths. (Min was tried: it pins the row to the smallest height and clips
+ * chip text the moment a larger font scale makes content taller than the minimum.)
  */
 @Composable
 fun PillRow(
@@ -123,7 +125,7 @@ fun PillRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min),
+            .height(IntrinsicSize.Max),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
         content = content
     )

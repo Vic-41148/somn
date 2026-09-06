@@ -114,7 +114,8 @@ fun SettingsScreen(
         // system-bar insets (innerPadding + imePadding). Re-applying them here double-pads the top
         // (~90px) and pushes the whole screen down; see Notes in SleepNavGraph.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        // Lifted clear of the floating dock, which overlays content.
+        snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = 88.dp)) }
     ) { scaffoldPadding ->
     // Lazy so a cold entry composes only the visible rows instead of all ~20 sections:
     // opening Settings used to drop 600ms+ frames and visibly hitch the tab animation.
@@ -138,7 +139,7 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(scaffoldPadding),
-        contentPadding = PaddingValues(24.dp),
+        contentPadding = PaddingValues(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {

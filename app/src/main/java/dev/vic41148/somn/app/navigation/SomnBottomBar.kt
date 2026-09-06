@@ -91,7 +91,11 @@ fun SomnBottomBar(
     val barHeight = 64.dp
     val bubbleSize = 56.dp
     val iconSize = 24.dp
-    val overhang = bubbleSize / 2 + 6.dp
+    // How far the bubble's bottom edge dips into the pill zone. The rest of
+    // the bubble overflows above the bar onto the content behind (neither the
+    // Box nor the Scaffold slot clips it), so no dead reserve space is kept
+    // for it — an empty reserve would paint as a black band over content.
+    val bubbleOverlap = 10.dp
     val pillShape = remember { RoundedCornerShape(percent = 50) }
 
     var barWidthPx by remember { mutableFloatStateOf(0f) }
@@ -159,7 +163,10 @@ fun SomnBottomBar(
             .padding(horizontal = 16.dp)
             .navigationBarsPadding()
             .padding(bottom = 8.dp)
-            .height(overhang + barHeight),
+            // Pill height only — the bubble overflows above the bar instead of
+            // sitting in a reserved band, so there is no dead strip painting
+            // over content at rest.
+            .height(barHeight),
     ) {
         // The flat pill. No notch — just a shadow and a background fill.
         Row(
@@ -264,7 +271,9 @@ fun SomnBottomBar(
         if (pressProgress > 0.01f) {
             val bubblePx = with(density) { bubbleSize.toPx() }
             val xPx = scoopX - bubblePx / 2f
-            val yPx = with(density) { overhang.toPx() } - bubblePx / 2f
+            // Bottom edge dips into the pill; the rest overflows above the bar
+            // (Box and Scaffold slot don't clip), rising over the tab content.
+            val yPx = with(density) { bubbleOverlap.toPx() } - bubblePx
             Box(
                 modifier = Modifier
                     .offset { IntOffset(xPx.roundToInt(), yPx.roundToInt()) }

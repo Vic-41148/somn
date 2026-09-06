@@ -6,8 +6,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessAlarm
@@ -16,6 +18,7 @@ import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -154,46 +157,29 @@ fun SleepNavGraph(
     }
 
     Scaffold(
-        // Transparent so the floating dock reads as floating: no opaque band is
-        // painted behind the pill and its popped bubble.
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        bottomBar = {
-            if (!hideBottomBar) {
-                // Index from the destination hierarchy so back navigation and deep links
-                // glide the dock notch too, not just taps.
-                val selectedIndex = bottomNavScreens.indexOfFirst { screen ->
-                    currentDestination?.hierarchy?.any {
-                        it.route == screen.route
-                    } == true
-                }.coerceAtLeast(0)
-                SomnBottomBar(
-                    screens = bottomNavScreens,
-                    selectedIndex = selectedIndex,
-                    onSelect = { screen ->
-                        navController.navigate(screen.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                )
-            }
-        }
+        // App background behind everything. There is deliberately no bottomBar
+        // slot: the floating dock overlays content (Box below) instead of
+        // reserving a strip, so no slot edge can ever paint a band over
+        // scrolled content. Tab screens end with dock clearance inside their
+        // own scroll containers.
+        containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            // MainActivity calls enableEdgeToEdge(), so the window no longer resizes when the
-            // soft keyboard opens, and Scaffold's default contentWindowInsets covers only the
-            // system bars. Without imePadding here the keyboard silently draws over whatever the
-            // user is typing into — the NAS host/port/password fields, the alarm label, the
-            // morning-review notes. Applied once at the single Scaffold every screen sits inside
-            // rather than per-screen.
+        Box(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(innerPadding)
-                .imePadding(),
+                .imePadding()
+        ) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                // MainActivity calls enableEdgeToEdge(), so the window no longer resizes when the
+                // soft keyboard opens, and Scaffold's default contentWindowInsets covers only the
+                // system bars. Without imePadding here the keyboard silently draws over whatever the
+                // user is typing into — the NAS host/port/password fields, the alarm label, the
+                // morning-review notes. Applied once at the single Scaffold every screen sits inside
+                // rather than per-screen.
+                modifier = Modifier.fillMaxSize(),
             // Tab switches crossfade (siblings under one bar). Detail pushes slide with the
             // direction of travel (right-to-left in, left-to-right on pop) so the user can
             // tell at a glance whether back returns to a tab or pops a stack.
@@ -487,6 +473,32 @@ fun SleepNavGraph(
             // Channel-scoped routes (updates screen only on standalone builds, no-op on store).
             updateIntegrations.forEach {
                 it.registerUpdateRoutes(builder = this, onBack = { navController.popBackStack() })
+            }
+        }
+
+            // Floating dock: overlays the content bottom (no slot reserve), so it
+            // can never slice cards with a band. Index from the destination
+            // hierarchy so back navigation and deep links move it too, not just taps.
+            if (!hideBottomBar) {
+                val selectedIndex = bottomNavScreens.indexOfFirst { screen ->
+                    currentDestination?.hierarchy?.any {
+                        it.route == screen.route
+                    } == true
+                }.coerceAtLeast(0)
+                SomnBottomBar(
+                    screens = bottomNavScreens,
+                    selectedIndex = selectedIndex,
+                    onSelect = { screen ->
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
         }
     }

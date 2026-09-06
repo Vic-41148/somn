@@ -102,7 +102,8 @@ fun HistoryScreen(
     }
 
     androidx.compose.material3.Scaffold(
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        // Lifted clear of the floating dock, which overlays content.
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = 88.dp)) },
         topBar = {
             androidx.compose.material3.TopAppBar(
                 title = {
@@ -306,6 +307,11 @@ fun HistoryScreen(
                     ) {
                         Text("View Reports")
                     }
+                }
+                // The floating dock overlays content (no Scaffold slot) — trailing
+                // clearance so the last rows scroll clear of the pill.
+                item {
+                    Spacer(modifier = Modifier.height(72.dp))
                 }
             }
         }

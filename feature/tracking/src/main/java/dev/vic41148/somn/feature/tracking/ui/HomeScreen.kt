@@ -352,6 +352,10 @@ fun HomeScreen(
             }
         }
 
+        // Breathing room before Last Night: without this the two same-colored cards
+        // sit edge to edge and read as one clipped surface.
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Last night's score
         AnimatedVisibility(
             visible = lastSession != null && lastSession!!.isCompleted,
@@ -668,5 +672,8 @@ private fun SleepDebtHomeCard(debt: SleepDebt, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        // The floating dock overlays content (no Scaffold slot), so the column
+        // ends with clearance for it instead of running underneath the pill.
+        Spacer(modifier = Modifier.height(72.dp))
     }
 }
