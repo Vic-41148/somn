@@ -25,10 +25,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.vic41148.somn.core.domain.model.AudioEvent
 import dev.vic41148.somn.core.domain.model.AudioEventType
@@ -83,6 +85,13 @@ fun AudioTimeline(
         }.joinToString(", ")
     }
     val density = LocalDensity.current
+    // Custom Canvas drawing never inherits RTL mirroring — mirror the time axis explicitly.
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    fun xFor(timestampMillis: Long, width: Float): Float {
+        val fraction = ((timestampMillis - sessionStartTime).toFloat() / sessionDurationMillis)
+            .coerceIn(0f, 1f)
+        return (if (rtl) 1f - fraction else fraction) * width
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         FlowRow(
@@ -122,20 +131,16 @@ fun AudioTimeline(
                     contentDescription = summary
                     role = Role.Image
                 }
-                .pointerInput(events, sessionStartTime, sessionDurationMillis) {
+                .pointerInput(events, sessionStartTime, sessionDurationMillis, rtl) {
                     detectTapGestures { tap ->
                         val slopPx = with(density) { 24.dp.toPx() }
                         val hit = events.minByOrNull { event ->
-                            val centerX =
-                                ((event.timestampMillis - sessionStartTime).toFloat() /
-                                    sessionDurationMillis) * size.width
-                            abs(tap.x - centerX)
+                            abs(tap.x - xFor(event.timestampMillis, size.width.toFloat()))
                         }
                         hit?.let { event ->
-                            val centerX =
-                                ((event.timestampMillis - sessionStartTime).toFloat() /
-                                    sessionDurationMillis) * size.width
-                            if (abs(tap.x - centerX) <= slopPx) onEventSelected(event)
+                            if (abs(tap.x - xFor(event.timestampMillis, size.width.toFloat())) <= slopPx) {
+                                onEventSelected(event)
+                            }
                         }
                     }
                 }
@@ -148,10 +153,7 @@ fun AudioTimeline(
                 strokeWidth = 2f
             )
             events.forEach { event ->
-                val fraction =
-                    ((event.timestampMillis - sessionStartTime).toFloat() / sessionDurationMillis)
-                        .coerceIn(0f, 1f)
-                val startX = fraction * size.width
+                val startX = xFor(event.timestampMillis, size.width)
                 val width = maxOf(
                     (event.durationSeconds * 1000f / sessionDurationMillis) * size.width,
                     barMinPx

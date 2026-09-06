@@ -16,10 +16,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
@@ -93,6 +95,9 @@ fun TrendLineChart(
     val textMeasurer = rememberTextMeasurer()
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+    // Time-series Canvas drawing never inherits RTL mirroring — mirror the X mapping and
+    // the edge captions explicitly. The Y gutter stays left; only the time axis flips.
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     Canvas(
         modifier = modifier
@@ -112,8 +117,10 @@ fun TrendLineChart(
         // background context rather than the focal point.
         val bandAlpha = (animatedProgress / 0.35f).coerceIn(0f, 1f)
 
-        fun xFor(timestampMillis: Long): Float =
-            yGutter + ((timestampMillis - minX).toFloat() / xSpan) * plotWidth
+        fun xFor(timestampMillis: Long): Float {
+            val fraction = ((timestampMillis - minX).toFloat() / xSpan).coerceIn(0f, 1f)
+            return yGutter + (if (rtl) 1f - fraction else fraction) * plotWidth
+        }
 
         fun yFor(value: Float): Float =
             plotHeight - ((value - minY) / ySpan) * plotHeight
@@ -137,15 +144,20 @@ fun TrendLineChart(
             )
         }
 
-        // Date captions under the left/right edges.
+        // Date captions under the left/right edges (swapped in RTL to match the mirrored axis).
         if (xLabels.isNotEmpty()) {
-            val first = textMeasurer.measure(text = xLabels.first(), style = labelStyle)
+            val (edgeFirst, edgeLast) = if (rtl) {
+                xLabels.last() to xLabels.first()
+            } else {
+                xLabels.first() to xLabels.last()
+            }
+            val first = textMeasurer.measure(text = edgeFirst, style = labelStyle)
             drawText(
                 textLayoutResult = first,
                 topLeft = Offset(x = yGutter, y = plotHeight + 4.dp.toPx())
             )
             if (xLabels.size > 1) {
-                val last = textMeasurer.measure(text = xLabels.last(), style = labelStyle)
+                val last = textMeasurer.measure(text = edgeLast, style = labelStyle)
                 drawText(
                     textLayoutResult = last,
                     topLeft = Offset(

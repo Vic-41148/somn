@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import dev.vic41148.somn.core.domain.model.SleepStage
 import dev.vic41148.somn.core.ui.theme.StageAwake
@@ -27,6 +29,10 @@ fun Hypnogram(
     height: Dp = 120.dp
 ) {
     if (stages.isEmpty()) return
+
+    // Canvas bars never inherit RTL mirroring — flip run order explicitly so the night
+    // still reads start-to-end in the layout direction.
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     Canvas(
         modifier = modifier
@@ -55,10 +61,12 @@ fun Hypnogram(
             }
             val barHeight = size.height - yOffset
 
+            val runWidth = (runEnd - runStart + 1) * barWidth + 1f
+            val x = if (rtl) size.width - (runEnd + 1) * barWidth else runStart * barWidth
             drawRect(
                 color = stage.toColor(),
-                topLeft = Offset(x = runStart * barWidth, y = yOffset),
-                size = Size(width = (runEnd - runStart + 1) * barWidth + 1f, height = barHeight)
+                topLeft = Offset(x = x, y = yOffset),
+                size = Size(width = runWidth, height = barHeight)
             )
 
             runStart = runEnd + 1

@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Charts mirror in RTL locales.** The audio timeline, hypnogram, and trend chart flip their time axes (plus tap hit-testing and edge captions) when the layout direction is RTL; standard layouts already mirror for free.
 - **Sensitive screens are screenshot-proof.** Session detail (sleep-talk clips) and backup settings (recovery key, passphrase) set `FLAG_SECURE`, which also blanks the app-switcher thumbnail.
 - **Bystander audio notice.** Mic rationale now says the room is recorded, not just you; choosing continuous-mic sonar mode shows a one-time dialog asking that bed/bedroom sharers know recording is on.
 - **Health Connect rationale screen.** A dedicated activity answers `ACTION_SHOW_PERMISSIONS_RATIONALE` for the pre-Android-14 Health Connect app path; the 14+ alias already existed.
