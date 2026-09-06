@@ -7,6 +7,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Licenses screen covers the YAMNet model.** The runtime-downloaded model is not a Gradle dependency, so it gets its own attribution line below the generated list.
 - **YAMNet download names its license.** The opt-in consent dialog now says the model is open-source Apache-2.0, alongside the existing size, HTTPS, and checksum disclosure.
 - **Instrumented backup tests match production.** The restore suite now runs against an encrypted live database, covers a valid-but-foreign schema (unknown tables and triggers are refused), and CI compiles the test APK so this rot cannot recur silently.
 - **Updater signer check works back to API 26.** The authenticity gate used an API-28-only API unconditionally; it now falls back to the v1 signature path on older devices instead of crashing.
