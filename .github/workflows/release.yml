@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write # softprops/action-gh-release needs this to create the release + upload assets
+  id-token: write # cosign keyless signing needs an OIDC identity, no long-lived key
 
 concurrency:
   group: release-${{ github.ref }}
@@ -51,6 +52,9 @@ jobs:
       # newest installed apksigner is selected — irrelevant for F-Droid, which strips and
       # re-signs; the unsigned APK (deterministic) is what their rebuild check compares.
       #
+      # Only the standalone channel is signed and published here: the store channel is built
+      # by F-Droid itself from source, never from a GitHub artifact.
+      #
       # Secrets: SIGNING_KEY (base64 of the keystore), KEY_ALIAS, KEYSTORE_PASSWORD, KEY_PASSWORD.
       # Passwords are passed to apksigner via env: so they never appear in the process argv.
       - name: Sign release APK
@@ -66,9 +70,9 @@ jobs:
           APKSIGNER="$(ls -1 "${ANDROID_SDK_ROOT:-$ANDROID_HOME}"/build-tools/*/apksigner | sort -V | tail -1)"
           echo "Using apksigner: $APKSIGNER"
           echo "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/release.jks"
-          cd app/build/outputs/apk/release
-          # No keystore.properties on CI, so AGP names the output app-release-unsigned.apk.
-          UNSIGNED="$(ls app-release-unsigned.apk 2>/dev/null || ls app-release.apk)"
+          cd app/build/outputs/apk/standalone/release
+          # No keystore.properties on CI, so AGP names the output app-standalone-release-unsigned.apk.
+          UNSIGNED="$(ls app-standalone-release-unsigned.apk 2>/dev/null || ls app-standalone-release.apk)"
           "$APKSIGNER" sign \
             --ks "$RUNNER_TEMP/release.jks" \
             --ks-key-alias "$KEY_ALIAS" \
@@ -80,15 +84,33 @@ jobs:
           "$APKSIGNER" verify --print-certs app-release-signed.apk
           ls -la
 
+      # CycloneDX SBOM of everything shipped in the APK (transitive deps included).
+      - name: Generate SBOM
+        run: |
+          ./gradlew :app:cyclonedxBom --no-daemon -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+          cp app/build/reports/cyclonedx/bom.json app/build/outputs/apk/standalone/release/somn-bom.json
+
       # Emit the signed APK's SHA-256 so release notes don't need a manually
       # filled placeholder (the signed bytes only exist on CI). The hash is
       # printed to the run log and uploaded alongside the APK as SHA256SUMS.txt.
       - name: Compute checksums
         shell: bash
         run: |
-          cd app/build/outputs/apk/release
-          sha256sum app-release-signed.apk > SHA256SUMS.txt
+          cd app/build/outputs/apk/standalone/release
+          sha256sum app-release-signed.apk somn-bom.json > SHA256SUMS.txt
           cat SHA256SUMS.txt
+
+      # Keyless Sigstore signing of the checksums file: short-lived Fulcio certificate
+      # tied to this workflow's identity, logged publicly to Rekor. No key to generate,
+      # store, or lose — verify with the command in the README.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign checksums with Sigstore
+        shell: bash
+        run: |
+          cd app/build/outputs/apk/standalone/release
+          cosign sign-blob --bundle SHA256SUMS.txt.cosign.bundle --yes SHA256SUMS.txt
 
       # The GitHub Release title and body come from CHANGELOG.md (tracked, one
       # section per release) instead of a hardcoded notes file: the section whose
@@ -126,5 +148,7 @@ jobs:
           name: ${{ steps.notes.outputs.title }}
           body_path: ${{ runner.temp }}/release-body.md
           files: |
-            app/build/outputs/apk/release/app-release-signed.apk
-            app/build/outputs/apk/release/SHA256SUMS.txt
+            app/build/outputs/apk/standalone/release/app-release-signed.apk
+            app/build/outputs/apk/standalone/release/SHA256SUMS.txt
+            app/build/outputs/apk/standalone/release/SHA256SUMS.txt.cosign.bundle
+            app/build/outputs/apk/standalone/release/somn-bom.json

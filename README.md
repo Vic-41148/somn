@@ -106,6 +106,17 @@ The easiest way to try Somn is the latest release:
 > Sleep button (and in some cases Settings) can close the app on Android 14+. Use v0.1.2
 > or newer instead.
 
+Every release ships `SHA256SUMS.txt`, a CycloneDX SBOM (`somn-bom.json`), and a
+Sigstore bundle (`SHA256SUMS.txt.cosign.bundle`). Verify before installing:
+
+```
+sha256sum -c SHA256SUMS.txt
+cosign verify-blob --bundle SHA256SUMS.txt.cosign.bundle \
+  --certificate-identity-regexp 'https://github.com/Vic-41148/somn/.github/workflows/release.yml@.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  SHA256SUMS.txt
+```
+
 ### Prerequisites
 - **Android Studio** Meerkat or later
 - **JDK 17**

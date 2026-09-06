@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    // CycloneDX SBOM for the release artifact (FOSS, no GMS anywhere near it).
+    alias(libs.plugins.cyclonedx)
 }
 
 // Release signing credentials live in keystore.properties (gitignored) so the keystore password
