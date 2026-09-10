@@ -52,7 +52,7 @@ fun AlarmEditScreen(
         //
         // The AM/PM toggle inside the Material3 picker mutates `isAfternoon` on the *same*
         // state object, whose internal needle Animatable is then left pointing at a stale
-        // angle; the first drag after the flip can orphan the draw layer so the hand stops
+        // angle, the first drag after the flip can orphan the draw layer so the hand stops
         // drawing until the screen reopens. Rebuild the picker with a fresh state (and a
         // fresh needle animation) whenever AM/PM flips and no finger is down, the policy
         // lives in AlarmTimePickerState.kt and is unit-tested.

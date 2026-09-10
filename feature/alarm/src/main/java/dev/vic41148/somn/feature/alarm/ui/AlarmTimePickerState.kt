@@ -8,7 +8,7 @@ import androidx.compose.material3.TimePickerState
  *
  * The Material3 picker keys its needle-animation state to a single [TimePickerState]
  * instance. The built-in AM/PM toggle flips noon on that same instance, leaving the
- * needle's internal Animatable at a stale angle; the first drag after the flip can
+ * needle's internal Animatable at a stale angle, the first drag after the flip can
  * orphan the draw layer so the hand stops drawing until the screen reopens (numbers
  * stay, the time still moves). Replacing the instance with a fresh one re-keys every
  * per-state animation, which heals the stale state deterministically, but only when

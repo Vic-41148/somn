@@ -110,7 +110,7 @@ class OnboardingViewModelTest {
     fun `re-answering a meq question overwrites instead of double counting`() {
         val vm = viewModel()
         vm.setMeqAnswer(0, 5)
-        vm.setMeqAnswer(0, 1) // Q0 re-answered; must overwrite, not add a 6th answer.
+        vm.setMeqAnswer(0, 1) // Q0 re-answered, must overwrite, not add a 6th answer.
         vm.setMeqAnswer(1, 5)
         vm.setMeqAnswer(2, 4)
         vm.setMeqAnswer(3, 5)

@@ -99,7 +99,7 @@ class AudioClipPlayer(
     var state by mutableStateOf<ClipPlayback>(ClipPlayback.Idle)
         private set
 
-    /** The playlist the current clip belongs to; rows keep it pointed at the list. */
+    /** The playlist the current clip belongs to, rows keep it pointed at the list. */
     var queue: List<AudioEvent> = emptyList()
 
     var speed: Float = 1f

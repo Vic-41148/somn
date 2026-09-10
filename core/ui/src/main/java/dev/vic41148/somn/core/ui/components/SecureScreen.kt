@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.LocalContext
  * Marks the hosting window secure while this composable is in the composition: blocks
  * screenshots and screen recording, and, the more common real-world leak, blanks the
  * app-switcher thumbnail. Use on screens showing sleep-talk clips, cycle data, or the
- * recovery key; never app-wide, so legitimate score sharing keeps working.
+ * recovery key, never app-wide, so legitimate score sharing keeps working.
  */
 @Composable
 fun SecureScreen() {

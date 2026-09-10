@@ -11,7 +11,7 @@ import org.junit.Test
  * The OnboardingFlow SLEEP_GOAL screen used to duplicate only the 13-18/19-64/else subset of
  * these brackets inline, collapsing every age under 13 into the 65+ "7.5h" bucket: a 6-year-old
  * was told "we recommend 7.5 hours" while the stored target was actually 10h. The fix removed the
- * inline copy; these tests pin the bracket values themselves so the same class of mistake cannot
+ * inline copy, these tests pin the bracket values themselves so the same class of mistake cannot
  * sneak back in anywhere that re-derives them.
  */
 class UserProfileTest {

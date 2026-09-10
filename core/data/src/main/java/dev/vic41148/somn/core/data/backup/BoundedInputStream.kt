@@ -38,5 +38,5 @@ fun InputStream.readBoundedText(maxBytes: Long, charset: java.nio.charset.Charse
     return BoundedInputStream(this, maxBytes).bufferedReader(charset).use { it.readText() }
 }
 
-/** CSV import cap: Sleep-as-Android exports are kilobytes; anything past this is hostile. */
+/** CSV import cap: Sleep-as-Android exports are kilobytes, anything past this is hostile. */
 const val MAX_CSV_IMPORT_BYTES = 8L * 1024 * 1024

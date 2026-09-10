@@ -16,7 +16,7 @@ import dev.vic41148.somn.core.data.repository.BackupRepository
  * snapshot in the user's chosen backup folder around at all times.
  *
  * Deliberately modest: it only writes when the user has granted a backup folder (backupUri), so on
- * a fresh install it no-ops instead of nagging; it touches no install logic and needs no special
+ * a fresh install it no-ops instead of nagging, it touches no install logic and needs no special
  * permission. Running it daily - independent of update events - also protects against crashes or
  * corruption that have nothing to do with updates.
  */

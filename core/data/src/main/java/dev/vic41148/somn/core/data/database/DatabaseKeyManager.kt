@@ -28,7 +28,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
  * so per-connection state (ATTACH, PRAGMA key) never survives to the next call. All
  * cross-database work here is therefore done as explicit schema reads plus batched row
  * copies, never ATTACH, and every direct handle goes through [SupportOpenHelperFactory],
- * which keys each pooled connection via hook. Verified on-device; see ExportProbeTest history.
+ * which keys each pooled connection via hook. Verified on-device, see ExportProbeTest history.
  */
 @Singleton
 class DatabaseKeyManager @Inject constructor(
@@ -55,7 +55,7 @@ class DatabaseKeyManager @Inject constructor(
         } else {
             val fresh = ByteArray(32).also { SecureRandom().nextBytes(it) }
             // Persist before first use so a crash never strands an encrypted DB whose key
-            // was lost; a leftover plaintext DB is re-migrated on the next launch.
+            // was lost, a leftover plaintext DB is re-migrated on the next launch.
             keyFile.writeBytes(encryption.encryptBytes(fresh))
             fresh
         }
@@ -134,7 +134,7 @@ class DatabaseKeyManager @Inject constructor(
 
     /**
      * Imports a validated plaintext staging file as the new live encrypted DB. Verifies the
-     * result opens before swapping; the caller closes Room first.
+     * result opens before swapping, the caller closes Room first.
      */
     fun importPlaintextCopy(src: File) {
         loadNative()
@@ -251,7 +251,7 @@ class DatabaseKeyManager @Inject constructor(
         keyedHelper(dest.absolutePath, key, srcVersion).use { helper ->
             val destDb = helper.writableDatabase
             // One transaction: without it every row is its own fsync (minutes on big
-            // histories); atomicity here is a bonus, the file is verified after anyway.
+            // histories), atomicity here is a bonus, the file is verified after anyway.
             destDb.beginTransaction()
             try {
                 copySchemaAndRows(

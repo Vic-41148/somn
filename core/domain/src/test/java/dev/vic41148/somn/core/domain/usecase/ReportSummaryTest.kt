@@ -94,7 +94,7 @@ class ReportSummaryTest {
         val zone = ZoneId.systemDefault()
         fun millis(date: LocalDate) =
             date.atTime(23, 0).atZone(zone).toInstant().toEpochMilli()
-        // 4 consecutive nights; the newest falls inside Rest Mode and must vanish
+        // 4 consecutive nights, the newest falls inside Rest Mode and must vanish
         // from the math instead of extending the streak to 4.
         val sessions = listOf(3, 2, 1, 0).map { daysAgo ->
             sessionOn(today.minusDays(daysAgo.toLong()))

@@ -18,7 +18,7 @@ import dev.vic41148.somn.core.ui.theme.SomnTheme
 /**
  * Health Connect permission rationale, shown from inside Health Connect's own permission
  * screen (pre-Android-14 `ACTION_SHOW_PERMISSIONS_RATIONALE`). On 14+ the
- * `HealthConnectRationaleAlias` covers the framework path; this covers Health Connect as
+ * `HealthConnectRationaleAlias` covers the framework path, this covers Health Connect as
  * a separate app. Reads the same story as the in-app toggle: optional, on-device, pausable.
  */
 class HealthRationaleActivity : ComponentActivity() {

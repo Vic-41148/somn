@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
  * owns the 0-100 score color language), the caller supplies [color] so duration/efficiency/
  * consistency rings can each use their own semantic color.
  *
- * @param fraction 0f..1f progress to display; coerced into range.
+ * @param fraction 0f..1f progress to display, coerced into range.
  */
 @Composable
 fun StatRing(

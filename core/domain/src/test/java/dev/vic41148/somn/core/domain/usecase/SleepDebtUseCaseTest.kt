@@ -43,7 +43,7 @@ class SleepDebtUseCaseTest {
         assertThat(debt.level).isEqualTo(DebtLevel.SEVERE)
         assertThat(debt.trend).isEqualTo(DebtTrend.STABLE)
 
-        // additionalPerNight = min(90, 840) rounded to nearest 15 = 90; recoveryDays = ceil(840/90) = 10
+        // additionalPerNight = min(90, 840) rounded to nearest 15 = 90, recoveryDays = ceil(840/90) = 10
         assertThat(plan.additionalMinutesPerNight).isEqualTo(90)
         assertThat(plan.estimatedRecoveryDays).isEqualTo(10)
         assertThat(plan.suggestedBedtimeShiftMinutes).isEqualTo(90)
@@ -75,7 +75,7 @@ class SleepDebtUseCaseTest {
 
     @Test
     fun calculate_recentWeekWorseThanPriorWeek_trendIsWorsening() {
-        // Prior 7 nights (days 13..7 ago) on target; recent 7 nights (days 6..0 ago) 60min short.
+        // Prior 7 nights (days 13..7 ago) on target, recent 7 nights (days 6..0 ago) 60min short.
         val sessions = buildWindow { daysAgo -> if (daysAgo <= 6) 420 else 480 }
         val (debt, _) = useCase.calculate(sessions, targetSleepMinutes = 480)
         assertThat(debt.trend).isEqualTo(DebtTrend.WORSENING)
@@ -83,7 +83,7 @@ class SleepDebtUseCaseTest {
 
     @Test
     fun calculate_recentWeekBetterThanPriorWeek_trendIsImproving() {
-        // Prior 7 nights 60min short; recent 7 nights on target.
+        // Prior 7 nights 60min short, recent 7 nights on target.
         val sessions = buildWindow { daysAgo -> if (daysAgo <= 6) 480 else 420 }
         val (debt, _) = useCase.calculate(sessions, targetSleepMinutes = 480)
         assertThat(debt.trend).isEqualTo(DebtTrend.IMPROVING)

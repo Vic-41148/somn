@@ -105,7 +105,7 @@ class AudioAccuracyHarnessTest {
         logReport("ZCR heuristic", predictions) { it.zcr }
     }
 
-    /** Majority vote across YAMNet's per-window predictions for the whole clip; null if none mapped. */
+    /** Majority vote across YAMNet's per-window predictions for the whole clip, null if none mapped. */
     private fun predictWithYamnet(pcm: ShortArray, classifier: YamnetAudioClassifier): AudioEventType? {
         val windowSize = YamnetAudioClassifier.WINDOW_SAMPLE_COUNT
         val votes = mutableListOf<AudioEventType>()
@@ -122,7 +122,7 @@ class AudioAccuracyHarnessTest {
      * Feeds the clip through a fresh [AudioEventClassifier] in 1-second buffers - the same size
      * [AudioCollector] uses live - then appends one silent buffer so a clip that stays loud right to
      * the end still closes out its final event (the classifier only emits on a loud-to-quiet
-     * transition; without this, a clip with no trailing silence would never report anything).
+     * transition, without this, a clip with no trailing silence would never report anything).
      */
     private fun predictWithZcr(pcm: ShortArray): AudioEventType? {
         val classifier = AudioEventClassifier()

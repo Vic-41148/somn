@@ -24,7 +24,7 @@ import dev.vic41148.somn.feature.alarm.service.AlarmService
  * only way out is Snooze or Dismiss.
  *
  * The screen leaves itself when the firing episode ends ([AlarmService.phase] turns DISMISSED,
- * including after a snooze, which the service now reports as ending the episode); the nav graph
+ * including after a snooze, which the service now reports as ending the episode), the nav graph
  * observes that transition and pops the route.
  */
 @Composable

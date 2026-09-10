@@ -32,7 +32,7 @@ class BackupRepository @Inject constructor(
         /** Same payload, passphrase-encrypted. Only one of the two is present in a given backup. */
         const val DB_BACKUP_NAME_ENCRYPTED = "sleep_tracker.db.enc"
 
-        /** Staging cap: databases are megabytes; anything past this is not our backup. */
+        /** Staging cap: databases are megabytes, anything past this is not our backup. */
         const val MAX_RESTORE_BYTES = 256L * 1024 * 1024
 
         const val PREFS_BACKUP_NAME = "somn_prefs.preferences_pb"
@@ -40,7 +40,7 @@ class BackupRepository @Inject constructor(
         private const val PREFS_RELATIVE_PATH = "datastore/somn_prefs.preferences_pb"
 
         /**
-         * Every SQLite file starts with these 16 bytes ("SQLite format 3" + NUL); used to
+         * Every SQLite file starts with these 16 bytes ("SQLite format 3" + NUL), used to
          * reject garbage before overwriting a live DB.
          */
         private val SQLITE_HEADER =

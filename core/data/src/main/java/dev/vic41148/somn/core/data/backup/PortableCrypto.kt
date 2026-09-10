@@ -43,7 +43,7 @@ import javax.inject.Singleton
 class PortableCrypto @Inject constructor() {
 
     companion object {
-        /** Identifies a portable envelope; lets restore tell these apart from legacy Keystore blobs. */
+        /** Identifies a portable envelope, lets restore tell these apart from legacy Keystore blobs. */
         val MAGIC: ByteArray = "SOMNBAK1".toByteArray(Charsets.US_ASCII)
 
         const val FORMAT_VERSION = 1

@@ -66,14 +66,14 @@ import androidx.graphics.shapes.RoundedPolygon
 import kotlin.math.roundToInt
 
 /**
- * Floating dock bar. At rest it's a flat pill with the selected tab tinted;
+ * Floating dock bar. At rest it's a flat pill with the selected tab tinted,
  * press or drag and a bubble rises above the tab under your finger, carrying
  * its icon, then settles back on release.
  *
  * One gesture loop selects on first touch and keeps selecting across tab
  * boundaries while dragging, so taps and drags always navigate. Spatial motion
- * (position, scale) shares one motionScheme spring; color/alpha share the
- * effects spec. The pill stays flat (no notch); the bubble shadow carries the
+ * (position, scale) shares one motionScheme spring, color/alpha share the
+ * effects spec. The pill stays flat (no notch), the bubble shadow carries the
  * elevation and its shape morphs circle -> squircle under press.
  */
 @Composable
@@ -271,7 +271,7 @@ fun SomnBottomBar(
         if (pressProgress > 0.01f) {
             val bubblePx = with(density) { bubbleSize.toPx() }
             val xPx = scoopX - bubblePx / 2f
-            // Bottom edge dips into the pill; the rest overflows above the bar
+            // Bottom edge dips into the pill, the rest overflows above the bar
             // (Box and Scaffold slot don't clip), rising over the tab content.
             val yPx = with(density) { bubbleOverlap.toPx() } - bubblePx
             Box(

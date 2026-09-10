@@ -112,7 +112,7 @@ fun CorrelationInsightsScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Was `if (isLoading) { ...; return }` followed by `!report?.hasAnyData!!`, if
+        // Was `if (isLoading) { ..., return }` followed by `!report?.hasAnyData!!`, if
         // loadDebtAndCorrelations() ever hit its catch block before report was first assigned
         // (isLoading still gets set back to false there), report stays null forever and
         // `null!!` crashed this screen with an NPE. Guard on report == null directly instead.

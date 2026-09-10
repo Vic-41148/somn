@@ -94,7 +94,7 @@ object DebugSeeder {
             sleepRepo.insertEpochs(epochsFor(sessionId, startMillis, sleepDuration, deepPct, remPct, rnd))
             sleepRepo.upsertExternalVitals(vitalsFor(sessionId, rnd))
 
-            // A few audio events on some nights; tag the weekend sessions.
+            // A few audio events on some nights, tag the weekend sessions.
             if (dayAgo % 2 == 1) {
                 audioEventOf(sleepRepo, clipStore, filesDir, sessionId, startMillis, sleepDuration, AudioEventType.SNORE, rnd)
                 if (rnd.nextBoolean()) {

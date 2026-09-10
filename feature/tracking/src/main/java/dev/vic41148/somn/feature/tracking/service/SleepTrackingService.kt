@@ -245,12 +245,12 @@ class SleepTrackingService : Service() {
     private fun startTrackingForeground() {
         val notification = createNotification()
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            // API 26-28: the three-arg overload does not exist; the two-arg version is required.
+            // API 26-28: the three-arg overload does not exist, the two-arg version is required.
             startForeground(NOTIFICATION_ID, notification)
             return
         }
         // API 29+: type 0 means "use the manifest-declared types" on Q..Tiramisu (no runtime
-        // permission enforcement before API 34); API 34+ passes the permission-derived mask.
+        // permission enforcement before API 34), API 34+ passes the permission-derived mask.
         startForeground(
             NOTIFICATION_ID,
             notification,
@@ -399,7 +399,7 @@ class SleepTrackingService : Service() {
         // Phone-lifted → immediate AWAKE epoch. Written raw, bypassing the stage-smoothing
         // buffer in handleEpoch() - a real lift is a strong signal, not single-epoch noise.
         // Note the skip it causes (skipNextEpoch below) can make the next smoothing window
-        // non-consecutive (e.g. [E1, E2, E4]); harmless, mode-of-3 stays sane.
+        // non-consecutive (e.g. [E1, E2, E4]), harmless, mode-of-3 stays sane.
         serviceScope.launch {
             accelerometerCollector.liftEvents.collect { liftEvent ->
                 if (liftEvent.type == AccelerometerCollector.LiftEventType.PHONE_LIFTED ||
@@ -479,7 +479,7 @@ class SleepTrackingService : Service() {
             }
             val dir = java.io.File(filesDir, clipDirName)
             if (!dir.exists()) dir.mkdirs()
-            // Sealed at rest (.enc); legacy plaintext clips keep working until retention prunes them.
+            // Sealed at rest (.enc), legacy plaintext clips keep working until retention prunes them.
             val wavFile = audioClipStore.writeClip(
                 dir,
                 "${event.type.name.lowercase()}_${sessionId}_${event.timestampMillis}.wav",
@@ -575,14 +575,14 @@ class SleepTrackingService : Service() {
      *
      * @param flushFinalEpochHere whether this caller flushes the held-back final epoch itself.
      *   The ViewModel's user-stop path sets this false and writes the epoch itself (deterministic
-     *   ordering before it reads the epoch list back); fireSmartAlarm/onDestroy set it true and
+     *   ordering before it reads the epoch list back), fireSmartAlarm/onDestroy set it true and
      *   flush asynchronously on the service scope. Never runBlocking on the main thread here -
      *   that wedged Room's executors during teardown and hung every later query.
      */
     private fun stopTracking(flushFinalEpochHere: Boolean = true) {
         // The held-back final epoch has no successor, so per smoothStages() semantics it is
         // written unsmoothed. The ViewModel path writes it synchronously in its own coroutine
-        // (which guarantees it lands before the epoch list is read back); the service paths
+        // (which guarantees it lands before the epoch list is read back), the service paths
         // flush asynchronously as best-effort.
         if (flushFinalEpochHere) {
             _finalEpoch.value?.let { last ->

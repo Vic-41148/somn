@@ -83,7 +83,7 @@ class UpdateFlow @Inject constructor(
         }
     }
 
-    /** Launches the platform installer overlay for [apk]; returns the failure, or null on success. */
+    /** Launches the platform installer overlay for [apk], returns the failure, or null on success. */
     fun launchSystemInstaller(apk: File): String? {
         return try {
             val authorities = "${context.packageName}.fileprovider"

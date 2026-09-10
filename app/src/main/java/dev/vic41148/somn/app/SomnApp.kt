@@ -41,11 +41,11 @@ class SomnApp : Application(), Configuration.Provider {
         scheduleClipRetention()
         scheduleLocalBackup()
         // One-time upgrade: seal any still-plaintext sensitive prefs (v0.1.2 installs).
-        // Fire-and-forget on IO; reads tolerate both forms until it lands.
+        // Fire-and-forget on IO, reads tolerate both forms until it lands.
         CoroutineScope(Dispatchers.IO).launch {
             runCatching { preferencesRepository.migrateSensitivePrefsToEncrypted() }
         }
-        // Channel-scoped integrations (in-app updater scheduling on standalone builds; no-op on
+        // Channel-scoped integrations (in-app updater scheduling on standalone builds, no-op on
         // store). Called after the base scheduling so we stay independent of app startup order.
         updateIntegrations.forEach { it.onAppCreated(this) }
     }

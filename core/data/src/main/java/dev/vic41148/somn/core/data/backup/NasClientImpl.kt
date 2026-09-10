@@ -24,7 +24,7 @@ class NasClientImpl @Inject constructor(
         private const val CONNECT_TIMEOUT = 10_000
         private const val READ_TIMEOUT = 30_000
         /**
-         * PROPFIND listings are small XML; anything past this from a NAS is a
+         * PROPFIND listings are small XML, anything past this from a NAS is a
          * misconfiguration or a hostile box, never a directory listing.
          */
         internal const val MAX_LISTING_BYTES = 2L * 1024 * 1024

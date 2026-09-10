@@ -66,7 +66,7 @@ class UpdateRepository @Inject constructor(
         }
     }
 
-    /** Streams the APK to [destFile], reporting [onProgress] bytes; returns the completed file. */
+    /** Streams the APK to [destFile], reporting [onProgress] bytes, returns the completed file. */
     suspend fun downloadApk(
         url: String,
         destFile: File,
@@ -108,7 +108,7 @@ class UpdateRepository @Inject constructor(
         }
     }
 
-    /** Verifies [file] against [expectedSha256]; throws [ChecksumMismatchException] on failure. */
+    /** Verifies [file] against [expectedSha256], throws [ChecksumMismatchException] on failure. */
     fun verifyChecksum(file: File, expectedSha256: String?) {
         val actual = Checksum.sha256(file)
         if (expectedSha256.isNullOrBlank() || !Checksum.sha256Matches(expectedSha256, actual)) {
@@ -132,7 +132,7 @@ class UpdateRepository @Inject constructor(
     }
 
     /**
-     * signingInfo needs API 28; below that the deprecated GET_SIGNATURES path still reports
+     * signingInfo needs API 28, below that the deprecated GET_SIGNATURES path still reports
      * the same v1 signers. Without this branch the gate would crash instead of failing safe
      * on the minSdk 26-27 devices the manifest still supports.
      */
@@ -276,7 +276,7 @@ class UpdateRepository @Inject constructor(
         const val READ_TIMEOUT_MS = 15_000
         const val MAX_BODY_BYTES = 2 * 1024 * 1024
         const val NOTIFY_EVERY_BYTES = 256 * 1024L
-        /** APKs are ~15 MB; anything past this is not our update. */
+        /** APKs are ~15 MB, anything past this is not our update. */
         const val MAX_APK_BYTES = 100L * 1024 * 1024
         const val MAX_REDIRECT_HOPS = 5
         val ALLOWED_UPDATE_HOSTS = setOf(

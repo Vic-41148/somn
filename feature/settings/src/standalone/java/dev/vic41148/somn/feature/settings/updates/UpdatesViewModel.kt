@@ -107,7 +107,7 @@ class UpdatesViewModel @Inject constructor(
 
     // PackageManager is binder IPC: resolving it in init would hitch the Settings
     // tab animation on cold entry, so it loads on IO and the UI fills in a frame later.
-    // (Declaration lives above the init block; see there.)
+    // (Declaration lives above the init block, see there.)
     fun setAutoCheck(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.updateUpdateAutoCheck(enabled)

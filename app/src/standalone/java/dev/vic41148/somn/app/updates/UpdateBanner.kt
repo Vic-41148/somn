@@ -33,7 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 /**
  * Dismissible card shown under the Home header when a newer release was found. Update runs the full
- * guarded flow (backup first, checksum-verified download, system installer); "Not now" hides the
+ * guarded flow (backup first, checksum-verified download, system installer), "Not now" hides the
  * card for this session.
  */
 @Composable

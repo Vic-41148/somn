@@ -68,7 +68,7 @@ class AlarmService : Service() {
     /**
      * Per-alarm smart wake window (minutes) for the current firing episode, when the firing
      * intent carried one. Drives the WAKE-01 confirmation window for this alarm (override in
-     * minutes); null falls back to the global `wakeVerificationWindowSeconds` preference.
+     * minutes), null falls back to the global `wakeVerificationWindowSeconds` preference.
      */
     private var currentWakeWindowMinutes: Int? = null
 
@@ -271,7 +271,7 @@ class AlarmService : Service() {
      * overload is used while the manifest declares a foreground-service type ("mediaPlayback").
      * mediaPlayback has no runtime-permission requirement, so the type can be passed
      * unconditionally, it exactly matches the manifest declaration. The three-arg overload only
-     * exists from API 29 (Q); on API 26-28 the two-arg version is required.
+     * exists from API 29 (Q), on API 26-28 the two-arg version is required.
      */
     private fun startAlarmForeground() {
         val notification = createNotification()

@@ -11,7 +11,7 @@ import dev.vic41148.somn.core.domain.haptic.HapticsManager
 
 /**
  * Composition-local handle to the app-wide [HapticsManager]. Provided once at the activity root via
- * [ProvideHaptics] with the injectable implementation; screens read `LocalHaptics.current` and call
+ * [ProvideHaptics] with the injectable implementation, screens read `LocalHaptics.current` and call
  * `tick()` / `confirm()` / etc. without ever touching a [android.os.Vibrator] or a Compose
  * `HapticFeedbackType` directly.
  */
@@ -37,7 +37,7 @@ fun ProvideHaptics(delegate: HapticsManager, content: @Composable () -> Unit) {
 
 /**
  * Thin Compose adapter over an injected [HapticsManager]. Touch-confirmation and long-press effects
- * go through [HapticFeedback] (the compose rendering of `View.performHapticFeedback`); everything
+ * go through [HapticFeedback] (the compose rendering of `View.performHapticFeedback`), everything
  * else (ticks, rejects, background completions, previews) delegates to the raw-vibrator
  * implementation because Compose exposes no constant for them.
  */
@@ -55,7 +55,7 @@ internal class ComposeHaptics(
         if (!delegate.enabled) return
         composeFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
         // Strong layers a raw pulse so the confirmation still lands even on engines with a quiet
-        // standard confirm; Light/Standard ride the platform path alone.
+        // standard confirm, Light/Standard ride the platform path alone.
         if (delegate.intensity == HapticsIntensity.STRONG) delegate.confirm()
     }
 

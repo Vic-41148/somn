@@ -73,7 +73,7 @@ class YamnetAudioClassifier(modelFile: File) {
         /**
          * Converts 16-bit PCM samples to YAMNet's expected input: a single [-1, 1] normalized
          * Float32 window of exactly [WINDOW_SAMPLE_COUNT] samples. Longer buffers are truncated
-         * to the first window; shorter ones are zero-padded. Pure function - testable without
+         * to the first window, shorter ones are zero-padded. Pure function - testable without
          * TFLite or a device.
          */
         fun toYamnetInput(buffer: ShortArray): Array<FloatArray> {

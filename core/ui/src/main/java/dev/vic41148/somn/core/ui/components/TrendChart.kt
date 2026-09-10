@@ -120,7 +120,7 @@ fun TrendLineChart(
     val maxY = maxVal + span * 0.15f
 
     // DATA-03: entrance animation, the chart used to draw fully formed in a single Canvas pass
-    // with no motion at all. Bands (context) reach full opacity quickly; the line then draws in
+    // with no motion at all. Bands (context) reach full opacity quickly, the line then draws in
     // progressively, segment by segment, left to right, reads as "being plotted," not a fade.
     val progress = remember(series) { Animatable(0f) }
     LaunchedEffect(series) {
@@ -138,7 +138,7 @@ fun TrendLineChart(
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
     // Time-series Canvas drawing never inherits RTL mirroring, mirror the X mapping and
-    // the edge captions explicitly. The Y gutter stays left; only the time axis flips.
+    // the edge captions explicitly. The Y gutter stays left, only the time axis flips.
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     if (tableEntries.isNotEmpty()) {

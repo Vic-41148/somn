@@ -25,7 +25,7 @@ class UpdateScheduler @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    /** Enqueues the daily periodic check; does nothing if it already exists. */
+    /** Enqueues the daily periodic check, does nothing if it already exists. */
     fun ensureScheduled() {
         val request = PeriodicWorkRequestBuilder<UpdateCheckWorker>(
             PERIOD_DAILY_DAYS, TimeUnit.DAYS

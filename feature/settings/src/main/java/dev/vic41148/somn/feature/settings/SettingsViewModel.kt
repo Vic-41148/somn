@@ -251,9 +251,9 @@ class SettingsViewModel @Inject constructor(
             dev.vic41148.somn.core.domain.haptic.HapticsIntensity.STANDARD
     )
 
-    // (Declaration lives above the first init block; see there.)
+    // (Declaration lives above the first init block, see there.)
     // Debounced because the ~30 init-block collectors fire as one burst on entry and every
-    // update used to recompose this 900-line screen mid-animation; steady-state toggles
+    // update used to recompose this 900-line screen mid-animation, steady-state toggles
     // pick up a 50ms UI lag nobody can feel. Logic needing the freshest value reads
     // _settings directly.
     @OptIn(FlowPreview::class)
@@ -395,7 +395,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateShowReadinessCard(enabled) }
     }
 
-    /** R2: entering Rest Mode stamps now; leaving clears the boundary. */
+    /** R2: entering Rest Mode stamps now, leaving clears the boundary. */
     fun setRestMode(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setRestModeSince(

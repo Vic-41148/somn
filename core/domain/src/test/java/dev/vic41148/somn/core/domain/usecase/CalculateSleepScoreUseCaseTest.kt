@@ -116,7 +116,7 @@ class CalculateSleepScoreUseCaseTest {
     @Test
     fun calculateWithProfile_ageCalibratedDeepSleep_addsThreePoints() {
         val olderProfile = profile(dateOfBirth = LocalDate.now().minusYears(60))
-        // deepSleepTargetPercent for age 56-75 is 12.5; band is target*0.7..target*1.3 = 8.75..16.25
+        // deepSleepTargetPercent for age 56-75 is 12.5, band is target*0.7..target*1.3 = 8.75..16.25
         val matchingSession = session(deepSleepPercent = 12f)
         val result = useCase.calculateWithProfile(matchingSession, olderProfile)
         assertThat(result.adjustmentReasons).hasSize(1)

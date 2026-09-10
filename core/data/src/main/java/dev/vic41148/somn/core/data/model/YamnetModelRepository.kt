@@ -14,7 +14,7 @@ import javax.inject.Singleton
 
 /**
  * Downloads and stores the YAMNet audio-classification model. The model used to ship as a bundled
- * APK asset; it is now external so every distribution channel stays lean (IzzyOnDroid's 30MB cap,
+ * APK asset, it is now external so every distribution channel stays lean (IzzyOnDroid's 30MB cap,
  * Accrescent's size review) and avoids F-Droid's bundled-binary scanner for the app build itself.
  *
  * The download is user-initiated from Settings with an explicit consent prompt (F-Droid accepts
@@ -33,14 +33,14 @@ class YamnetModelRepository @Inject constructor(
     private val modelFile: File
         get() = File(context.filesDir, MODEL_FILE_NAME)
 
-    /** Path the classifier loads from; exists only after a successful download. */
+    /** Path the classifier loads from, exists only after a successful download. */
     fun modelFile(): File = modelFile
 
     fun isDownloaded(): Boolean = modelFile().exists() && modelFile().length() > 0
 
     /**
      * Fetches the model into filesDir, streaming to a temp file, verifying sha256 against
-     * [EXPECTED_SHA256] before the final rename. Returns the file or throws; no partial state is
+     * [EXPECTED_SHA256] before the final rename. Returns the file or throws, no partial state is
      * left behind. [onProgress] is invoked with (bytesDownloaded, totalBytes).
      */
     suspend fun download(onProgress: (downloaded: Long, total: Long) -> Unit = { _, _ -> }): File =
@@ -78,7 +78,7 @@ class YamnetModelRepository @Inject constructor(
 
                 modelFile().parentFile?.mkdirs()
                 if (!temp.renameTo(modelFile())) {
-                    // Rename across the same volume is atomic; fall back to a copy if something
+                    // Rename across the same volume is atomic, fall back to a copy if something
                     // exotic interfered, then clean the temp regardless.
                     temp.copyTo(modelFile(), overwrite = true)
                     temp.delete()

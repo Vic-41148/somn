@@ -93,7 +93,7 @@ class HealthConnectRepository @Inject constructor(
         val avgSpo2 = spo2Values.takeIf { it.isNotEmpty() }?.average()?.toFloat()
         val minSpo2 = spo2Values.minOrNull()
 
-        // Temperature's Kotlin property is `inCelsius`; its getter carries @JvmName("getCelsius"),
+        // Temperature's Kotlin property is `inCelsius`, its getter carries @JvmName("getCelsius"),
         // so `.getCelsius()` and `.celsius` both fail from Kotlin (the latter is the companion's
         // factory function, not a property). baseline is nullable, hence mapNotNull.
         val skinTempValues = skinTempRecords.mapNotNull { it.baseline?.inCelsius?.toFloat() }

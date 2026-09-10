@@ -58,7 +58,7 @@ fun AppLockGate(
     }
     if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
         // Nothing to verify against, locking here would brick the app until a credential
-        // is enrolled elsewhere. Open instead; the toggle stays on for when one exists.
+        // is enrolled elsewhere. Open instead, the toggle stays on for when one exists.
         content()
         return
     }

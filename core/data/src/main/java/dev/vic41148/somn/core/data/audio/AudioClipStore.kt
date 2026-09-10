@@ -10,7 +10,7 @@ import javax.inject.Singleton
 
 /**
  * At-rest encryption for sleep audio clips. New clips are AES-256-GCM sealed
- * ([EncryptionUtils], Keystore key) with an `.enc` suffix; reads accept legacy plaintext
+ * ([EncryptionUtils], Keystore key) with an `.enc` suffix, reads accept legacy plaintext
  * clips as-is so pre-encryption recordings keep playing until retention prunes them.
  */
 @Singleton

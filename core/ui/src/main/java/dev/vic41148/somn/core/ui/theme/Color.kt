@@ -113,7 +113,7 @@ val StageRem = Color(0xFFCC79A7)
 val DebtMild = Color(0xFFF9A825)
 val DebtModerate = Color(0xFFE65100)
 
-// Menstrual cycle phase bands (DATA-04, TrendsScreen), kept at full alpha here; callers apply
+// Menstrual cycle phase bands (DATA-04, TrendsScreen), kept at full alpha here, callers apply
 // their own alpha since the same hue is used at different opacities depending on context.
 // Paired from the densified Okabe-Ito / IBM fortified palette so every band is distinct even
 // with the adjacent alpha-blended stage and score hues in the same chart.

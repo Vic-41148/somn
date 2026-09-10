@@ -44,7 +44,7 @@ class AudioEventClassifierTest {
     @Test
     fun sustainedLoudAudio_flushesPeriodicEventsInsteadOfNothing() {
         val c = AudioEventClassifier()
-        // Continuous loud audio for 40s then quiet. Without the flush fix this returns 0 events;
+        // Continuous loud audio for 40s then quiet. Without the flush fix this returns 0 events,
         // with it, the 30s raw-buffer cap forces a flush, then the quiet frame emits a second.
         val types = feedBuffers(c, 41) { i -> if (i < 40) loudBuffer() else quietBuffer() }
         assertTrue("expected >=2 flushed events, got ${types.size}", types.size >= 2)

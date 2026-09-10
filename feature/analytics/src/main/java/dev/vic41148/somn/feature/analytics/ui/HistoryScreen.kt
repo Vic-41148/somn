@@ -344,10 +344,10 @@ private fun ReportRangeRow(
     val selectedIndex = options.indexOfFirst { it.first == selectedDays }.coerceAtLeast(0)
     // One big pill with a sliding thumb, same motion language as the dock bubble:
     // spatial glide on a non-bouncy spring, so the thumb never overshoots past rest.
-    // Taps select directly; horizontal drags slide the thumb under the finger and
+    // Taps select directly, horizontal drags slide the thumb under the finger and
     // snap to the nearest segment on release.
     val density = LocalDensity.current
-    // NaN = not dragging; a pixel offset into the content while a drag is live.
+    // NaN = not dragging, a pixel offset into the content while a drag is live.
     var dragOffsetPx by remember { mutableFloatStateOf(Float.NaN) }
     // Row height in px: the overlay thumb copies it explicitly, fillMaxHeight
     // collapses to zero inside this unbounded-height list item.
@@ -373,14 +373,14 @@ private fun ReportRangeRow(
             ),
             label = "rangeThumbX"
         )
-        // Finger owns the thumb mid-drag; the spring owns it otherwise. Labels
+        // Finger owns the thumb mid-drag, the spring owns it otherwise. Labels
         // preview the nearest segment under the finger and commit on release.
         val thumbOffset = if (dragOffsetPx.isNaN()) thumbX
         else with(density) { dragOffsetPx.toDp() }
         val previewIndex = if (dragOffsetPx.isNaN()) null
         else (dragOffsetPx / segmentWidthPx).roundToInt().coerceIn(0, options.size - 1)
         val effectiveIndex = previewIndex ?: selectedIndex
-        // Drag lives on the content box (segment pixels are known here); taps
+        // Drag lives on the content box (segment pixels are known here), taps
         // still land on the per-segment click targets below.
         Box(
             modifier = Modifier.pointerInput(segmentWidthPx) {

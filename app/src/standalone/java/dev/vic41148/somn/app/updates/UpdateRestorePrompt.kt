@@ -16,7 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 /**
  * First-launch dialog after an update/reinstall: if the database is empty and a pre-update backup
  * exists in user-visible storage, offer to restore it. "Restore" replays the CSV through the
- * standard import; "Not now" records the answer so it never nags again on this install.
+ * standard import, "Not now" records the answer so it never nags again on this install.
  */
 @Composable
 fun UpdateRestorePrompt(

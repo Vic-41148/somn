@@ -22,7 +22,7 @@ import kotlin.reflect.KClass
 
 /**
  * Thin wrapper over the Health Connect SDK, permission set, client lifecycle, raw record
- * read/insert. Deliberately platform-typed (returns HC `Record` subtypes); mapping to Somn's
+ * read/insert. Deliberately platform-typed (returns HC `Record` subtypes), mapping to Somn's
  * own domain models happens one layer up in `core:data`'s `HealthConnectRepository`, per the
  * "core:health is a pure adapter" architecture decision, no Room/domain knowledge here.
  */

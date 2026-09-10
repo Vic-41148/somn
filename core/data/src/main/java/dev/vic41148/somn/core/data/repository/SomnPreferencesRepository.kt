@@ -36,7 +36,7 @@ class SomnPreferencesRepository @Inject constructor(
 
     /**
      * Keystore envelope for sensitive string prefs (NAS endpoint parts, QR value, backup
-     * URI, menopause answers). New writes are always sealed; reads accept pre-encryption
+     * URI, menopause answers). New writes are always sealed, reads accept pre-encryption
      * plaintext so v0.1.2 installs keep working until [migrateSensitivePrefsToEncrypted] runs.
      */
     private fun seal(plain: String): String =
@@ -97,7 +97,7 @@ class SomnPreferencesRepository @Inject constructor(
         val NAS_USERNAME = stringPreferencesKey("nas_username")
         val NAS_PROTOCOL = stringPreferencesKey("nas_protocol")
         val NAS_PORT = intPreferencesKey("nas_port")
-        /** Explicit TLS choice for the NAS connection; never inferred from [NAS_PORT]. */
+        /** Explicit TLS choice for the NAS connection, never inferred from [NAS_PORT]. */
         val NAS_USE_HTTPS = booleanPreferencesKey("nas_use_https")
         /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded, never the raw password. */
         val NAS_PASSWORD_ENCRYPTED = stringPreferencesKey("nas_password_encrypted")
@@ -108,7 +108,7 @@ class SomnPreferencesRepository @Inject constructor(
         val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
         /** R1: Morning Ready verdict + Today outlook cards on Home, on by default. */
         val SHOW_READINESS_CARD = booleanPreferencesKey("show_readiness_card")
-        /** R2 Rest Mode start timestamp. Absent = off; sick nights on/after this leave baselines. */
+        /** R2 Rest Mode start timestamp. Absent = off, sick nights on/after this leave baselines. */
         val REST_MODE_SINCE = longPreferencesKey("rest_mode_since")
         val MENO_ANSWERS_CSV = stringPreferencesKey("meno_answers_csv")        /**
          * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO, the
@@ -119,7 +119,7 @@ class SomnPreferencesRepository @Inject constructor(
         val YAMNET_CLASSIFICATION_ENABLED = booleanPreferencesKey("yamnet_classification_enabled")
         /**
          * The user's backup recovery passphrase, Keystore-encrypted at rest so unattended sync can
-         * use it. Keystore protects it *on* the device; the passphrase itself is what makes backups
+         * use it. Keystore protects it *on* the device, the passphrase itself is what makes backups
          * readable *off* the device, which is why the user is also shown it once to store elsewhere.
          */
         val BACKUP_PASSPHRASE_ENCRYPTED = stringPreferencesKey("backup_passphrase_encrypted")
@@ -305,7 +305,7 @@ class SomnPreferencesRepository @Inject constructor(
 
     /**
      * R5 menopause check-in answers as "2,0,3,..." (question order = MENOPAUSE_QUESTIONS).
-     * Null until first completed; prefs, not Room, questionnaire data stays a setting.
+     * Null until first completed, prefs, not Room, questionnaire data stays a setting.
      */
     val menoAnswers: Flow<List<Int>?> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }

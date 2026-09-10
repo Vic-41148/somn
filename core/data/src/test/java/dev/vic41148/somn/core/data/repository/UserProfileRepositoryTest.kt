@@ -56,7 +56,7 @@ class UserProfileRepositoryTest {
 
     @Test
     fun getProfile_withNullMeqScore_honorsPersistedChronotype() = runTest {
-        // Quiz skipped, no raw score to recompute from; the persisted value must win.
+        // Quiz skipped, no raw score to recompute from, the persisted value must win.
         db.userProfileDao().upsert(
             UserProfileEntity(
                 id = 1,

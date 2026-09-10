@@ -26,7 +26,7 @@ import javax.inject.Inject
  * The post-update/reinstall "we found a backup from before" prompt. After a version change or a
  * downgrade the database is empty, this VM checks for the pre-update backup the UpdateBackupStore
  * mirrored to user-visible storage, and offers to replay it through the standard Sleep-as-Android
- * CSV import. Shown once per install (Prefs flag); answering revokes the offer forever.
+ * CSV import. Shown once per install (Prefs flag), answering revokes the offer forever.
  */
 @HiltViewModel
 class UpdateRestoreViewModel @Inject constructor(

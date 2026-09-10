@@ -80,7 +80,7 @@ fun UpdatesSection(
         }
     }
 
-    // A manual check is enqueued via WorkManager; "last checked" advancing is our completion signal.
+    // A manual check is enqueued via WorkManager, "last checked" advancing is our completion signal.
     // A failed check never advances lastChecked, so a hard cap prevents the button staying
     // disabled forever.
     var checking by rememberSaveable { mutableStateOf(false) }

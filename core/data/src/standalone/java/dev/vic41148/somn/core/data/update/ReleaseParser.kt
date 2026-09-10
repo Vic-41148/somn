@@ -7,7 +7,7 @@ import org.json.JSONObject
 /**
  * Pure org.json parsing of a GitHub/Forgejo releases API response, deliberately defensive: any
  * unknown or missing field maps to a safe default so an API shape tweak cannot crash the checker.
- * Network handling stays in [UpdateRepository]; this class is unit-testable with static JSON.
+ * Network handling stays in [UpdateRepository], this class is unit-testable with static JSON.
  */
 object ReleaseParser {
 
@@ -55,7 +55,7 @@ object ReleaseParser {
         }
         val version = versionNameFromTag(tag)
 
-        // Checksum from the body is only a fallback for releases that skip the checksums.txt asset;
+        // Checksum from the body is only a fallback for releases that skip the checksums.txt asset,
         // a matching line naming the specific APK is preferred over the first bare hash.
         val body = json.optString("body", "")
         val checksumFromBody = extractChecksumFromBody(body, apkName)
@@ -72,14 +72,14 @@ object ReleaseParser {
         )
     }
 
-    /** "v0.1.2" -> "0.1.2"; anything else is returned as-is (never empty for a real release). */
+    /** "v0.1.2" -> "0.1.2", anything else is returned as-is (never empty for a real release). */
     fun versionNameFromTag(tag: String): String {
         val trimmed = tag.trim()
         if (trimmed.length > 1 && (trimmed[0] == 'v' || trimmed[0] == 'V')) return trimmed.substring(1)
         return trimmed
     }
 
-    /** Scans a checksums.txt asset body for the line naming [apkName]; falls back to the first hash. */
+    /** Scans a checksums.txt asset body for the line naming [apkName], falls back to the first hash. */
     fun extractChecksumFromBody(body: String, apkName: String?): String? {
         if (body.isBlank()) return null
         for (line in body.lineSequence()) {
