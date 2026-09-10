@@ -127,7 +127,7 @@ class ClipRetentionDatabaseTest {
 
         repository.deleteAllAudioClips()
 
-        // Only the audio goes — the night's history must still show that talking happened.
+        // Only the audio goes, the night's history must still show that talking happened.
         assertThat(audioEventDao.getBySession(1L)).hasSize(1)
     }
 

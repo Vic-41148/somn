@@ -65,7 +65,7 @@ class HabitViewModel @Inject constructor(
     private val _correlationReport = MutableStateFlow<CorrelationReport?>(null)
     val correlationReport: StateFlow<CorrelationReport?> = _correlationReport.asStateFlow()
 
-    /** R4: proactive shift flags — empty is the common case, no news is no cards. */
+    /** R4: proactive shift flags, empty is the common case, no news is no cards. */
     private val _shiftFlags = MutableStateFlow<List<ShiftFlag>>(emptyList())
     val shiftFlags: StateFlow<List<ShiftFlag>> = _shiftFlags.asStateFlow()
 
@@ -115,7 +115,7 @@ class HabitViewModel @Inject constructor(
                     _recoveryPlan.value = debtAndPlan.second
 
                     // R4: correlations run over a 90-night settled window beside the
-                    // 7-night early read — same engine, wider sample, maturity-labeled.
+                    // 7-night early read, same engine, wider sample, maturity-labeled.
                     val wideSessions = sleepRepository.getRecentMainSleepSessions(100)
                     _correlationReport.value = correlationUseCase.calculate(wideSessions, habitLogs)
                     _shiftFlags.value = kotlinx.coroutines.withContext(
@@ -165,7 +165,7 @@ class HabitViewModel @Inject constructor(
                 habitLogRepository.log(entry, date, notes)
                 _toastMessage.value = "Logged!"
             } catch (e: Exception) {
-                _toastMessage.value = "Failed to save — please try again."
+                _toastMessage.value = "Failed to save. Please try again."
             }
         }
     }

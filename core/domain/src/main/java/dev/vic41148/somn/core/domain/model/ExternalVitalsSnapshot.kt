@@ -2,7 +2,7 @@ package dev.vic41148.somn.core.domain.model
 
 /**
  * Aggregated external vitals a paired wearable wrote into Health Connect during a sleep session.
- * Platform-agnostic — the domain layer does not know these came from Health Connect specifically.
+ * Platform-agnostic, the domain layer does not know these came from Health Connect specifically.
  * They are readings Somn itself does not measure (no HR/SpO2/skin-temp sensor on-device).
  */
 data class ExternalVitalsSnapshot(
@@ -15,7 +15,7 @@ data class ExternalVitalsSnapshot(
     val avgSkinTemperatureCelsius: Float? = null,
     /**
      * Package name of the app that originated the data (e.g. "com.fitbit.FitbitMobile"), when
-     * known — this is Health Connect's `dataOrigin.packageName`, not a human-readable label.
+     * known, this is Health Connect's `dataOrigin.packageName`, not a human-readable label.
      * Resolve to a display name (e.g. "Fitbit") at the UI layer via `PackageManager`. Do not
      * render this raw string directly.
      */

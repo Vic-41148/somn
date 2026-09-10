@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Tracks whether Somn currently holds the OS battery-optimization exemption
  * (`IGNORE_BATTERY_OPTIMIZATION`). OEM power-management layers (Samsung, Xiaomi, Huawei)
  * are known to silently revoke this after an OTA update, so [recheck] is meant to be
- * called on every app resume — not just once at onboarding — per REL-03.
+ * called on every app resume, not just once at onboarding, per REL-03.
  */
 object BatteryExemptionState {
     private val _isExempted = MutableStateFlow(true)
@@ -27,13 +27,13 @@ object BatteryExemptionState {
     }
 
     /**
-     * The standard system dialog directly asking to exempt Somn from battery optimization — the
+     * The standard system dialog directly asking to exempt Somn from battery optimization, the
      * exact thing [isExempted] checks, on every OEM, in one tap, no navigation required.
      *
      * This used to try an OEM-specific settings *screen* first (e.g. Samsung's Device Care >
      * Battery hub) and only fall back to this intent if the OEM one did not resolve. That was
      * backwards: those hub screens almost always resolve, so the OEM path won every time, and it
-     * lands on a general battery overview — not a per-app toggle — leaving the user to hunt for
+     * lands on a general battery overview, not a per-app toggle, leaving the user to hunt for
      * Somn themselves. [oemBackgroundRestrictionIntent] is kept as a separate, secondary action for
      * the genuinely OEM-only "autostart"/background-restriction screen, which this standard
      * intent cannot reach and which some OEMs enforce in addition to battery optimization.
@@ -45,8 +45,8 @@ object BatteryExemptionState {
 
     /**
      * Best-effort deep link to the OEM's separate autostart/background-activity screen (Samsung,
-     * Xiaomi, Huawei). Distinct from battery optimization — some OEMs kill backgrounded apps via
-     * this mechanism even when [isExempted] is true — so this is offered as an additional, optional
+     * Xiaomi, Huawei). Distinct from battery optimization, some OEMs kill backgrounded apps via
+     * this mechanism even when [isExempted] is true, so this is offered as an additional, optional
      * step, never as a substitute for [buildFixIntent]. Null if the current OEM has no such screen,
      * or [buildFixIntent] should be treated as the only available action.
      */

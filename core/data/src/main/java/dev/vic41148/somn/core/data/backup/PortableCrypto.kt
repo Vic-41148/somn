@@ -16,7 +16,7 @@ import javax.inject.Singleton
 /**
  * Passphrase-derived AES-256-GCM for backup payloads that must survive the device.
  *
- * [EncryptionUtils] uses an Android Keystore key, which by design cannot leave the TEE — a backup
+ * [EncryptionUtils] uses an Android Keystore key, which by design cannot leave the TEE, a backup
  * encrypted with it is unreadable the moment the phone is lost, wiped, or the app's data cleared,
  * which is exactly when a backup matters. This class derives its key from a user-held recovery
  * passphrase instead, so a restore only needs the backup file plus the phrase.
@@ -63,7 +63,7 @@ class PortableCrypto @Inject constructor() {
         private const val KDF_ALGORITHM = "PBKDF2WithHmacSHA512"
         private const val STREAM_BUFFER = 8192
 
-        /** Crockford Base32 — no I/L/O/U, so recovery keys survive being read aloud or hand-copied. */
+        /** Crockford Base32, no I/L/O/U, so recovery keys survive being read aloud or hand-copied. */
         private const val CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
         private const val RECOVERY_KEY_BYTES = 20
     }
@@ -224,7 +224,7 @@ class PortableCrypto @Inject constructor() {
     ): ByteArray {
         val magic = readFully(input, MAGIC.size)
         require(isPortableEnvelope(magic)) {
-            "Not a portable Somn backup — this file was encrypted with a device-bound key and " +
+            "Not a portable Somn backup. This file was encrypted with a device-bound key and " +
                 "cannot be restored on another device or install."
         }
 

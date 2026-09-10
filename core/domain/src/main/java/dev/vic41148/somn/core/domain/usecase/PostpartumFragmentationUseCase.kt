@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Counts consecutive weeks of severely fragmented sleep, most recent week first.
  *
- * Continuity, not duration, is what predicts postpartum depression risk — a week
+ * Continuity, not duration, is what predicts postpartum depression risk, a week
  * counts as fragmented if either the average wake-event count or the average sleep
  * efficiency for that week crosses the threshold below.
  */

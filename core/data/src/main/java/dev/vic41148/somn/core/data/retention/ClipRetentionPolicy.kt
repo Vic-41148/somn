@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
  * The rule deciding which sleep-talk recordings have outlived their welcome.
  *
  * Kept as a pure function separate from [ClipRetentionWorker] because it encodes a promise made
- * to users in PRIVACY.md — recordings expire by default — and a promise that nothing tests is a
+ * to users in PRIVACY.md, recordings expire by default, and a promise that nothing tests is a
  * promise that quietly stops being true.
  */
 object ClipRetentionPolicy {

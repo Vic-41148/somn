@@ -46,7 +46,7 @@ enum class DebtTrend(val displayName: String, val glyph: String) {
 
 /**
  * Severity of accumulated sleep debt.
- * Thresholds based on research doc §3.6 — cognitive impact becomes measurable at ~1h/week.
+ * Thresholds based on research doc §3.6, cognitive impact becomes measurable at ~1h/week.
  */
 enum class DebtLevel(val displayName: String) {
     NONE("None"),          // < 30 min total

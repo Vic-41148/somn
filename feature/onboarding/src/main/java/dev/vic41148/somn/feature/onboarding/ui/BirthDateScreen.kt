@@ -70,7 +70,7 @@ fun BirthDateScreen(
 
         Text(
             text = "Your age sets the healthy sleep duration and the deep sleep targets. " +
-                "A 65-year-old needs different sleep than a 25-year-old — we calibrate for that.",
+                "A 65-year-old needs different sleep than a 25-year-old. We calibrate for that.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -105,7 +105,7 @@ fun BirthDateScreen(
             val age = java.time.Period.between(it, LocalDate.now()).years
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Age $age — we will calibrate your targets for this age group.",
+                text = "Age $age: we will calibrate your targets for this age group.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,

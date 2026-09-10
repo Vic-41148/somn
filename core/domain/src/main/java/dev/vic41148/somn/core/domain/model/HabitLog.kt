@@ -57,7 +57,7 @@ sealed class HabitEntry {
         }
     }
 
-    /** Medication log — primarily for ADHD stimulant timing. */
+    /** Medication log, primarily for ADHD stimulant timing. */
     data class Medication(
         val name: String,
         val dose: String,

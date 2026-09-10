@@ -4,7 +4,7 @@ package dev.vic41148.somn.core.domain.model
  * Represents a sleep score with transparent biological adjustments.
  *
  * Research doc §Part 5: "You scored 71. You're in your luteal phase and logged moderate stress.
- * Your adjusted score is 84. Here's why." — No competitor explains scores. This builds trust.
+ * Your adjusted score is 84. Here's why.", No competitor explains scores. This builds trust.
  */
 data class SleepScoreAdjustment(
     val rawScore: Int,

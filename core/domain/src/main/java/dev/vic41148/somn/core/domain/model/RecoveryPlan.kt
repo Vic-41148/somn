@@ -3,7 +3,7 @@ package dev.vic41148.somn.core.domain.model
 /**
  * A personalised sleep debt recovery plan.
  *
- * Based on research doc §3.6: recovery should be gradual — sudden large extensions
+ * Based on research doc §3.6: recovery should be gradual, sudden large extensions
  * disrupt circadian rhythm. Target ≤90 additional minutes per night, distributed
  * across enough nights to fully clear the debt.
  */
@@ -23,7 +23,7 @@ data class RecoveryPlan(
             additionalMinutesPerNight = 0,
             suggestedBedtimeShiftMinutes = 0,
             estimatedRecoveryDays = 0,
-            explanation = "You're on track — no sleep debt to recover."
+            explanation = "You're on track. No sleep debt to recover."
         )
     }
 }

@@ -82,7 +82,7 @@ class PortableCryptoTest {
     @Test
     fun `salt and iterations are recovered from the envelope`() {
         // Decryption is given only the passphrase, so it must read salt/iterations back out of the
-        // header — a non-default iteration count proves the header is honoured, not assumed.
+        // header, a non-default iteration count proves the header is honoured, not assumed.
         val salt = ByteArray(16) { (it * 7).toByte() }
         val kek = crypto.deriveKek(passphrase, salt, iterations = 2_048)
 

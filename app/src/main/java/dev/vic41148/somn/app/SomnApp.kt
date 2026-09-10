@@ -77,7 +77,7 @@ class SomnApp : Application(), Configuration.Provider {
 
     /**
      * Prunes expired sleep-talk recordings twice a day. The worker itself re-reads the retention
-     * preference on every run, so changing the setting takes effect without rescheduling — hence
+     * preference on every run, so changing the setting takes effect without rescheduling, hence
      * KEEP rather than UPDATE.
      */
     private fun scheduleClipRetention() {

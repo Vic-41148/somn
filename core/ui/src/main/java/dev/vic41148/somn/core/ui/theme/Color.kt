@@ -2,7 +2,7 @@ package dev.vic41148.somn.core.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary — Deep indigo for sleep/night association
+// Primary, Deep indigo for sleep/night association
 val PrimaryLight = Color(0xFF4A5AC7)
 val OnPrimaryLight = Color(0xFFFFFFFF)
 val PrimaryContainerLight = Color(0xFFDEE0FF)
@@ -13,7 +13,7 @@ val OnPrimaryDark = Color(0xFF102484)
 val PrimaryContainerDark = Color(0xFF2D40A0)
 val OnPrimaryContainerDark = Color(0xFFDEE0FF)
 
-// Secondary — Soft lavender for calm
+// Secondary, Soft lavender for calm
 val SecondaryLight = Color(0xFF5B5D72)
 val OnSecondaryLight = Color(0xFFFFFFFF)
 val SecondaryContainerLight = Color(0xFFE0E0F9)
@@ -24,7 +24,7 @@ val OnSecondaryDark = Color(0xFF2D2F42)
 val SecondaryContainerDark = Color(0xFF434559)
 val OnSecondaryContainerDark = Color(0xFFE0E0F9)
 
-// Tertiary — Dusty mauve, a calm accent intended for secondary flavour
+// Tertiary, Dusty mauve, a calm accent intended for secondary flavour
 val TertiaryLight = Color(0xFF77536D)
 val OnTertiaryLight = Color(0xFFFFFFFF)
 val TertiaryContainerLight = Color(0xFFFFD7F1)
@@ -91,7 +91,7 @@ val InverseOnSurfaceDark = Color(0xFF343337)
 val InversePrimaryDark = Color(0xFF4A5AC7)
 val ScrimDark = Color(0xFF000000)
 
-// Sleep Score colors — a fixed ramp independent of dynamic colour, so a score means the same
+// Sleep Score colors, a fixed ramp independent of dynamic colour, so a score means the same
 // green anywhere in the app. Green (well) to amber (caution) to red (poor). Prepared next to
 // the Okabe-Ito palette below so the ramp has no glaring collision with stage/cycle hues.
 val ScoreGreat = Color(0xFF43A047)
@@ -99,7 +99,7 @@ val ScoreGood = Color(0xFF9CCC65)
 val ScoreFair = Color(0xFFFFC107)
 val ScorePoor = Color(0xFFEF5350)
 
-// Sleep stage colors — Okabe-Ito colour-blind-safe set (orange/blue/dark-blue/rose). The old
+// Sleep stage colors, Okabe-Ito colour-blind-safe set (orange/blue/dark-blue/rose). The old
 // 2014 Material swatches collided with the score ramp and the cycle bands (light blue and
 // magenta appeared in both Stage and Cycle contexts), which made a shared legend ambiguous.
 val StageAwake = Color(0xFFD55E00)
@@ -107,13 +107,13 @@ val StageLight = Color(0xFF56B4E9)
 val StageDeep = Color(0xFF0072B2)
 val StageRem = Color(0xFFCC79A7)
 
-// Sleep debt severity — was duplicated inline as raw hex in both HomeScreen and
+// Sleep debt severity, was duplicated inline as raw hex in both HomeScreen and
 // SleepDebtDetailScreen. Named here so the two cannot drift out of sync with each other.
 // Already an ordered amber-to-red ramp, so it stays as it is.
 val DebtMild = Color(0xFFF9A825)
 val DebtModerate = Color(0xFFE65100)
 
-// Menstrual cycle phase bands (DATA-04, TrendsScreen) — kept at full alpha here; callers apply
+// Menstrual cycle phase bands (DATA-04, TrendsScreen), kept at full alpha here; callers apply
 // their own alpha since the same hue is used at different opacities depending on context.
 // Paired from the densified Okabe-Ito / IBM fortified palette so every band is distinct even
 // with the adjacent alpha-blended stage and score hues in the same chart.
@@ -123,7 +123,7 @@ val CycleOvulation = Color(0xFFF0E442)
 val CycleLuteal = Color(0xFF648FFF)
 val CyclePremenstrual = Color(0xFFE69F00)
 
-// Audio event type colors (AudioTimeline) — IBM fortified palette, shifted away from the score
+// Audio event type colors (AudioTimeline), IBM fortified palette, shifted away from the score
 // ramp: the old amber/orange/red here were indistinguishable from ScoreFair/ScorePoor.
 val AudioEventTalk = Color(0xFF785EF0)
 val AudioEventSnore = Color(0xFFFFB000)

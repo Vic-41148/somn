@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Small generic progress ring with a center value and a caption underneath — the building block
+ * Small generic progress ring with a center value and a caption underneath, the building block
  * for the "how is each stat doing" strips on Home and History. Unlike [SleepScoreRing] (which
  * owns the 0-100 score color language), the caller supplies [color] so duration/efficiency/
  * consistency rings can each use their own semantic color.

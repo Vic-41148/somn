@@ -62,7 +62,7 @@ class BackupRepository @Inject constructor(
         }
 
         // Fold the write-ahead log into the main DB file first. Without this the copy below is a
-        // snapshot missing every commit still sitting in -wal — i.e. potentially the entire most
+        // snapshot missing every commit still sitting in -wal, i.e. potentially the entire most
         // recent night.
         checkpointWal()
 
@@ -85,14 +85,14 @@ class BackupRepository @Inject constructor(
                 // Drop any plaintext copy left by a pre-passphrase backup so the two do not diverge.
                 documentTree.findFile(DB_BACKUP_NAME)?.delete()
             } else {
-                // No passphrase yet — keep the existing plaintext behaviour rather than silently
+                // No passphrase yet, keep the existing plaintext behaviour rather than silently
                 // skipping the backup entirely. Restore still works. Off-site sync stays disabled.
                 writeToDocumentTree(documentTree, DB_BACKUP_NAME) { output ->
                     dbFile.inputStream().use { it.copyTo(output) }
                 }
             }
         } else {
-            Log.w(TAG, "Database file missing at ${dbFile.path} — nothing to back up")
+            Log.w(TAG, "Database file missing at ${dbFile.path}. Nothing to back up")
         }
 
         val prefsFile = File(context.filesDir, PREFS_RELATIVE_PATH)
@@ -108,7 +108,7 @@ class BackupRepository @Inject constructor(
      *
      * [passphrase] is required for encrypted backups and ignored for plaintext ones. On success the
      * database file has been replaced but the in-memory Room instance is stale, so the caller must
-     * restart the process — hence [RestoreResult.SuccessRestartRequired] rather than a bare boolean.
+     * restart the process, hence [RestoreResult.SuccessRestartRequired] rather than a bare boolean.
      */
     suspend fun restoreDatabase(
         backupUri: Uri,
@@ -141,11 +141,11 @@ class BackupRepository @Inject constructor(
 
             val encrypted = portableCrypto.isPortableEnvelope(prefix)
             if (encrypted && passphrase.isNullOrBlank()) {
-                return@withContext RestoreResult.Failure("This backup is encrypted — enter your recovery passphrase")
+                return@withContext RestoreResult.Failure("This backup is encrypted. Enter your recovery passphrase.")
             }
 
             // A device-bound Keystore blob from an older Somn names its own failure: no key
-            // the user types can ever open it. Everything else stages for validation below —
+            // the user types can ever open it. Everything else stages for validation below,
             // including raw ciphertext backups, which carry no SQLite header by design.
             if (!encrypted && !prefix.startsWithSqliteHeader() && looksLikeLegacyKeystoreBlob(prefix)) {
                 return@withContext RestoreResult.Failure(
@@ -244,7 +244,7 @@ class BackupRepository @Inject constructor(
     /**
      * Recognises the shape written by [dev.vic41148.somn.core.data.backup.EncryptionUtils]: a
      * single IV-length byte followed by that many IV bytes. Only used to explain *why* a file cannot
-     * be restored — there is no way to actually decrypt one off-device.
+     * be restored, there is no way to actually decrypt one off-device.
      */
     private fun looksLikeLegacyKeystoreBlob(prefix: ByteArray): Boolean =
         prefix.isNotEmpty() && prefix[0].toInt() == 12

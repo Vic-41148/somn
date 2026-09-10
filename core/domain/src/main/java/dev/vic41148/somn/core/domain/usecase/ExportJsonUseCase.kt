@@ -5,7 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * DATA-01: exports sleep sessions as a JSON array — Somn's own schema, full-fidelity (unlike
+ * DATA-01: exports sleep sessions as a JSON array, Somn's own schema, full-fidelity (unlike
  * [ExportCsvUseCase], every domain field round-trips). Nullable fields are simply omitted from
  * the object rather than written as JSON null, keeping the output compact.
  */

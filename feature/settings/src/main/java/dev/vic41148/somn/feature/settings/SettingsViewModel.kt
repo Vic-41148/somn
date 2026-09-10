@@ -58,7 +58,7 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * The ViewModel holds a freshly generated recovery key only until the user dismisses it. It is never read back
-     * out of storage for display — this is the one and only time they can write it down.
+     * out of storage for display, this is the one and only time they can write it down.
      */
     private val _newRecoveryKey = MutableStateFlow<String?>(null)
     val newRecoveryKey: StateFlow<String?> = _newRecoveryKey.asStateFlow()
@@ -69,14 +69,14 @@ class SettingsViewModel @Inject constructor(
 
     // Declared before the init block on purpose: init launches ~30 collectors that write
     // this, and on a cold entry (main thread busy verifying classes) a fast resume can
-    // win the race against the rest of construction — a later declaration NPEs under R8.
+    // win the race against the rest of construction, a later declaration NPEs under R8.
     private val _settings = MutableStateFlow(SettingsState())
 
     init {
         // Target Sleep Hours used to be purely local ViewModel state. The slider updated
         // _settings.value but never touched the stored UserProfile, so it always displayed the
         // hardcoded 8.0f default regardless of the user's actual saved target. The old code
-        // silently discarded any change the user made — score calculation, oversleep detection, and
+        // silently discarded any change the user made, score calculation, oversleep detection, and
         // sleep debt targets all read profile.targetSleepHours directly and never saw the edit.
         collectInto(userProfileRepository.observeProfile()) { state, profile ->
             state.copy(targetSleepHours = profile?.targetSleepHours ?: 8.0f)
@@ -224,7 +224,7 @@ class SettingsViewModel @Inject constructor(
         val backupDirectoryError: String? = null,
         /**
          * Whether a recovery passphrase exists. Without one, backups can only be written in the
-         * clear locally and off-device sync is skipped entirely — an upload encrypted with the
+         * clear locally and off-device sync is skipped entirely, an upload encrypted with the
          * device-bound Keystore key would be unreadable exactly when it is needed.
          */
         val backupPassphraseSet: Boolean = false,
@@ -235,15 +235,15 @@ class SettingsViewModel @Inject constructor(
         val nasUsername: String = "",
         val nasProtocol: String = "WEBDAV",
         val nasPort: Int = 443,
-        /** Explicit TLS choice for NAS uploads — on unless the user deliberately turns it off. */
+        /** Explicit TLS choice for NAS uploads, on unless the user deliberately turns it off. */
         val nasUseHttps: Boolean = true,
         val nasTestResult: String? = null,
         // Health Connect
         val healthConnectEnabled: Boolean = false,
         val healthConnectStatus: HealthConnectStatus = HealthConnectStatus.UNAVAILABLE,
-        /** HEALTH-04: completed sessions never written to Health Connect — unsynced or silently dedup-skipped. Only meaningful once healthConnectEnabled is true. */
+        /** HEALTH-04: completed sessions never written to Health Connect, unsynced or silently dedup-skipped. Only meaningful once healthConnectEnabled is true. */
         val healthConnectUnsyncedCount: Int = 0,
-        /** Task 14 (AUDIO-01) — off by default. Experimental YAMNet audio classification, gated so it can be A/B'd against the existing ZCR heuristic. Not accuracy-validated (AUDIO-02) or battery-soak-tested (AUDIO-03). */
+        /** Task 14 (AUDIO-01), off by default. Experimental YAMNet audio classification, gated so it can be A/B'd against the existing ZCR heuristic. Not accuracy-validated (AUDIO-02) or battery-soak-tested (AUDIO-03). */
         val yamnetClassificationEnabled: Boolean = false,
         /** App-wide haptics master switch + intensity, surfaced into state from DataStore. */
         val hapticsEnabled: Boolean = true,
@@ -354,7 +354,7 @@ class SettingsViewModel @Inject constructor(
         // Must run after _settings above is initialized: unlike the DataStore .collect{}
         // launches in the first init block (which always suspend on their first emission
         // before touching _settings.value), getStatus() can return synchronously via its
-        // !isAvailable() early-return — calling this from the top init block would touch
+        // !isAvailable() early-return, calling this from the top init block would touch
         // _settings before its property initializer ran, on any device without Health Connect.
         refreshHealthConnectStatus()
     }
@@ -447,7 +447,7 @@ class SettingsViewModel @Inject constructor(
     /**
      * R2 per-category purge: deletes completed sessions older than 90 days through the
      * same [SleepRepository.deleteSession] path as single deletes, so clips, audio rows,
-     * epochs, vitals and tags all follow their normal cleanup — no orphans.
+     * epochs, vitals and tags all follow their normal cleanup, no orphans.
      */
     fun purgeOldSessions() {
         viewModelScope.launch {
@@ -463,7 +463,7 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Full wipe: all sessions, habits, tags, clips, and preferences. Clearing preferences
-     * last means onboarding shows again on next launch — a wiped app restarts as a fresh
+     * last means onboarding shows again on next launch, a wiped app restarts as a fresh
      * install, which is the honest behavior, not a half-logged-in limbo.
      */
     fun wipeEverything() {
@@ -532,7 +532,7 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Lets the user supply their own passphrase instead of a generated key. Custom input must
-     * reach zxcvbn score 3 ("safely unguessable") — a backup passphrase guards every night of
+     * reach zxcvbn score 3 ("safely unguessable"), a backup passphrase guards every night of
      * sleep data, so "1234" failing loudly here is the feature working.
      */
     fun setRecoveryPassphrase(passphrase: String) {
@@ -545,7 +545,7 @@ class SettingsViewModel @Inject constructor(
                 runCatching { com.nulabinc.zxcvbn.Zxcvbn().measure(passphrase).score }.getOrDefault(0)
             }
             if (score < 3) {
-                _exportStatus.value = "That passphrase is too weak — use a longer, less predictable one"
+                _exportStatus.value = "That passphrase is too weak. Use a longer, less predictable one."
                 return@launch
             }
             preferencesRepository.updateBackupPassphrase(passphrase)
@@ -559,14 +559,14 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Restores the database from [uri]. [passphrase] is required for encrypted backups. Leave null
-     * for a plaintext one. On success the caller must restart the app — Room still holds the old file.
+     * for a plaintext one. On success the caller must restart the app, Room still holds the old file.
      */
     fun restoreDatabase(uri: android.net.Uri, passphrase: String?) {
         viewModelScope.launch {
             _exportStatus.value = "Restoring..."
             when (val result = backupRepository.restoreDatabase(uri, passphrase)) {
                 is BackupRepository.RestoreResult.SuccessRestartRequired -> {
-                    _exportStatus.value = "Restore complete — restart Somn to load it"
+                    _exportStatus.value = "Restore complete. Restart Somn to load it."
                     _restartRequired.value = true
                 }
                 is BackupRepository.RestoreResult.Failure ->
@@ -649,7 +649,7 @@ class SettingsViewModel @Inject constructor(
     /**
      * DATA-02: reads the picked Sleep as Android `sleep-export.csv`, parses it, and persists
      * every row the parser could confidently map as its own completed session. Best-effort and
-     * lossy by design (see [ImportSleepAsAndroidUseCase] doc) — the result summary always
+     * lossy by design (see [ImportSleepAsAndroidUseCase] doc), the result summary always
      * reports what was skipped rather than silently dropping rows.
      */
     fun importSleepAsAndroidFile(context: Context, uri: android.net.Uri) {
@@ -684,7 +684,7 @@ class SettingsViewModel @Inject constructor(
                 _importStatus.value = buildString {
                     append("Imported ${result.importedCount} session(s).")
                     if (result.skippedRowCount > 0) {
-                        append(" ${result.skippedRowCount} row(s) skipped — see below.")
+                        append(" ${result.skippedRowCount} row(s) skipped (see below).")
                     }
                 }
             } catch (e: Exception) {
@@ -715,7 +715,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateNasUsername(username) }
     }
 
-    /** REL-06: password is write-only here — never round-tripped back into [settings] state. */
+    /** REL-06: password is write-only here, never round-tripped back into [settings] state. */
     fun updateNasPassword(password: String) {
         viewModelScope.launch { preferencesRepository.updateNasPassword(password) }
     }
@@ -751,7 +751,7 @@ class SettingsViewModel @Inject constructor(
             val failureMessage = if (s.nasUseHttps) {
                 "Connection failed"
             } else {
-                "Connection failed — Android blocks unencrypted HTTP. Turn HTTPS on."
+                "Connection failed. Android blocks unencrypted HTTP. Turn HTTPS on."
             }
             _settings.value = _settings.value.copy(
                 nasTestResult = if (ok) "Connected" else failureMessage
@@ -784,7 +784,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * HEALTH-03: called on screen resume and right after the permission sheet returns — never cached.
+     * HEALTH-03: called on screen resume and right after the permission sheet returns, never cached.
      *
      * Deliberately exception-proof: this runs on Dispatchers.Main.immediate during ViewModel
      * construction (the init block), so an unexpected platform error from the Health Connect SDK
@@ -806,7 +806,7 @@ class SettingsViewModel @Inject constructor(
 
 /**
  * Collects [flow], delivering every value to [onEmit], and swallows any stream failure via
- * [onFailure] instead of letting it escape — a corrupted DataStore file or unexpected Room error
+ * [onFailure] instead of letting it escape, a corrupted DataStore file or unexpected Room error
  * must degrade to "keep the last known value" rather than crash the app the moment Settings
  * opens. Cancellation is always rethrown (never reported as a failure): viewModelScope
  * cancellation on ViewModel clear is normal teardown.
@@ -822,7 +822,7 @@ internal suspend fun <T> guardedCollect(
     try {
         flow.collect(onEmit)
     } catch (e: CancellationException) {
-        // viewModelScope cancellation on ViewModel clear — propagate, never log as a failure.
+        // viewModelScope cancellation on ViewModel clear, propagate, never log as a failure.
         throw e
     } catch (e: Exception) {
         onFailure(e)

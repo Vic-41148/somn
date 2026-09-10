@@ -12,18 +12,18 @@ import java.util.TimeZone
 /**
  * DATA-02: parses a Sleep as Android `sleep-export.csv` file into Somn [SleepSession]s.
  *
- * Sleep as Android's export format is **not officially documented by Urbandroid** — this parser
+ * Sleep as Android's export format is **not officially documented by Urbandroid**, this parser
  * targets the column layout used by widely-circulated community reverse-engineering write-ups
  * (`Id`, `Tz`, `From`, `To`, `Sched`, `Hours`, `Rating`, `Comment`, `Framerate`, `Snore`, `Noise`,
  * `Cycles`, `DeepSleep`, `LenAdjust`, `Geo`) and is deliberately defensive: columns are matched
  * by header name (case-insensitive) rather than fixed position. It ignores unknown/extra columns.
- * It skips and counts any row it cannot confidently map to a real sleep session rather than guess at it. Only `From`/`To` are load-bearing — a row without both is
+ * It skips and counts any row it cannot confidently map to a real sleep session rather than guess at it. Only `From`/`To` are load-bearing, a row without both is
  * unimportable and is skipped. Everything else (rating, comment, deep-sleep%, timezone, hours) is
  * a best-effort enrichment. This is explicitly a lossy, best-effort import, not a full-fidelity
- * round-trip — Sleep as Android has no equivalent for cycle-phase/pregnancy/ADHD/ASD context,
+ * round-trip, Sleep as Android has no equivalent for cycle-phase/pregnancy/ADHD/ASD context,
  * per-epoch sleep stages, or audio events, so none of that transfers. Imported sessions are
  * marked in [SleepSession.notes] ("Imported from Sleep as Android: ...") rather than via
- * [SleepSession.isPartial] — that flag has a distinct, narrower meaning elsewhere (REL-02: a
+ * [SleepSession.isPartial], that flag has a distinct, narrower meaning elsewhere (REL-02: a
  * tracking session cut short by the service dying mid-night), and reusing it here would make
  * imported nights trigger that "incomplete night" UI/logic for the wrong reason.
  */
@@ -52,7 +52,7 @@ class ImportSleepAsAndroidUseCase {
                 emptyList(),
                 lines.size - 1,
                 listOf(
-                    "Couldn't find 'From'/'To' columns in the header — this doesn't look like a " +
+                    "Couldn't find 'From'/'To' columns in the header. This doesn't look like a " +
                         "Sleep as Android sleep-export.csv, or its format has changed since this " +
                         "importer was written."
                 )
@@ -77,7 +77,7 @@ class ImportSleepAsAndroidUseCase {
             }
 
             // Resolved before timestamp parsing (not after, as in an earlier version of this
-            // parser) — From/To need the row's own timezone to parse correctly, not just to be
+            // parser), From/To need the row's own timezone to parse correctly, not just to be
             // labelled with one after the fact.
             val timezoneId = resolveTimezoneId(tzIndex, cols)
             val zone = runCatching { TimeZone.getTimeZone(ZoneId.of(timezoneId)) }.getOrDefault(TimeZone.getDefault())
@@ -88,14 +88,14 @@ class ImportSleepAsAndroidUseCase {
             if (from == null || to == null || to <= from) {
                 skipped++
                 if (warnings.size < MAX_WARNINGS) {
-                    warnings.add("Row ${rowNumber + 2}: unparseable or invalid From/To timestamps — skipped.")
+                    warnings.add("Row ${rowNumber + 2}: unparseable or invalid From/To timestamps, skipped.")
                 }
                 continue
             }
 
             val timeInBedMinutes = ((to - from) / 60_000L).toInt()
 
-            // `Hours` is Sleep as Android's actual *time asleep* — From/To only bounds time in
+            // `Hours` is Sleep as Android's actual *time asleep*, From/To only bounds time in
             // bed. Without it, duration/efficiency are unknown rather than assumed-perfect: a
             // prior version of this parser set sleepDurationMinutes = timeInBedMinutes and
             // sleepEfficiency = 100f unconditionally, which fabricated a perfect night for every
@@ -154,7 +154,7 @@ class ImportSleepAsAndroidUseCase {
     }
 
     /**
-     * ZoneId.of (not TimeZone.getTimeZone, which silently falls back to GMT and never fails) —
+     * ZoneId.of (not TimeZone.getTimeZone, which silently falls back to GMT and never fails),
      * every existing consumer of session.timezoneId validates it this same way
      * (ChronotypeAssessmentUseCase, SocialJetLagUseCase, SeasonalAnalysisUseCase), so matching
      * that convention here keeps a garbage timezoneId from ever reaching a consumer in the first
@@ -167,11 +167,11 @@ class ImportSleepAsAndroidUseCase {
             ?: TimeZone.getDefault().id
 
     /**
-     * Minimal RFC4180-style CSV row splitter — quote-aware, so a delimiter character inside a
+     * Minimal RFC4180-style CSV row splitter, quote-aware, so a delimiter character inside a
      * quoted field does not split it. Verified against a real Urbandroid-published sample export
      * (urbandroid-team/sleep-csv-to-json): every field is double-quoted, and long diary-style
      * `Comment` fields routinely contain literal commas ("...v dobe komunismu, jsme s nejakyma
-     * kamaradkama na ostrove, kolem nehoz...") — the earlier naive `line.split(delimiter)` (this
+     * kamaradkama na ostrove, kolem nehoz..."), the earlier naive `line.split(delimiter)` (this
      * parser's own doc comment claimed "Sleep as Android does not quote fields," which was wrong)
      * would have sheared every such row into misaligned columns. Handles doubled `""` inside a
      * quoted field as an escaped literal quote, per RFC4180.
@@ -221,7 +221,7 @@ class ImportSleepAsAndroidUseCase {
             } catch (_: ParseException) {
                 // try next pattern
             } catch (_: IllegalArgumentException) {
-                // malformed pattern for this input shape — try next
+                // malformed pattern for this input shape, try next
             }
         }
         return null

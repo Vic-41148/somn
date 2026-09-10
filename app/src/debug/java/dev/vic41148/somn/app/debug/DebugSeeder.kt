@@ -1,5 +1,6 @@
 package dev.vic41148.somn.app.debug
 
+import dev.vic41148.somn.core.data.audio.AudioClipStore
 import dev.vic41148.somn.core.data.repository.HabitLogRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.data.repository.TagRepository
@@ -29,7 +30,9 @@ object DebugSeeder {
     suspend fun seed(
         sleepRepo: SleepRepository,
         habitRepo: HabitLogRepository,
-        tagRepo: TagRepository
+        tagRepo: TagRepository,
+        clipStore: AudioClipStore,
+        filesDir: java.io.File
     ) {
         val rnd = Random(424242L)
         val zone = ZoneId.systemDefault()
@@ -93,9 +96,9 @@ object DebugSeeder {
 
             // A few audio events on some nights; tag the weekend sessions.
             if (dayAgo % 2 == 1) {
-                audioEventOf(sleepRepo, sessionId, startMillis, sleepDuration, AudioEventType.SNORE, rnd)
+                audioEventOf(sleepRepo, clipStore, filesDir, sessionId, startMillis, sleepDuration, AudioEventType.SNORE, rnd)
                 if (rnd.nextBoolean()) {
-                    audioEventOf(sleepRepo, sessionId, startMillis, sleepDuration, AudioEventType.TALK, rnd)
+                    audioEventOf(sleepRepo, clipStore, filesDir, sessionId, startMillis, sleepDuration, AudioEventType.TALK, rnd)
                 }
             }
             if (wakeDate.dayOfWeek.value >= 6) {
@@ -177,6 +180,8 @@ object DebugSeeder {
 
     private suspend fun audioEventOf(
         sleepRepo: SleepRepository,
+        clipStore: AudioClipStore,
+        filesDir: java.io.File,
         sessionId: Long,
         startMillis: Long,
         sleepDuration: Int,
@@ -184,17 +189,128 @@ object DebugSeeder {
         rnd: Random
     ) {
         var ts = startMillis + rnd.nextInt(sleepDuration) * 60_000L
+        val dirName = when (type) {
+            AudioEventType.TALK -> "sleep_talk"
+            AudioEventType.SNORE -> "sleep_snore"
+            AudioEventType.COUGH -> "sleep_cough"
+            else -> "sleep_events"
+        }
+        val dir = java.io.File(filesDir, dirName)
         while (ts < startMillis + sleepDuration * 60_000L) {
+            val durationSeconds = 3 + rnd.nextInt(8)
+            // Real playable clip through the production path (sealed .enc on
+            // disk, decrypted at play time): loud synthesized stand-ins, one
+            // voice per event type, so playback is verifiable by ear.
+            val wavFile = clipStore.writeClip(
+                dir,
+                "${type.name.lowercase()}_${sessionId}_${ts}.wav",
+                encodeWav(synthClip(type, durationSeconds, rnd))
+            )
             sleepRepo.insertAudioEvent(
                 AudioEvent(
                     sessionId = sessionId,
                     timestampMillis = ts,
-                    durationSeconds = 3 + rnd.nextInt(8),
+                    durationSeconds = durationSeconds,
                     type = type,
-                    intensityDecibels = 40 + rnd.nextInt(25)
+                    intensityDecibels = 40 + rnd.nextInt(25),
+                    clipPath = wavFile.absolutePath
                 )
             )
             ts += 60_000L * (25 + rnd.nextInt(45))
         }
+    }
+
+    private const val SEED_SAMPLE_RATE = 16000
+
+    /** Loud, obviously-audible stand-in per event type at 16 kHz mono. */
+    private fun synthClip(type: AudioEventType, durationSeconds: Int, rnd: Random): ShortArray {
+        val n = durationSeconds * SEED_SAMPLE_RATE
+        val out = ShortArray(n)
+        when (type) {
+            // Chattering syllables: 180 Hz wobble with gaps.
+            AudioEventType.TALK -> {
+                var i = 0
+                while (i < n) {
+                    val sylLen = (0.22 * SEED_SAMPLE_RATE).toInt()
+                    for (j in 0 until sylLen) {
+                        if (i + j >= n) break
+                        val t = (i + j).toDouble() / SEED_SAMPLE_RATE
+                        val env = kotlin.math.sin(kotlin.math.PI * j / sylLen)
+                        val s = kotlin.math.sin(2 * kotlin.math.PI * 180 * t) * 0.7 +
+                            kotlin.math.sin(2 * kotlin.math.PI * 360 * t) * 0.3
+                        out[i + j] = (s * env * 22000).toInt().toShort()
+                    }
+                    i += sylLen + (0.15 * SEED_SAMPLE_RATE).toInt()
+                }
+            }
+            // Low rumble swells.
+            AudioEventType.SNORE -> {
+                for (i in 0 until n) {
+                    val t = i.toDouble() / SEED_SAMPLE_RATE
+                    val swell = 0.5 + 0.5 * kotlin.math.sin(2 * kotlin.math.PI * 0.4 * t)
+                    val s = kotlin.math.sin(2 * kotlin.math.PI * 70 * t) * 0.8 +
+                        (rnd.nextFloat() - 0.5f) * 0.4
+                    out[i] = (s * swell * 22000).toInt()
+                        .coerceIn(-32768, 32767).toShort()
+                }
+            }
+            // Sharp noise bursts.
+            else -> {
+                var i = 0
+                while (i < n) {
+                    val burstLen = (0.3 * SEED_SAMPLE_RATE).toInt()
+                    for (j in 0 until burstLen) {
+                        if (i + j >= n) break
+                        val env = 1.0 - j.toDouble() / burstLen
+                        out[i + j] = ((rnd.nextFloat() - 0.5f) * 2 * env * 24000).toInt()
+                            .coerceIn(-32768, 32767).toShort()
+                    }
+                    i += burstLen + (0.25 * SEED_SAMPLE_RATE).toInt()
+                }
+            }
+        }
+        return out
+    }
+
+    /** 44-byte PCM header + 16-bit mono samples, same layout as the tracker. */
+    private fun encodeWav(data: ShortArray): ByteArray {
+        val totalDataLen = data.size * 2
+        val totalAudioLen = totalDataLen + 36
+        val out = java.io.ByteArrayOutputStream(44 + totalDataLen)
+        val h = ByteArray(44)
+        h[0] = 'R'.code.toByte(); h[1] = 'I'.code.toByte()
+        h[2] = 'F'.code.toByte(); h[3] = 'F'.code.toByte()
+        h[4] = (totalAudioLen and 0xff).toByte()
+        h[5] = ((totalAudioLen shr 8) and 0xff).toByte()
+        h[6] = ((totalAudioLen shr 16) and 0xff).toByte()
+        h[7] = ((totalAudioLen shr 24) and 0xff).toByte()
+        h[8] = 'W'.code.toByte(); h[9] = 'A'.code.toByte()
+        h[10] = 'V'.code.toByte(); h[11] = 'E'.code.toByte()
+        h[12] = 'f'.code.toByte(); h[13] = 'm'.code.toByte()
+        h[14] = 't'.code.toByte(); h[15] = ' '.code.toByte()
+        h[16] = 16; h[17] = 0; h[18] = 0; h[19] = 0; h[20] = 1; h[21] = 0
+        h[22] = 1; h[23] = 0
+        h[24] = (SEED_SAMPLE_RATE and 0xff).toByte()
+        h[25] = ((SEED_SAMPLE_RATE shr 8) and 0xff).toByte()
+        h[26] = ((SEED_SAMPLE_RATE shr 16) and 0xff).toByte()
+        h[27] = ((SEED_SAMPLE_RATE shr 24) and 0xff).toByte()
+        val byteRate = 16 * SEED_SAMPLE_RATE / 8
+        h[28] = (byteRate and 0xff).toByte()
+        h[29] = ((byteRate shr 8) and 0xff).toByte()
+        h[30] = ((byteRate shr 16) and 0xff).toByte()
+        h[31] = ((byteRate shr 24) and 0xff).toByte()
+        h[32] = 2; h[33] = 0; h[34] = 16; h[35] = 0
+        h[36] = 'd'.code.toByte(); h[37] = 'a'.code.toByte()
+        h[38] = 't'.code.toByte(); h[39] = 'a'.code.toByte()
+        h[40] = (totalDataLen and 0xff).toByte()
+        h[41] = ((totalDataLen shr 8) and 0xff).toByte()
+        h[42] = ((totalDataLen shr 16) and 0xff).toByte()
+        h[43] = ((totalDataLen shr 24) and 0xff).toByte()
+        out.write(h)
+        val bb = java.nio.ByteBuffer.allocate(data.size * 2)
+        bb.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        bb.asShortBuffer().put(data)
+        out.write(bb.array())
+        return out.toByteArray()
     }
 }

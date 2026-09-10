@@ -87,7 +87,7 @@ fun TrendsScreen(
 
             // Metric selector dropdown (DATA-03)
             var expanded by remember { mutableStateOf(false) }
-            // R5: pregnancy/postpartum trend context — phase bands do not apply here.
+            // R5: pregnancy/postpartum trend context, phase bands do not apply here.
             lifeStageNote?.let { note ->
                 SleepCard {
                     Text(
@@ -156,7 +156,7 @@ fun TrendsScreen(
                         label = run.phase.displayName
                     )
                 } + if (selectedMetric == TrendMetric.DEEP_PERCENT && deepTarget != null) {
-                    // Age-calibrated deep-sleep window — the same target±5% band that
+                    // Age-calibrated deep-sleep window, the same target±5% band that
                     // calculateDeepSleepScore marks as ideal, drawn behind the line.
                     listOf(
                         TrendBand(
@@ -235,7 +235,7 @@ private fun TrendRangeRow(
     }
 }
 
-/** Headline numbers above the chart — the screen used to show a bare line with no values. */
+/** Headline numbers above the chart, the screen used to show a bare line with no values. */
 @Composable
 private fun TrendStatsCard(stats: TrendStats, metric: TrendMetric) {
     SleepCard(title = "Now against the average") {

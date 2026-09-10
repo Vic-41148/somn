@@ -81,7 +81,7 @@ class CorrelationUseCaseTest {
         val habitLogs = (0 until 7).map { i ->
             HabitLog(
                 date = startDate.plusDays(i.toLong()).minusDays(1),
-                // Increasing mg but all logged at 8 AM — should be filtered out entirely.
+                // Increasing mg but all logged at 8 AM, should be filtered out entirely.
                 entry = HabitEntry.Caffeine(mg = i * 20, timeOfDay = LocalTime.of(8, 0))
             )
         }

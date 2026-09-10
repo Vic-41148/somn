@@ -42,7 +42,7 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
-/** v3 → v4: session context — timezone, home-vs-away, whether an alarm ended it. */
+/** v3 → v4: session context, timezone, home-vs-away, whether an alarm ended it. */
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `sleep_sessions` ADD COLUMN `timezoneId` TEXT NOT NULL DEFAULT 'UTC'")
@@ -69,7 +69,7 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
-/** v5 → v6: mic-derived breathing rate stored per session. Nullable — older sessions have none. */
+/** v5 → v6: mic-derived breathing rate stored per session. Nullable, older sessions have none. */
 val MIGRATION_5_6 = object : Migration(5, 6) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `sleep_sessions` ADD COLUMN `avgBreathingRateBrpm` REAL")
@@ -109,14 +109,14 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
 }
 
 /**
- * v10 → v11: drop the dead `shiftWorker` flag (REL-08) — never wired to any UI, real
+ * v10 → v11: drop the dead `shiftWorker` flag (REL-08), never wired to any UI, real
  * shift-work behavior is v2/next-milestone scope. SQLite's `ALTER TABLE ... DROP COLUMN`
  * requires SQLite 3.35+ (2021), which predates the bundled SQLite on this app's minSdk 26
  * (Android 8) devices, so the column is dropped via the standard recreate-copy-swap pattern.
  */
 val MIGRATION_10_11 = object : Migration(10, 11) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        // No SQL-level DEFAULTs here — Room's own generated schema does not declare column
+        // No SQL-level DEFAULTs here, Room's own generated schema does not declare column
         // defaults (they're applied at the Kotlin/insert level), so adding DEFAULT clauses
         // would make TableInfo validation fail against the entity's expected schema.
         db.execSQL(
@@ -168,7 +168,7 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
-/** v12 → v13: Health Connect integration — external vitals table + dedup marker on sessions (HEALTH-01/02/04). */
+/** v12 → v13: Health Connect integration, external vitals table + dedup marker on sessions (HEALTH-01/02/04). */
 val MIGRATION_12_13 = object : Migration(12, 13) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `sleep_sessions` ADD COLUMN `healthConnectRecordId` TEXT")

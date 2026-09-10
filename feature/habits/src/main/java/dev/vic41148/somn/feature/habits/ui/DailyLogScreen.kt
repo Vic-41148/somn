@@ -227,7 +227,7 @@ private fun HabitSection(
             Row(
                 // Padding goes inside the click target, not around it. It used to sit on the
                 // parent Column, which left a 16dp dead border. A tap on the card's own
-                // edge — visually part of the header — hit nothing at all.
+                // edge, visually part of the header, hit nothing at all.
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
@@ -270,7 +270,7 @@ private fun HabitSection(
             AnimatedVisibility(
                 visible = expanded,
                 // Material's motion split: size is spatial, so it springs. Opacity is an effect,
-                // so it uses a short linear-ish fade. The spring is deliberately non-bouncy —
+                // so it uses a short linear-ish fade. The spring is deliberately non-bouncy,
                 // these sections are stacked, and overshoot on one shoves every section below it
                 // past its resting position and back, which is what made taps land on the wrong
                 // card while the list was still settling.
@@ -568,7 +568,7 @@ private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
 }
 
 private fun HabitEntry.summary(): String = when (this) {
-    is HabitEntry.Caffeine -> "${source.displayName} — ${mg}mg at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Caffeine -> "${source.displayName}, ${mg}mg at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Alcohol -> "${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Exercise -> "${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Stress -> when (level) {

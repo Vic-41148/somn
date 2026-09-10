@@ -17,7 +17,7 @@ import javax.inject.Singleton
 /**
  * Where the mandatory pre-update backup lives: app-private storage only (that survives an
  * in-place update, since `adb install -r` keeps app data). A previous version also mirrored
- * the plaintext zip to public Downloads; that mirror is gone — no plaintext backup lands in
+ * the plaintext zip to public Downloads; that mirror is gone, no plaintext backup lands in
  * shared storage anymore. [findLatestPreUpdateBackup] still reads such older visible copies
  * once, so a reinstall can recover data written before this change.
  *

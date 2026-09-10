@@ -9,8 +9,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,6 +29,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.semantics.Role
@@ -142,7 +151,7 @@ fun SettingsScreen(
     // Settings search lives above the LazyColumn: item-scoped remember would reset
     // the query whenever the field scrolls out of view (same reason the other
     // form state is hoisted). Each section below declares its own match terms.
-    // (No Updates section on this channel — store builds ship no self-updater.)
+    // (No Updates section on this channel, store builds ship no self-updater.)
     var searchQuery by rememberSaveable { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val searchTrimmed = searchQuery.trim()
@@ -196,6 +205,7 @@ fun SettingsScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
                 placeholder = { Text("Search settings") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search settings") },
                 trailingIcon = {
@@ -213,7 +223,7 @@ fun SettingsScreen(
 
         // Sleep Target
         if (showSleepTarget) item {
-            SettingSection(title = "Sleep Target") {
+            SettingSection(title = "Sleep Target", forceExpand = searchQuery.isNotBlank()) {
                 SliderWithValueLabel(
                     value = settings.targetSleepHours,
                     onValueChange = { viewModel.updateSleepTarget(it) },
@@ -225,10 +235,10 @@ fun SettingsScreen(
             }
         }
 
-        // R2 Rest Mode — sick/injured nights stop counting: streak freezes, sick
+        // R2 Rest Mode, sick/injured nights stop counting: streak freezes, sick
         // nights leave baselines and correlations, Outlook switches to recovery copy.
         if (showRecovery) item {
-            SettingSection(title = "Recovery") {
+            SettingSection(title = "Recovery", forceExpand = searchQuery.isNotBlank()) {
                 SettingToggle(
                     title = "Rest Mode",
                     checked = settings.restModeSince != null,
@@ -252,7 +262,7 @@ fun SettingsScreen(
         // models get Oura's questionnaire mechanic as pure UI over prefs.
         if (showCycle) item {
             if (profile?.showMenopauseFeatures == true) {
-                SettingSection(title = "Cycle & hormones") {
+                SettingSection(title = "Cycle & hormones", forceExpand = searchQuery.isNotBlank()) {
                     Text(
                         text = "Menopause check-in: 10 questions on how symptoms have " +
                             "bothered you the last 2 weeks, with an honest read at the end.",
@@ -274,7 +284,7 @@ fun SettingsScreen(
         // toggle would mute some effects. Near the top because it affects the whole app, not a
         // single feature.
         if (showHaptics) item {
-            SettingSection(title = "Haptics") {
+            SettingSection(title = "Haptics", forceExpand = searchQuery.isNotBlank()) {
                 SettingToggle(
                     title = "Haptic Feedback",
                     checked = settings.hapticsEnabled,
@@ -338,7 +348,7 @@ fun SettingsScreen(
 
         // About
         if (showAbout) item {
-            SettingSection(title = "About") {
+            SettingSection(title = "About", forceExpand = searchQuery.isNotBlank()) {
                 SettingToggle(
                     title = "Lock Somn on start",
                     checked = settings.appLockEnabled,
@@ -387,7 +397,7 @@ fun SettingsScreen(
 
         // Appearance (THEME-01)
         if (showAppearance) item {
-            SettingSection(title = "Appearance") {
+            SettingSection(title = "Appearance", forceExpand = searchQuery.isNotBlank()) {
                 SettingToggle(
                     title = "Match My Wallpaper",
                     checked = settings.useDynamicColor,
@@ -403,7 +413,7 @@ fun SettingsScreen(
 
         // Wake-Up Verification (WAKE-01/02)
         if (showWakeVerify) item {
-            SettingSection(title = "Wake-Up Verification") {
+            SettingSection(title = "Wake-Up Verification", forceExpand = searchQuery.isNotBlank()) {
                 SettingToggle(
                     title = "Confirm You Are Awake",
                     checked = settings.wakeVerificationEnabled,
@@ -425,7 +435,7 @@ fun SettingsScreen(
 
         // Anti-Snore Nudge
         if (showSnore) item {
-            SettingSection(title = "Anti-Snore Nudge") {
+            SettingSection(title = "Anti-Snore Nudge", forceExpand = searchQuery.isNotBlank()) {
                 SettingToggle(
                     title = "Vibrate on Snoring",
                     checked = settings.snoreNudgeEnabled,
@@ -437,7 +447,7 @@ fun SettingsScreen(
         // Sleep-talk recording retention. These clips are the most sensitive thing the app
         // stores, so the retention window is surfaced here rather than buried in a backup screen.
         if (showSleepTalk) item {
-            SettingSection(title = "Sleep-Talk Recordings") {
+            SettingSection(title = "Sleep-Talk Recordings", forceExpand = searchQuery.isNotBlank()) {
                 val retentionDays = settings.clipRetentionDays
                 Text(
                     text = "Somn saves a short audio clip when it detects you talking in your sleep. " +
@@ -493,11 +503,11 @@ fun SettingsScreen(
             }
         }
 
-        // R2 per-category purge — Oura-style selective deletion without an account to
+        // R2 per-category purge, Oura-style selective deletion without an account to
         // delete. Each category confirms separately; each reports through the shared
         // deletion status snackbar.
         if (showDeleteData) item {
-            SettingSection(title = "Delete Data") {
+            SettingSection(title = "Delete Data", forceExpand = searchQuery.isNotBlank()) {
                 OutlinedButton(
                     onClick = { confirmingHabitPurge = true },
                     modifier = Modifier.fillMaxWidth()
@@ -608,7 +618,7 @@ fun SettingsScreen(
 
         // Tracking (sensor selection + standby control)
         if (showSensor) item {
-            SettingSection(title = "Sensor Mode") {
+            SettingSection(title = "Sensor Mode", forceExpand = searchQuery.isNotBlank()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -692,7 +702,7 @@ fun SettingsScreen(
 
         // Battery Threshold
         if (showBattery) item {
-            SettingSection(title = "Battery Threshold") {
+            SettingSection(title = "Battery Threshold", forceExpand = searchQuery.isNotBlank()) {
                 Text(
                     text = "${settings.batteryThreshold}%",
                     style = MaterialTheme.typography.titleMedium,
@@ -721,7 +731,7 @@ fun SettingsScreen(
 
         // Oversleep Threshold (SESS-03)
         if (showOversleep) item {
-            SettingSection(title = "Oversleep Threshold") {
+            SettingSection(title = "Oversleep Threshold", forceExpand = searchQuery.isNotBlank()) {
                 val hours = settings.oversleepThresholdMinutes / 60
                 val mins = settings.oversleepThresholdMinutes % 60
                 Text(
@@ -755,7 +765,7 @@ fun SettingsScreen(
         // The default AUTO uses the device-timezone heuristic; travelers near the equator or on
         // the wrong side of a timezone boundary can pin the correct hemisphere here.
         if (showSeasonal) item {
-            SettingSection(title = "Seasonal Analysis") {
+            SettingSection(title = "Seasonal Analysis", forceExpand = searchQuery.isNotBlank()) {
                 Text(
                     text = "Seasons are detected from your timezone. If the app labels the wrong " +
                         "season for your location, set your hemisphere here.",
@@ -791,7 +801,7 @@ fun SettingsScreen(
 
         // Alarm CAPTCHA
         if (showCaptcha) item {
-            SettingSection(title = "Alarm CAPTCHA") {
+            SettingSection(title = "Alarm CAPTCHA", forceExpand = searchQuery.isNotBlank()) {
                 val hasCameraPermission = ContextCompat.checkSelfPermission(
                     context, Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED
@@ -882,7 +892,7 @@ fun SettingsScreen(
         // file pickers and destructive actions into a single scrolling group. Moved to its own
         // screen; this row is just the pointer.
         if (showExport) item {
-            SettingSection(title = "Data Export & Backup") {
+            SettingSection(title = "Data Export & Backup", forceExpand = searchQuery.isNotBlank()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -915,7 +925,7 @@ fun SettingsScreen(
 
         // NAS / Self-Hosted Backup
         if (showNas) item {
-            SettingSection(title = "NAS Sync (Self-Hosted)") {
+            SettingSection(title = "NAS Sync (Self-Hosted)", forceExpand = searchQuery.isNotBlank()) {
                 SettingToggle(
                     title = "Enable NAS Sync",
                     checked = settings.nasEnabled,
@@ -1061,7 +1071,7 @@ fun SettingsScreen(
 
         // Health Connect (HEALTH-01..04)
         if (showHealth) item {
-            SettingSection(title = "Health Connect") {
+            SettingSection(title = "Health Connect", forceExpand = searchQuery.isNotBlank()) {
                 val healthConnectContract = remember(viewModel) { viewModel.healthConnectPermissionsContract() }
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = healthConnectContract
@@ -1125,7 +1135,7 @@ fun SettingsScreen(
 
         // Experimental: YAMNet audio classification (Task 14, AUDIO-01)
         if (showExperimental) item {
-            SettingSection(title = "Experimental") {
+            SettingSection(title = "Experimental", forceExpand = searchQuery.isNotBlank()) {
                 val yamnetState by viewModel.yamnetModelState.collectAsState()
 
                 // Toggling ON is consent-gated: with the model already verified on disk it turns on
@@ -1209,7 +1219,7 @@ fun SettingsScreen(
 
         // Wind-Down Toolkit
         if (showWindDown) item {
-            SettingSection(title = "Wind-Down Toolkit") {
+            SettingSection(title = "Wind-Down Toolkit", forceExpand = searchQuery.isNotBlank()) {
                 Button(
                     onClick = onNavigateToBreathing,
                     modifier = Modifier.fillMaxWidth()
@@ -1236,7 +1246,7 @@ fun SettingsScreen(
         // About - version comes from the installed package (PackageInfo) so it always matches the
         // channel actually installed (0.1.2 vs 0.1.2-store and future releases), never a stale
         // hardcoded constant.
-        // Footers stay out of search results — they are version furniture, not settings.
+        // Footers stay out of search results, they are version furniture, not settings.
         if (searchTrimmed.isBlank()) item {
             // PackageManager is binder IPC: resolving it during composition would hitch
             // the tab animation, so the footer fills in a frame later.
@@ -1369,23 +1379,63 @@ private fun QRSetupDialog(
 @Composable
 internal fun SettingSection(
     title: String,
+    forceExpand: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    // Sections rest collapsed; an active search forces matches open.
+    var expanded by remember { mutableStateOf(false) }
+    val open = expanded || forceExpand
     Column {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedCard {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                content()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(
+                    onClickLabel = if (open) "Collapse $title" else "Expand $title",
+                    role = Role.Button
+                ) { expanded = !expanded }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        AnimatedVisibility(
+            visible = open,
+            enter = expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+            exit = shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) + fadeOut(animationSpec = tween(durationMillis = 100))
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedCard(shape = RoundedCornerShape(20.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        content()
+                    }
+                }
             }
         }
     }

@@ -66,7 +66,7 @@ fun MorningReviewScreen(
     var selectedMood by rememberSaveable { mutableIntStateOf(0) }
     var notes by rememberSaveable { mutableStateOf("") }
 
-    // This screen renders the session it was opened for (the sessionId argument) — never the
+    // This screen renders the session it was opened for (the sessionId argument), never the
     // shared lastSession flow. The stop path fills lastSession asynchronously and can race this
     // screen's creation, so a relaunch mid-flow used to show a stale session from a previous
     // night. The detail data (score explanation, epochs, audio) loads once the session row
@@ -99,7 +99,7 @@ fun MorningReviewScreen(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
             ) {
                 Text(
-                    text = "Tracking stopped early — this session may be missing data from later in the night.",
+                    text = "Tracking stopped early. This session may be missing data from later in the night.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -115,7 +115,7 @@ fun MorningReviewScreen(
             ) {
                 Text(
                     text = "This session ran well beyond your target sleep duration. Oversleeping can " +
-                        "leave you groggy — consider a consistent wake time even on rest days.",
+                        "leave you groggy. Consider a consistent wake time even on rest days.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -235,7 +235,7 @@ fun MorningReviewScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Mood rating — FlowRow so five labels ("Exhausted"…) wrap instead of squeezing.
+        // Mood rating, FlowRow so five labels ("Exhausted"…) wrap instead of squeezing.
         SleepCard(title = "How do you feel?") {
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(

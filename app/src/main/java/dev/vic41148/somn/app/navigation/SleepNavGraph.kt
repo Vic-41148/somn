@@ -122,11 +122,11 @@ fun SleepNavGraph(
 
     val hideBottomBar = currentDestination?.route in hideNavRoutes
 
-    // The alarm_firing route used to be registered but unreachable — nothing ever navigated to
+    // The alarm_firing route used to be registered but unreachable, nothing ever navigated to
     // it, so while the alarm was ringing the in-app full-screen experience only ever existed as
     // the system AlarmActivity. If the full-screen intent is unavailable (API 34+ can revoke the
     // permission) that left no in-app firing surface. Navigate here whenever a firing episode
-    // starts while the app is open, and leave when the episode ends (dismiss, or snooze — which
+    // starts while the app is open, and leave when the episode ends (dismiss, or snooze, which
     // the service now reports as ending the episode). During the WAKE-01 confirmation window the
     // route is kept so the screen can show its countdown.
     val isAlarmFiring by AlarmService.isAlarmFiring.collectAsState()
@@ -176,7 +176,7 @@ fun SleepNavGraph(
                 // MainActivity calls enableEdgeToEdge(), so the window no longer resizes when the
                 // soft keyboard opens, and Scaffold's default contentWindowInsets covers only the
                 // system bars. Without imePadding here the keyboard silently draws over whatever the
-                // user is typing into — the NAS host/port/password fields, the alarm label, the
+                // user is typing into, the NAS host/port/password fields, the alarm label, the
                 // morning-review notes. Applied once at the single Scaffold every screen sits inside
                 // rather than per-screen.
                 modifier = Modifier.fillMaxSize(),

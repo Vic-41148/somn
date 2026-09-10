@@ -3,7 +3,7 @@ package dev.vic41148.somn.core.domain.model
 import java.time.LocalTime
 
 /**
- * Social jet lag — the discrepancy between a user's biological sleep timing
+ * Social jet lag, the discrepancy between a user's biological sleep timing
  * and the timing imposed by work/social schedule (typically manifesting as a
  * weekday vs. weekend midpoint difference).
  *
@@ -47,13 +47,13 @@ data class SocialJetLag(
  * Thresholds based on Frontiers in Sleep 2025 and European Sleep Research Society guidance.
  */
 enum class JetLagRisk(val displayName: String, val color: RiskColor) {
-    /** <30 min difference — no clinical concern. */
+    /** <30 min difference, no clinical concern. */
     NONE("None", RiskColor.GREEN),
-    /** 30–60 min — subclinical, worth awareness. */
+    /** 30–60 min, subclinical, worth awareness. */
     MILD("Mild", RiskColor.YELLOW),
-    /** 60–120 min — increased metabolic and mood risk. */
+    /** 60–120 min, increased metabolic and mood risk. */
     MODERATE("Moderate", RiskColor.ORANGE),
-    /** >120 min — independent cardiovascular risk factor. */
+    /** >120 min, independent cardiovascular risk factor. */
     HIGH("High", RiskColor.RED);
 
     companion object {
@@ -66,5 +66,5 @@ enum class JetLagRisk(val displayName: String, val color: RiskColor) {
     }
 }
 
-/** Semantic colour token for risk level — mapped to Material 3 colours in the UI layer. */
+/** Semantic colour token for risk level, mapped to Material 3 colours in the UI layer. */
 enum class RiskColor { GREEN, YELLOW, ORANGE, RED }

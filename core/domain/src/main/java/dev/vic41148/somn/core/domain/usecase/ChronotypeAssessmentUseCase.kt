@@ -98,7 +98,7 @@ class ChronotypeAssessmentUseCase {
      * Classify the chronotype from the natural sleep midpoint.
      * Thresholds derived from Munich ChronoType Questionnaire (MCTQ) population data.
      *
-     * Note: sleep midpoint is typically in the middle of the night — hence times like
+     * Note: sleep midpoint is typically in the middle of the night, hence times like
      * 3:00–4:00 AM represent average chronotypes.
      */
     private fun chronotypeFromMidpoint(midpoint: LocalTime): Chronotype {

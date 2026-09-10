@@ -1,15 +1,28 @@
 package dev.vic41148.somn.feature.analytics.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
@@ -21,11 +34,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.combinedClickable
@@ -35,6 +57,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.domain.model.SessionType
@@ -50,6 +73,7 @@ import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 // Shared across all SessionRow instances (LazyColumn runs single-threaded on the main thread).
 // The previous code constructed these fresh on every row recomposition, which allocated a locale-symbol
@@ -92,7 +116,7 @@ fun HistoryScreen(
         }
     }
 
-    // Previous code collected exportStatus here but never rendered it anywhere in this screen — export
+    // Previous code collected exportStatus here but never rendered it anywhere in this screen, export
     // success/failure messages from exportSelectedSessions() reached nobody. The fix wires it to a Snackbar
     // rather than inline Text, consistent with the same fix in SettingsScreen.
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
@@ -112,7 +136,6 @@ fun HistoryScreen(
         // sit in a fixed Column above a nested list. The top half of the screen never
         // scrolled and the list fought for the remaining space. Everything scrolls as one
         // now, the way a report should read.
-        var filterExpanded by remember { mutableStateOf(false) }
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
@@ -166,7 +189,7 @@ fun HistoryScreen(
                 }
             }
 
-            // Range selector — stats header and list both follow this.
+            // Range selector, stats header and list both follow this.
             item {
                 ReportRangeRow(
                     selectedDays = rangeDays,
@@ -174,7 +197,7 @@ fun HistoryScreen(
                 )
             }
 
-            // Summary header: the actual "report" — averages, streak and best over the range.
+            // Summary header: the actual "report", averages, streak and best over the range.
             // Each ring opens Trends, where Trends breaks the same numbers down per metric.
             summary?.let { report ->
                 item {
@@ -186,46 +209,23 @@ fun HistoryScreen(
                 }
             }
 
-            // Session type filter dropdown
+            // Session type filter, same expandable-card language as the habit
+            // sections, not a stock dropdown.
             if (allSessions.isNotEmpty()) {
                 item {
-                    ExposedDropdownMenuBox(
-                        expanded = filterExpanded,
-                        onExpandedChange = { filterExpanded = !filterExpanded },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = selectedTypeFilter?.displayName ?: "All Sessions",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Filter by the session type") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = filterExpanded) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = filterExpanded,
-                            onDismissRequest = { filterExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("All Sessions") },
-                                onClick = {
-                                    selectedTypeFilter = null
-                                    filterExpanded = false
-                                }
-                            )
-                            SessionType.entries.forEach { type ->
-                                DropdownMenuItem(
-                                    text = { Text(type.displayName) },
-                                    onClick = {
-                                        selectedTypeFilter = type
-                                        filterExpanded = false
-                                    }
-                                )
-                            }
+                    dev.vic41148.somn.core.ui.components.ExpandablePickerCard(
+                        title = "Filter by the session type",
+                        icon = Icons.Default.FilterList,
+                        iconColor = MaterialTheme.colorScheme.primary,
+                        options = listOf("All Sessions") +
+                            SessionType.entries.map { it.displayName },
+                        selectedIndex = if (selectedTypeFilter == null) 0
+                        else SessionType.entries.indexOf(selectedTypeFilter) + 1,
+                        onSelect = {
+                            selectedTypeFilter =
+                                if (it == 0) null else SessionType.entries[it - 1]
                         }
-                    }
+                    )
                 }
             }
 
@@ -259,7 +259,7 @@ fun HistoryScreen(
                 }
 
                 item {
-                    // Score tier colors — the same ramp each row's score digit renders,
+                    // Score tier colors, the same ramp each row's score digit renders,
                     // spelled out once so the list reads as one system.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -317,7 +317,7 @@ fun HistoryScreen(
                         Text("View Reports")
                     }
                 }
-                // The floating dock overlays content (no Scaffold slot) — trailing
+                // The floating dock overlays content (no Scaffold slot), trailing
                 // clearance so the last rows scroll clear of the pill.
                 item {
                     Spacer(modifier = Modifier.height(72.dp))
@@ -341,16 +341,116 @@ private fun ReportRangeRow(
     modifier: Modifier = Modifier
 ) {
     val options = listOf(7 to "Week", 30 to "Month", 90 to "3 mo", null to "All")
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+    val selectedIndex = options.indexOfFirst { it.first == selectedDays }.coerceAtLeast(0)
+    // One big pill with a sliding thumb, same motion language as the dock bubble:
+    // spatial glide on a non-bouncy spring, so the thumb never overshoots past rest.
+    // Taps select directly; horizontal drags slide the thumb under the finger and
+    // snap to the nearest segment on release.
+    val density = LocalDensity.current
+    // NaN = not dragging; a pixel offset into the content while a drag is live.
+    var dragOffsetPx by remember { mutableFloatStateOf(Float.NaN) }
+    // Row height in px: the overlay thumb copies it explicitly, fillMaxHeight
+    // collapses to zero inside this unbounded-height list item.
+    var rowHeightPx by remember { mutableIntStateOf(0) }
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(4.dp)
     ) {
-        options.forEach { (days, label) ->
-            FilterChip(
-                selected = selectedDays == days,
-                onClick = { onSelect(days) },
-                label = { Text(label) }
+        // Segments split the padded content width: maxWidth still spans the 4.dp
+        // padding on both sides, so dividing it raw made the thumb a touch too
+        // wide per segment and drift right, clipping flat against the pill edge
+        // on the last option.
+        val segmentWidth = (maxWidth - 8.dp) / options.size
+        val segmentWidthPx = with(density) { segmentWidth.toPx() }
+        val thumbX by animateDpAsState(
+            targetValue = segmentWidth * selectedIndex,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            label = "rangeThumbX"
+        )
+        // Finger owns the thumb mid-drag; the spring owns it otherwise. Labels
+        // preview the nearest segment under the finger and commit on release.
+        val thumbOffset = if (dragOffsetPx.isNaN()) thumbX
+        else with(density) { dragOffsetPx.toDp() }
+        val previewIndex = if (dragOffsetPx.isNaN()) null
+        else (dragOffsetPx / segmentWidthPx).roundToInt().coerceIn(0, options.size - 1)
+        val effectiveIndex = previewIndex ?: selectedIndex
+        // Drag lives on the content box (segment pixels are known here); taps
+        // still land on the per-segment click targets below.
+        Box(
+            modifier = Modifier.pointerInput(segmentWidthPx) {
+                detectHorizontalDragGestures(
+                    onDragStart = { dragOffsetPx = segmentWidthPx * selectedIndex },
+                    onHorizontalDrag = { _, dragAmount ->
+                        dragOffsetPx = (dragOffsetPx + dragAmount)
+                            .coerceIn(0f, segmentWidthPx * (options.size - 1))
+                    },
+                    onDragEnd = {
+                        val index = (dragOffsetPx / segmentWidthPx).roundToInt()
+                            .coerceIn(0, options.size - 1)
+                        dragOffsetPx = Float.NaN
+                        onSelect(options[index].first)
+                    },
+                    onDragCancel = { dragOffsetPx = Float.NaN }
+                )
+            }
+        ) {
+            // True segment-wide thumb: matchParentSize() sizes to the whole row
+            // (Box forces it), so offset() merely slid a full-width slab whose
+            // visible slice depended on the selection, correct-looking only on
+            // the last option and flooding the bar everywhere else.
+            Box(
+                modifier = Modifier
+                    .width(segmentWidth)
+                    .height(with(density) { rowHeightPx.toDp() })
+                    .offset(x = thumbOffset)
+                    .clip(CircleShape)
+                    // Selected-pill language matches the dock bubble and the filled
+                    // buttons below (primary/onPrimary): primaryContainer sits too
+                    // close to the track in dark dynamic themes and reads muddy.
+                    .background(MaterialTheme.colorScheme.primary)
             )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { rowHeightPx = it.height }
+            ) {
+                options.forEachIndexed { index, (days, label) ->
+                    val selected = index == effectiveIndex
+                    // Crossfade with the thumb glide instead of snapping, so the
+                    // label never sits bright-on-grey (or grey-on-bright) mid-slide.
+                    val labelColor by animateColorAsState(
+                        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        animationSpec = tween(180),
+                        label = "rangeLabelColor"
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(CircleShape)
+                            .clickable(
+                                onClickLabel = "Show $label",
+                                role = Role.Tab
+                            ) { onSelect(days) }
+                            .semantics { this.selected = selected }
+                            .padding(vertical = 10.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            color = labelColor
+                        )
+                    }
+                }
+            }
         }
     }
 }

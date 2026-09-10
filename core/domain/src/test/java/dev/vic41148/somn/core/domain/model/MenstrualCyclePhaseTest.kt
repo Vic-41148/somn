@@ -15,7 +15,7 @@ class MenstrualCyclePhaseTest {
             today = periodStart.plusDays(daysSinceStart)
         )
 
-    // ---- currentPhase() — null-safety guards ----
+    // ---- currentPhase(), null-safety guards ----
 
     @Test
     fun currentPhase_nullLastPeriodStart_returnsNull() {
@@ -31,7 +31,7 @@ class MenstrualCyclePhaseTest {
         assertThat(result).isNull()
     }
 
-    // ---- currentPhase() — 28-day cycle boundaries ----
+    // ---- currentPhase(), 28-day cycle boundaries ----
     // ovulationDay = 28-14 = 14, lutealStart = 15, premenstrualStart = 21
 
     @Test
@@ -84,7 +84,7 @@ class MenstrualCyclePhaseTest {
         assertThat(phaseAtDaysSinceStart(28)).isEqualTo(MenstrualCyclePhase.MENSTRUAL)
     }
 
-    // ---- currentPhase() — non-default cycle length rescales boundaries ----
+    // ---- currentPhase(), non-default cycle length rescales boundaries ----
     // 21-day cycle: ovulationDay = 21-14 = 7, lutealStart = 8, premenstrualStart = 14
 
     @Test

@@ -57,7 +57,7 @@ fun PermissionsScreen(
                 )
             }
             // Motion sensing uses the raw TYPE_ACCELEROMETER sensor (AccelerometerCollector),
-            // which needs no runtime permission — Activity Recognition and its permission are
+            // which needs no runtime permission, Activity Recognition and its permission are
             // unused. Requesting it here was also dead on arrival: the team never declared it in
             // AndroidManifest.xml, so the dialog could never actually grant it.
             //
@@ -65,14 +65,14 @@ fun PermissionsScreen(
             // The call is exempt from exact-alarm restrictions on every Android version and needs
             // no SCHEDULE_EXACT_ALARM at all. That permission is also a special-access
             // grant on API 31+ that a RequestMultiplePermissions dialog cannot obtain in the
-            // first place — only a dedicated Settings deep-link can. As a result this always
+            // first place, only a dedicated Settings deep-link can. As a result this always
             // showed as "not granted" regardless of what the user tapped.
             add(
                 PermissionItem(
                     Manifest.permission.RECORD_AUDIO,
                     "Microphone (optional)",
                     "Snoring detection, sleep talk recording, and breathing analysis. " +
-                        "The mic hears the whole room, not just you — if someone shares " +
+                        "The mic hears the whole room, not just you. If someone shares " +
                         "your bed or bedroom, they should know recording is on.",
                     required = false
                 )
@@ -155,7 +155,7 @@ fun PermissionsScreen(
             ) {
                 Icon(
                     imageVector = if (isGranted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                    // Unlike the other icons flagged in the audit, this one is not decorative —
+                    // Unlike the other icons flagged in the audit, this one is not decorative,
                     // it is the only indicator of grant status. item.title/description never say
                     // whether the permission was actually granted, so a screen reader user had no
                     // way to tell which permissions still needed granting.

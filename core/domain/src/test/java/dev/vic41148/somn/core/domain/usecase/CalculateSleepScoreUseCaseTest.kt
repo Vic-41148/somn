@@ -44,7 +44,7 @@ class CalculateSleepScoreUseCaseTest {
         pregnancyTrimester = pregnancyTrimester
     )
 
-    // ---- invoke() — no profile ----
+    // ---- invoke(), no profile ----
 
     @Test
     fun invoke_perfectNight_scoresNinetyNine() {
@@ -83,7 +83,7 @@ class CalculateSleepScoreUseCaseTest {
     @Test
     fun invoke_massiveOversleep_isPenalizedNotPerfect() {
         // 16h against an 8h target (ratio 2.0) used to fall through to the same formula as
-        // near-target sleep and get coerced to a perfect 100 — the oversleep branch was
+        // near-target sleep and get coerced to a perfect 100, the oversleep branch was
         // unreachable. It must now score no higher than the oversleep floor of 60.
         val oversleptSession = session(sleepDurationMinutes = 960)
         val score = useCase(oversleptSession, averageBedtimeVarianceMinutes = 10f)
@@ -91,7 +91,7 @@ class CalculateSleepScoreUseCaseTest {
     }
 
     /**
-     * Deliberately mediocre (not perfect) session so raw score has headroom below 100 —
+     * Deliberately mediocre (not perfect) session so raw score has headroom below 100,
      * otherwise adjustedScore's final coerceIn(0,100) silently clips the very adjustment
      * deltas these tests exist to verify. Raw score works out to 79 (see calculateWithProfile
      * default-profile math below), leaving room for adjustments up to the +20 cap.
@@ -103,7 +103,7 @@ class CalculateSleepScoreUseCaseTest {
         wakeEvents = 0
     )
 
-    // ---- calculateWithProfile() — biological adjustments ----
+    // ---- calculateWithProfile(), biological adjustments ----
 
     @Test
     fun calculateWithProfile_noTriggeredAdjustments_adjustedEqualsRaw() {
@@ -191,7 +191,7 @@ class CalculateSleepScoreUseCaseTest {
     @Test
     fun calculateWithProfile_adhdConsistencyLeniency_scoresHigherThanWithoutAdhd() {
         // 20min variance: ADHD leniency (1.5x) keeps it in the top consistency bucket,
-        // non-ADHD does not — isolates the leniency branch since every other sub-score is identical.
+        // non-ADHD does not, isolates the leniency branch since every other sub-score is identical.
         val baseSession = session()
         val adhdResult = useCase.calculateWithProfile(
             baseSession, profile(adhdMode = true), averageBedtimeVarianceMinutes = 20f

@@ -20,10 +20,10 @@ import dev.vic41148.somn.feature.alarm.service.AlarmService
  * This is deliberately a thin wrapper around the same [AlarmScreen] that [AlarmActivity] shows,
  * so the two surfaces can never drift apart: identical captcha gating (per-alarm type, resolved
  * by the ViewModel with the same precedence as the activity), identical WAKE-01 wake-confirmation
- * flow, identical Snooze/Dismiss semantics. Back is trapped exactly like the activity's — the
+ * flow, identical Snooze/Dismiss semantics. Back is trapped exactly like the activity's, the
  * only way out is Snooze or Dismiss.
  *
- * The screen leaves itself when the firing episode ends ([AlarmService.phase] turns DISMISSED —
+ * The screen leaves itself when the firing episode ends ([AlarmService.phase] turns DISMISSED,
  * including after a snooze, which the service now reports as ending the episode); the nav graph
  * observes that transition and pops the route.
  */

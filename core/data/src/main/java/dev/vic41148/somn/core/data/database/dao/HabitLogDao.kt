@@ -36,7 +36,7 @@ interface HabitLogDao {
     @Query("DELETE FROM habit_logs WHERE id = :id")
     suspend fun deleteById(id: Long)
 
-    /** R2 per-category purge: forgets every habit log. No cascade concerns — standalone table. */
+    /** R2 per-category purge: forgets every habit log. No cascade concerns, standalone table. */
     @Query("DELETE FROM habit_logs")
     suspend fun deleteAll()
 }

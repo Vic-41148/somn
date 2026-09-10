@@ -13,7 +13,7 @@ import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** WebDAV NasClient implementation — the only transport [NasProtocol] currently offers. */
+/** WebDAV NasClient implementation, the only transport [NasProtocol] currently offers. */
 @Singleton
 class NasClientImpl @Inject constructor(
     private val preferencesRepository: SomnPreferencesRepository
@@ -30,7 +30,7 @@ class NasClientImpl @Inject constructor(
         internal const val MAX_LISTING_BYTES = 2L * 1024 * 1024
 
         /**
-         * Pure so the scheme decision can be tested directly — this is the line that used to leak
+         * Pure so the scheme decision can be tested directly, this is the line that used to leak
          * WebDAV credentials. The scheme follows the user's explicit [NasConfig.useHttps] choice,
          * never the port number: inferring it from the port meant a NAS on, say, 8443 silently got
          * plain HTTP and sent its Basic-auth header in the clear.
@@ -85,7 +85,7 @@ class NasClientImpl @Inject constructor(
      * of letting users chase a network problem they do not have.
      *
      * Release builds keep Log.e but strip everything below it, so failure details here carry the
-     * exception class only — never the host, remote path, or the throwable itself, whose message
+     * exception class only, never the host, remote path, or the throwable itself, whose message
      * routinely embeds the request URL.
      */
     private fun logWebDavFailure(message: String, config: NasConfig, e: Exception) {
@@ -93,7 +93,7 @@ class NasClientImpl @Inject constructor(
             Log.e(
                 TAG,
                 "$message: Android blocked a cleartext HTTP request. " +
-                    "Enable HTTPS on the NAS connection — Somn does not permit unencrypted traffic."
+                    "Enable HTTPS on the NAS connection. Somn does not permit unencrypted traffic."
             )
         } else {
             Log.e(TAG, "$message (${e.javaClass.simpleName})")
@@ -118,7 +118,7 @@ class NasClientImpl @Inject constructor(
     }
 
     private suspend fun testWebDav(config: NasConfig): Boolean {
-        // disconnect() used to only run on the success path — an exception from
+        // disconnect() used to only run on the success path, an exception from
         // conn.responseCode (network failure, the exact scenario a NAS sync worker frequently
         // hits) left the underlying socket connection leaked instead of released.
         var conn: HttpURLConnection? = null
@@ -179,7 +179,7 @@ class NasClientImpl @Inject constructor(
                 return emptyList()
             }
 
-            // Simple href extraction — good enough for file listing
+            // Simple href extraction, good enough for file listing
             val body = conn.inputStream.readBoundedText(MAX_LISTING_BYTES, Charsets.UTF_8)
 
             val hrefRegex = Regex("<D:href>(.*?)</D:href>", RegexOption.IGNORE_CASE)

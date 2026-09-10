@@ -10,7 +10,7 @@ import java.time.ZoneId
 import kotlin.math.abs
 
 /**
- * Calculates social jet lag — the discrepancy between natural sleep timing on free days
+ * Calculates social jet lag, the discrepancy between natural sleep timing on free days
  * (weekends) and schedule-constrained timing on work days (weekdays).
  *
  * Method (standard Munich ChronoType Questionnaire / MCTQ approach):
@@ -118,7 +118,7 @@ class SocialJetLagUseCase {
     }
 
     /**
-     * True if, on the shorter circular arc, the weekend midpoint falls after the weekday one —
+     * True if, on the shorter circular arc, the weekend midpoint falls after the weekday one,
      * the typical direction (relaxed weekend schedule sleeps/wakes later). Shift workers and
      * other atypical schedules can reverse this, so the insight text must check rather than
      * assume it: [circularDifferenceMinutes] alone only gives an unsigned magnitude.
@@ -157,7 +157,7 @@ class SocialJetLagUseCase {
                 "Great schedule consistency."
             JetLagRisk.MILD ->
                 "Your sleep midpoint is $lagStr $direction. " +
-                "Mild social jet lag — worth watching."
+                "Mild social jet lag. Worth watching."
             JetLagRisk.MODERATE ->
                 "Your sleep midpoint shifts $lagStr $direction. " +
                 "This level of social jet lag is associated with increased metabolic and mood risk. " +

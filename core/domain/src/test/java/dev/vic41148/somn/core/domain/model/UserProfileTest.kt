@@ -5,7 +5,7 @@ import java.time.LocalDate
 import org.junit.Test
 
 /**
- * Regression tests for [UserProfile.recommendedSleepHours] — the canonical age→sleep-target
+ * Regression tests for [UserProfile.recommendedSleepHours], the canonical age→sleep-target
  * mapping that onboarding now delegates to.
  *
  * The OnboardingFlow SLEEP_GOAL screen used to duplicate only the 13-18/19-64/else subset of

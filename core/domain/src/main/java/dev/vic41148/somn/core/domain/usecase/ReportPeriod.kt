@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter
 
 /**
  * R3 Reports: fixed reporting windows over the local session history.
- * YEAR doubles as the 12-month anniversary report — same engine, all-time data.
+ * YEAR doubles as the 12-month anniversary report, same engine, all-time data.
  */
 enum class ReportWindow(val days: Int, val title: String) {
     WEEK(7, "Weekly Report"),
@@ -22,9 +22,9 @@ data class PeriodReport(
     val nightsTracked: Int,
     /** "1 Sep – 5 Sep 2026" style label for headers and the PDF. */
     val windowLabel: String,
-    /** "5/30 nights" calibration — every baseline-derived number shows its sample. */
+    /** "5/30 nights" calibration, every baseline-derived number shows its sample. */
     val calibration: String,
-    /** Null when the window holds no usable nights — callers render the empty state. */
+    /** Null when the window holds no usable nights, callers render the empty state. */
     val summary: ReportSummary?,
     /** Oldest→newest scores inside the window (cap applied by caller need), for PDF bars. */
     val scoreTrend: List<Int>
@@ -67,7 +67,7 @@ fun formatPeriodLabel(startMillis: Long, endMillis: Long): String {
     return "${start.format(dayMonth)} – ${end.format(dayMonthYear)}"
 }
 
-/** Pure PDF content model — the framework renderer draws this, so the words stay unit-tested. */
+/** Pure PDF content model, the framework renderer draws this, so the words stay unit-tested. */
 data class ReportPdfSection(
     val heading: String,
     val rows: List<Pair<String, String>>
@@ -81,7 +81,7 @@ data class ReportPdfModel(
 
 /** Wellness framing only: the strongest claim the PDF ever makes is "mention to a doctor". */
 const val REPORT_PDF_DISCLAIMER =
-    "Wellness information only — not medical advice. " +
+    "Wellness information only, not medical advice. " +
         "If anything here concerns you, it is worth mentioning to a doctor."
 
 fun toReportPdfModel(report: PeriodReport, tagNames: List<String>): ReportPdfModel {

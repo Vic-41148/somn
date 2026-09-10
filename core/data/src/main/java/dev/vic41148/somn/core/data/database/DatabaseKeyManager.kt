@@ -17,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 /**
  * Owns the SQLCipher passphrase for the Room DB. The 256-bit key is generated once via
- * SecureRandom and stored Keystore-wrapped ([EncryptionUtils]) in app-private storage —
+ * SecureRandom and stored Keystore-wrapped ([EncryptionUtils]) in app-private storage,
  * never in plaintext, never in prefs.
  *
  * Existing v0.1.2 installs carry a plaintext DB: on first open with no stored key,
@@ -27,7 +27,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
  * Implementation note: sqlcipher-android executes every statement on a pooled connection,
  * so per-connection state (ATTACH, PRAGMA key) never survives to the next call. All
  * cross-database work here is therefore done as explicit schema reads plus batched row
- * copies — never ATTACH — and every direct handle goes through [SupportOpenHelperFactory],
+ * copies, never ATTACH, and every direct handle goes through [SupportOpenHelperFactory],
  * which keys each pooled connection via hook. Verified on-device; see ExportProbeTest history.
  */
 @Singleton
@@ -42,7 +42,7 @@ class DatabaseKeyManager @Inject constructor(
 
     /**
      * Returns the DB passphrase, generating + persisting it on first use. Also runs the
-     * one-time plaintext migration whenever the DB file on disk is still plaintext — including
+     * one-time plaintext migration whenever the DB file on disk is still plaintext, including
      * the crash window where a previous run persisted the key but died mid-migration.
      */
     fun getOrCreatePassphrase(): ByteArray {
@@ -101,7 +101,7 @@ class DatabaseKeyManager @Inject constructor(
     /**
      * Exports the live encrypted DB to a plaintext file for portable (passphrase) backups,
      * which must restore on installs holding a different key. Reads through Room's own open
-     * handle and writes with framework SQLite — no ATTACH involved.
+     * handle and writes with framework SQLite, no ATTACH involved.
      */
     fun exportDecryptedCopy(
         db: SupportSQLiteDatabase,
@@ -195,7 +195,7 @@ class DatabaseKeyManager @Inject constructor(
     }
 
     /**
-     * Rejects triggers, views, and unknown tables outright — a restore candidate must be a
+     * Rejects triggers, views, and unknown tables outright, a restore candidate must be a
      * plain data file matching our schema, never executable SQL objects we did not create.
      * Room-generated indices (`index_<table>_<columns>`) are data-less and always allowed.
      */
@@ -246,7 +246,7 @@ class DatabaseKeyManager @Inject constructor(
             android.database.sqlite.SQLiteDatabase.OPEN_READONLY
         )
         // The callback version matches the source so the fresh file is stamped with the
-        // schema version Room validates against — never a placeholder.
+        // schema version Room validates against, never a placeholder.
         val srcVersion = readUserVersion { srcDb.rawQuery(it, null) }
         keyedHelper(dest.absolutePath, key, srcVersion).use { helper ->
             val destDb = helper.writableDatabase
@@ -276,7 +276,7 @@ class DatabaseKeyManager @Inject constructor(
      * Handle for creating a fresh encrypted file: the callback version matches the
      * plaintext source's user_version (read before copying), so the new file is stamped
      * with the schema version Room validates against. Only ever used on files that do
-     * not exist yet — verify paths use [useKeyedDatabase] instead.
+     * not exist yet, verify paths use [useKeyedDatabase] instead.
      */
     private fun keyedHelper(path: String, key: ByteArray, version: Int): SupportSQLiteOpenHelper {
         loadNative()
@@ -293,8 +293,8 @@ class DatabaseKeyManager @Inject constructor(
 
     /**
      * Runs [block] on a keyed handle and restores the file's original user_version
-     * afterwards. Opening with a fixed callback version would otherwise stamp it —
-     * the framework writes the callback version after onUpgrade/onDowngrade — and
+     * afterwards. Opening with a fixed callback version would otherwise stamp it,
+     * the framework writes the callback version after onUpgrade/onDowngrade, and
      * Room would then refuse to migrate a version-skewed file it could have handled.
      * Files already at [SleepDatabase.SCHEMA_VERSION] take no callbacks and are untouched.
      */
@@ -336,7 +336,7 @@ class DatabaseKeyManager @Inject constructor(
     /**
      * Schema (tables, then indices) plus all rows in [COPY_BATCH_ROWS]-row pages, plus the
      * user_version. Source and destination stay abstract because the four call sites mix
-     * framework and SQLCipher handles in both directions — all cursors surface as
+     * framework and SQLCipher handles in both directions, all cursors surface as
      * [android.database.Cursor] either way.
      */
     private fun copySchemaAndRows(
@@ -352,7 +352,7 @@ class DatabaseKeyManager @Inject constructor(
         }
         schema.filter { it.first != "table" && it.first != "index" }
             .forEach { Log.w(TAG, "Skipping non-data object during copy: ${it.first} ${it.second}") }
-        // sqlite_sequence and friends are internal bookkeeping recreated on demand — replaying
+        // sqlite_sequence and friends are internal bookkeeping recreated on demand, replaying
         // their CREATE fails, and sequences restart correctly from the copied rows anyway.
         val tables = schema.filter { it.first == "table" && !it.second.startsWith("sqlite_") }
         (tables.map { it.third } + schema.filter { it.first == "index" }.map { it.third })

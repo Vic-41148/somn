@@ -236,7 +236,7 @@ class UpdateRepository @Inject constructor(
     }
 
     /**
-     * Follows redirects manually so every hop stays on the host allowlist — the platform
+     * Follows redirects manually so every hop stays on the host allowlist, the platform
      * follower would silently land on an attacker's host from a tampered API response.
      */
     private fun openCheckedConnection(url: String, hopsLeft: Int): HttpURLConnection {

@@ -37,12 +37,12 @@ import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
 
-/** One data point in a [TrendLineChart] series — X is a wall-clock timestamp, not an index. */
+/** One data point in a [TrendLineChart] series, X is a wall-clock timestamp, not an index. */
 data class TrendPoint(val timestampMillis: Long, val value: Float)
 
 /**
  * DATA-04: a colored background band drawn behind the line, e.g. a menstrual cycle phase's
- * date range — [startMillis, endMillis) in the same timestamp space as [TrendPoint]s.
+ * date range, [startMillis, endMillis) in the same timestamp space as [TrendPoint]s.
  * Set [valueRange] instead to draw a full-width band between two Y values (e.g. the age
  * calibrated deep-sleep target window), for metrics where the band is value-driven, not
  * date-driven.
@@ -58,7 +58,7 @@ data class TrendBand(
 
 /**
  * DATA-03: minimal multi-metric-capable trend line chart. Deliberately simple (no axis text
- * rendering, no interaction/tooltips) — callers render their own labels/legend around it, matching
+ * rendering, no interaction/tooltips), callers render their own labels/legend around it, matching
  * this codebase's existing pattern of plain-Canvas components with no charting library dependency
  * (see [Hypnogram]).
  */
@@ -70,13 +70,13 @@ fun TrendLineChart(
     lineColors: List<Color> = emptyList(),
     bands: List<TrendBand> = emptyList(),
     strokeWidthDp: Dp = 3.dp,
-    /** Formats a Y value for the axis labels — callers pass metric-aware formatting. */
+    /** Formats a Y value for the axis labels, callers pass metric-aware formatting. */
     yLabel: (Float) -> String = { it.toInt().toString() },
     /** [first, last] date captions drawn under the chart's left/right edges. */
     xLabels: List<String> = emptyList(),
     /**
      * Pre-formatted (date, value) rows for the "View as table" toggle. Empty means no
-     * toggle — the chart is then the only representation, which is only acceptable when
+     * toggle, the chart is then the only representation, which is only acceptable when
      * the caller already shows the same numbers as text nearby.
      */
     tableEntries: List<Pair<String, String>> = emptyList()
@@ -119,9 +119,9 @@ fun TrendLineChart(
     val minY = if (minVal >= 0f) max(0f, minVal - span * 0.15f) else minVal - span * 0.15f
     val maxY = maxVal + span * 0.15f
 
-    // DATA-03: entrance animation — the chart used to draw fully formed in a single Canvas pass
+    // DATA-03: entrance animation, the chart used to draw fully formed in a single Canvas pass
     // with no motion at all. Bands (context) reach full opacity quickly; the line then draws in
-    // progressively, segment by segment, left to right — reads as "being plotted," not a fade.
+    // progressively, segment by segment, left to right, reads as "being plotted," not a fade.
     val progress = remember(series) { Animatable(0f) }
     LaunchedEffect(series) {
         progress.snapTo(0f)
@@ -137,7 +137,7 @@ fun TrendLineChart(
     val textMeasurer = rememberTextMeasurer()
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
-    // Time-series Canvas drawing never inherits RTL mirroring — mirror the X mapping and
+    // Time-series Canvas drawing never inherits RTL mirroring, mirror the X mapping and
     // the edge captions explicitly. The Y gutter stays left; only the time axis flips.
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
@@ -172,7 +172,7 @@ fun TrendLineChart(
             plotHeight - ((value - minY) / ySpan) * plotHeight
 
         // Horizontal gridlines + Y labels at min/mid/max so the line's scale reads at a glance.
-        // Previously the chart drew a bare line with no scale at all — a 47-to-36 drop looked
+        // Previously the chart drew a bare line with no scale at all, a 47-to-36 drop looked
         // identical to a 90-to-85 one.
         val gridValues = listOf(minY, (minY + maxY) / 2f, maxY)
         for (gridValue in gridValues) {
@@ -242,7 +242,7 @@ fun TrendLineChart(
             val color = lineColors.getOrElse(seriesIndex) { Color.Gray }
             val segmentCount = sorted.size - 1
 
-            // Position along the whole polyline, in "segments" — e.g. 2.4 means segments 0 and 1
+            // Position along the whole polyline, in "segments", e.g. 2.4 means segments 0 and 1
             // are fully drawn and segment 2 is 40% drawn.
             val drawnSegments = animatedProgress * segmentCount
             val fullyDrawnCount = floor(drawnSegments).toInt().coerceIn(0, segmentCount)

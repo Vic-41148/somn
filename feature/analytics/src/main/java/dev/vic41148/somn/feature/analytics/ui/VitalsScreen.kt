@@ -39,7 +39,7 @@ import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 
 /**
- * R2 vitals dashboard — WHOOP Health Monitor pattern without the hardware: each
+ * R2 vitals dashboard, WHOOP Health Monitor pattern without the hardware: each
  * wearable vital against its own recent range. The screen flags it only on real drift. Ranges
  * are personal (last 14 nights), never population norms. Thin history renders as
  * "needs more nights", never as a false alarm.

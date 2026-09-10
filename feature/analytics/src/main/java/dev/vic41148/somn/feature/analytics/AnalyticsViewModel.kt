@@ -32,7 +32,7 @@ class AnalyticsViewModel @Inject constructor(
     val sessions = sleepRepository.observeCompletedSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** R2 Rest Mode boundary, null when off — sick nights leave the summary math. */
+    /** R2 Rest Mode boundary, null when off, sick nights leave the summary math. */
     val restModeSince: StateFlow<Long?> = preferencesRepository.restModeSince
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -44,7 +44,7 @@ class AnalyticsViewModel @Inject constructor(
         _rangeDays.value = days
     }
 
-    /** Sessions inside the selected range, newest first — drives both the header stats and the list. */
+    /** Sessions inside the selected range, newest first, drives both the header stats and the list. */
     val rangedSessions: StateFlow<List<SleepSession>> = combine(sessions, rangeDays) { list, days ->
         if (days == null) list
         else {
@@ -174,6 +174,33 @@ class AnalyticsViewModel @Inject constructor(
      * Legacy plaintext clips return the original file (no copy, nothing to delete).
      */
     fun playableClip(path: String): java.io.File = audioClipStore.playableCopy(path)
+
+    /** Single-clip share: decrypts the sealed clip straight into the SAF file. */
+    fun exportClipTo(
+        context: android.content.Context,
+        event: dev.vic41148.somn.core.domain.model.AudioEvent,
+        uri: android.net.Uri
+    ) {
+        val path = event.clipPath ?: return
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val ok = try {
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    out.write(audioClipStore.readClipBytes(path))
+                }
+                true
+            } catch (e: Exception) {
+                android.util.Log.e("AnalyticsViewModel", "Clip export failed", e)
+                false
+            }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(
+                    context,
+                    if (ok) "Clip saved" else "Could not save clip",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
 
     /** HEALTH-01: one-shot fetch. An external sync writes external vitals once per sync, so the screen needs no live-updating Flow. */
     suspend fun getExternalVitals(sessionId: Long) = sleepRepository.getExternalVitals(sessionId)

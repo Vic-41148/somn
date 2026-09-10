@@ -7,11 +7,11 @@ import dev.vic41148.somn.core.domain.model.MenstrualCyclePhase
  *
  * Oura-validated mechanics, phone-only and on-device: calendar phase math stays the
  * fallback everywhere, skin temperature (when Health Connect provides it) refines
- * boundaries, and the questionnaire is pure UI. No accuracy percentages anywhere —
+ * boundaries, and the questionnaire is pure UI. No accuracy percentages anywhere,
  * every refined number names its source and sample.
  */
 
-/** Where the current phase call came from — shown, never hidden. */
+/** Where the current phase call came from, shown, never hidden. */
 enum class PhaseSource { CALENDAR, CALENDAR_AND_TEMP }
 
 data class PhaseRefinement(
@@ -29,7 +29,7 @@ const val MIN_TEMP_NIGHTS = 6
 /**
  * Refines [calendarPhase] with nightly skin temperatures (oldest→newest, nulls
  * allowed for missing nights). A sustained rise with a pre-ovulation calendar phase
- * means ovulation likely passed — the phase moves to luteal. Everything else stands.
+ * means ovulation likely passed, the phase moves to luteal. Everything else stands.
  */
 fun refinePhase(
     calendarPhase: MenstrualCyclePhase?,
@@ -40,7 +40,7 @@ fun refinePhase(
             phase = MenstrualCyclePhase.FOLLICULAR,
             source = PhaseSource.CALENDAR,
             tempNights = 0,
-            note = "No cycle data — enable cycle tracking for phase-aware coaching."
+            note = "No cycle data. Enable cycle tracking for phase-aware coaching."
         )
     }
     val temps = tempsCelsius.filterNotNull()
@@ -49,7 +49,7 @@ fun refinePhase(
             phase = calendarPhase,
             source = PhaseSource.CALENDAR,
             tempNights = temps.size,
-            note = "Calendar only — ${temps.size}/$MIN_TEMP_NIGHTS temperature nights " +
+            note = "Calendar only: ${temps.size}/$MIN_TEMP_NIGHTS temperature nights " +
                 "so far for refinement."
         )
     }
@@ -65,7 +65,7 @@ fun refinePhase(
             phase = MenstrualCyclePhase.LUTEAL,
             source = PhaseSource.CALENDAR_AND_TEMP,
             tempNights = temps.size,
-            note = "Temperature rose ${"%.1f".format(rise)}°C — ovulation likely " +
+            note = "Temperature rose ${"%.1f".format(rise)}°C. Ovulation likely " +
                 "passed, phase moved to luteal (${temps.size} nights)."
         )
     }
@@ -80,11 +80,11 @@ fun refinePhase(
 /** Luteal-phase sleep coaching for the Outlook sentence. Null outside the luteal window. */
 fun lutealCoaching(phase: MenstrualCyclePhase?): String? = when (phase) {
     MenstrualCyclePhase.LUTEAL ->
-        "Luteal phase: efficiency typically dips while temperature runs high — " +
+        "Luteal phase: efficiency typically dips while temperature runs high. " +
             "plan an extra 20 minutes in bed this week."
     MenstrualCyclePhase.PREMENSTRUAL ->
         "Pre-menstruation: the hardest sleep nights of the cycle are hormonal, " +
-            "not a regression — plan an extra 20 minutes in bed."
+            "not a regression. Plan an extra 20 minutes in bed."
     else -> null
 }
 
@@ -113,18 +113,18 @@ enum class MenoBand(val displayName: String, val summary: String) {
     MINIMAL(
         "Minimal impact",
         "Low symptom load right now. Sleep dips are more likely habit or " +
-            "schedule than hormonal — the Patterns screen will say which."
+            "schedule than hormonal. The Patterns screen will say which."
     ),
     MODERATE(
         "Moderate impact",
         "Enough symptoms to move sleep. Vasomotor nights (sweats, flashes) " +
-            "fragment sleep even when total hours look fine — worth tracking " +
+            "fragment sleep even when total hours look fine. Worth tracking " +
             "against your efficiency trend."
     ),
     SIGNIFICANT(
         "Significant impact",
         "High symptom load. This questionnaire is wellness information, not a " +
-            "diagnosis — but this level is worth mentioning to a doctor, " +
+            "diagnosis. But this level is worth mentioning to a doctor, " +
             "because effective treatments exist."
     );
 
@@ -154,11 +154,11 @@ fun lifeStageBanner(
 ): String? = when (lifeStageName) {
     "PREGNANT" -> {
         val tri = if (pregnancyTrimester != null) " · trimester $pregnancyTrimester" else ""
-        "Pregnancy$tri — fragmentation and vivid dreams are normal; " +
+        "Pregnancy$tri. Fragmentation and vivid dreams are normal; " +
             "your score already adjusts for this stage."
     }
     "POSTPARTUM" ->
-        "Newborn phase — consolidated sleep is rare and that is expected; " +
+        "Newborn phase. Consolidated sleep is rare and that is expected; " +
             "track what you can, ignore the streak."
     else -> null
 }

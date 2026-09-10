@@ -65,11 +65,11 @@ class NasSyncWorker @AssistedInject constructor(
         }
 
         // Everything leaving the device is encrypted with the user's recovery passphrase, never with
-        // the Keystore key — a Keystore-encrypted upload is unreadable the moment the phone is gone,
+        // the Keystore key, a Keystore-encrypted upload is unreadable the moment the phone is gone,
         // which defeats the point of having an off-device copy.
         val passphrase = preferencesRepository.getBackupPassphrase()
         if (passphrase == null) {
-            Log.w(TAG, "No backup passphrase set — skipping NAS sync (uploads would be unrecoverable)")
+            Log.w(TAG, "No backup passphrase set. Skipping NAS sync (uploads would be unrecoverable).")
             return Result.success()
         }
         // Derived once per run: the KDF is deliberately expensive, and a night can produce dozens of
@@ -137,7 +137,7 @@ class NasSyncWorker @AssistedInject constructor(
                 }
                 Log.d(TAG, if (uploaded) "DB snapshot uploaded" else "DB snapshot upload rejected")
             } else {
-                Log.w(TAG, "Database missing at ${dbFile.path} — no snapshot uploaded")
+                Log.w(TAG, "Database missing at ${dbFile.path}. No snapshot uploaded.")
             }
         } catch (e: Exception) {
             Log.e(TAG, "DB upload failed (${e.javaClass.simpleName})")

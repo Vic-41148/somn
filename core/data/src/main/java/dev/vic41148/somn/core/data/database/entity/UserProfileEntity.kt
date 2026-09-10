@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 /**
  * Room entity for user biological profile.
- * Singleton table — always id=1.
+ * Singleton table, always id=1.
  */
 @Entity(tableName = "user_profile")
 data class UserProfileEntity(
@@ -16,7 +16,7 @@ data class UserProfileEntity(
     val biologicalSex: String = "NOT_SPECIFIED",
     val lifeStage: String = "DEFAULT",
     // Derived from chronotypeMeqScore at write time. Reads recompute from the score in
-    // UserProfileRepository (the raw score is the source of truth — this string may predate
+    // UserProfileRepository (the raw score is the source of truth, this string may predate
     // the rMEQ band fix and be stale). Never write a deliberate value here that diverges from
     // the score. It will be silently overridden on read.
     val chronotype: String = "UNKNOWN",

@@ -14,7 +14,7 @@ import kotlin.math.abs
  * WHOOP-Recovery-Impacts mechanics, Somn-flavored: the Pearson core stays, but every
  * read now says whether it is an early read or settled, material moves get flagged
  * without being asked, and tag presence joins the big-four habits as a binary predictor.
- * Pure functions — the screens only render what these return.
+ * Pure functions, the screens only render what these return.
  */
 
 /** Early read vs settled: the same r from 7 nights is tentative, from 90 nights is firm. */
@@ -70,7 +70,7 @@ fun tagImpact(tagName: String, nights: List<TaggedNight>): TagImpact? {
     )
 }
 
-/** A material move the user did not ask about — frequency or metric slide. */
+/** A material move the user did not ask about, frequency or metric slide. */
 data class ShiftFlag(val title: String, val detail: String)
 
 /** 30d-vs-prior-30d mean comparison. It fires on a real slide, silent on noise or gains. */
@@ -112,7 +112,7 @@ fun frequencyShift(label: String, recentDays: Int, pastDays: Int): ShiftFlag? {
 
 /**
  * Orchestrator: efficiency slide + alcohol/caffeine frequency shifts over trailing
- * 30d vs prior 30d windows. Empty list is the common case — no news is no cards.
+ * 30d vs prior 30d windows. Empty list is the common case, no news is no cards.
  */
 fun detectShifts(
     sessions: List<SleepSession>,

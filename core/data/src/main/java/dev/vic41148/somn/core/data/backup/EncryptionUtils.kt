@@ -79,7 +79,7 @@ class EncryptionUtils @Inject constructor() {
         val ivLength = input.read()
         val iv = ByteArray(ivLength)
         // REL-07: InputStream.read(byte[]) may return fewer bytes than requested on a single
-        // call (e.g. network/NAS streams) — read in a loop until the full IV is filled.
+        // call (e.g. network/NAS streams), read in a loop until the full IV is filled.
         var offset = 0
         while (offset < iv.size) {
             val n = input.read(iv, offset, iv.size - offset)

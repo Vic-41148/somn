@@ -88,7 +88,7 @@ class BackupRestoreInstrumentedTest {
 
         repository.checkpointWal()
 
-        // Read the raw file the way a restore would — not through the live Room handle, which would
+        // Read the raw file the way a restore would, not through the live Room handle, which would
         // happily serve rows still sitting in -wal and hide the whole problem.
         assertThat(markerRowsIn(repository.databaseFile())).isEqualTo(1)
     }

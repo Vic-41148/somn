@@ -33,7 +33,7 @@ import java.time.ZoneId
 class SeasonalAnalysisUseCase {
 
     /**
-     * @param sessions All completed sleep sessions (no date range limit — more = better).
+     * @param sessions All completed sleep sessions (no date range limit, more = better).
      * @param deviceTimezoneId The current device timezone for hemisphere detection.
      * @param hemisphereOverride User override. [HemisphereOverride.AUTO] keeps the UTC-offset heuristic.
      */
@@ -125,7 +125,7 @@ class SeasonalAnalysisUseCase {
         return when (type) {
             SeasonalTrendType.WINTER_HYPERSOMNIA ->
                 "You're sleeping about ${absDelta}m longer this winter than your annual average. " +
-                "This is consistent with winter-pattern circadian change — shorter days reduce " +
+                "This is consistent with winter-pattern circadian change. Shorter days reduce " +
                 "morning light exposure, causing melatonin overproduction and earlier sleep pressure. " +
                 "Morning light therapy between 7–9 AM can help anchor your rhythm."
             SeasonalTrendType.SUMMER_INSOMNIA ->
@@ -134,7 +134,7 @@ class SeasonalAnalysisUseCase {
                 "Blackout curtains and keeping your bedroom cool (18–20°C) can help. " +
                 "Aim for consistent wind-down at the same time regardless of outside brightness."
             SeasonalTrendType.STABLE ->
-                "Your sleep duration is consistent across seasons — no significant seasonal drift detected."
+                "Your sleep duration is consistent across seasons, no significant seasonal drift detected."
             SeasonalTrendType.INSUFFICIENT ->
                 "Not enough cross-season data yet to detect a seasonal pattern."
         }

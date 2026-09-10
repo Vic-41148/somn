@@ -42,7 +42,7 @@ class ClipRetentionPolicyTest {
     @Test
     fun `a corrupted negative preference keeps clips rather than deleting everything`() {
         // A negative day count could only come from a corrupted preference. Treating it as a
-        // cutoff in the future would delete every recording the user has — fail safe instead.
+        // cutoff in the future would delete every recording the user has, fail safe instead.
         assertThat(ClipRetentionPolicy.cutoffMillis(now, -30)).isNull()
     }
 

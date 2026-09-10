@@ -99,7 +99,7 @@ class SomnPreferencesRepository @Inject constructor(
         val NAS_PORT = intPreferencesKey("nas_port")
         /** Explicit TLS choice for the NAS connection; never inferred from [NAS_PORT]. */
         val NAS_USE_HTTPS = booleanPreferencesKey("nas_use_https")
-        /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded — never the raw password. */
+        /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded, never the raw password. */
         val NAS_PASSWORD_ENCRYPTED = stringPreferencesKey("nas_password_encrypted")
         val OVERSLEEP_THRESHOLD_MINUTES = intPreferencesKey("oversleep_threshold_minutes")
         val WAKE_VERIFICATION_ENABLED = booleanPreferencesKey("wake_verification_enabled")
@@ -111,7 +111,7 @@ class SomnPreferencesRepository @Inject constructor(
         /** R2 Rest Mode start timestamp. Absent = off; sick nights on/after this leave baselines. */
         val REST_MODE_SINCE = longPreferencesKey("rest_mode_since")
         val MENO_ANSWERS_CSV = stringPreferencesKey("meno_answers_csv")        /**
-         * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO — the
+         * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO, the
          * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
          */
         val HEMISPHERE_OVERRIDE = stringPreferencesKey("hemisphere_override")
@@ -126,7 +126,7 @@ class SomnPreferencesRepository @Inject constructor(
         val SNORE_NUDGE_ENABLED = booleanPreferencesKey("snore_nudge_enabled")
         /**
          * Days to keep sleep-talk recordings on disk. [CLIP_RETENTION_KEEP_FOREVER] disables
-         * pruning entirely — an explicit opt-in, because the default has to be one that forgets.
+         * pruning entirely, an explicit opt-in, because the default has to be one that forgets.
          */
         val CLIP_RETENTION_DAYS = intPreferencesKey("clip_retention_days")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
@@ -305,7 +305,7 @@ class SomnPreferencesRepository @Inject constructor(
 
     /**
      * R5 menopause check-in answers as "2,0,3,..." (question order = MENOPAUSE_QUESTIONS).
-     * Null until first completed; prefs, not Room — questionnaire data stays a setting.
+     * Null until first completed; prefs, not Room, questionnaire data stays a setting.
      */
     val menoAnswers: Flow<List<Int>?> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
@@ -318,7 +318,7 @@ class SomnPreferencesRepository @Inject constructor(
     }
 
     /**
-     * Hemisphere pin for seasonal analysis — [HemisphereOverride.AUTO] keeps the UTC-offset
+     * Hemisphere pin for seasonal analysis, [HemisphereOverride.AUTO] keeps the UTC-offset
      * heuristic, NORTHERN/SOUTHERN force the season mapping.
      */
     val hemisphereOverride: Flow<dev.vic41148.somn.core.domain.model.HemisphereOverride> =
@@ -339,7 +339,7 @@ class SomnPreferencesRepository @Inject constructor(
         context.dataStore.edit { it[PreferencesKeys.HEMISPHERE_OVERRIDE] = override.name }
     }
 
-    /** HEALTH-01/02: user opt-in — off by default, syncing external health data is not implied by installing the app. */
+    /** HEALTH-01/02: user opt-in, off by default, syncing external health data is not implied by installing the app. */
     val healthConnectEnabled: Flow<Boolean> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { it[PreferencesKeys.HEALTH_CONNECT_ENABLED] ?: false }
@@ -349,10 +349,10 @@ class SomnPreferencesRepository @Inject constructor(
     }
 
     /**
-     * Task 14 (AUDIO-01) — off by default. Gates YAMNet-based classification as an alternative
+     * Task 14 (AUDIO-01), off by default. Gates YAMNet-based classification as an alternative
      * to the ZCR heuristic in [dev.vic41148.somn.core.audio.AudioEventClassifier] so it can be
      * A/B'd rather than silently replacing the existing (already-shipped) heuristic. Not
-     * validated for accuracy (AUDIO-02) or battery impact (AUDIO-03) — those are separate,
+     * validated for accuracy (AUDIO-02) or battery impact (AUDIO-03), those are separate,
      * still-open follow-ups.
      */
     val yamnetClassificationEnabled: Flow<Boolean> = context.dataStore.data
@@ -491,7 +491,7 @@ class SomnPreferencesRepository @Inject constructor(
 
     // ---- Backup recovery passphrase ----
 
-    /** True once a recovery passphrase exists — without one, backups cannot be encrypted portably. */
+    /** True once a recovery passphrase exists, without one, backups cannot be encrypted portably. */
     val backupPassphraseSet: Flow<Boolean> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { !it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED].isNullOrBlank() }
@@ -586,7 +586,7 @@ class SomnPreferencesRepository @Inject constructor(
     }
 
     /**
-     * Opt-in app lock. Gates the UI at cold start only — background tracking, alarms, and
+     * Opt-in app lock. Gates the UI at cold start only, background tracking, alarms, and
      * workers keep running, because an overnight sleep tracker that stops tracking while
      * locked would be broken by design. At-rest data stays SQLCipher-encrypted regardless.
      */

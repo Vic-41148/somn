@@ -180,7 +180,7 @@ fun AlarmScreen(
     // The alarm's phase transitions used to be an instant cut between two entirely
     // separate Composables. A WAKE-02 re-ring flips AWAITING_WAKE_CONFIRMATION back to
     // FIRING. Dismiss flips FIRING to AWAITING_WAKE_CONFIRMATION. This is the single highest-stakes screen in the
-    // app — deliberately calm motion here, not a bounce/overshoot, matching the color system.
+    // app, deliberately calm motion here, not a bounce/overshoot, matching the color system.
     AnimatedContent(
         targetState = phase,
         transitionSpec = {
@@ -223,7 +223,7 @@ private fun AlarmFiringContent(
         modifier = Modifier.fillMaxSize()
     ) {
         // Slow, calm breathing pulse for as long as this screen is shown (i.e. the alarm is
-        // actively ringing) — ambient urgency independent of captcha progress, not a "try me"
+        // actively ringing), ambient urgency independent of captcha progress, not a "try me"
         // cue on any specific control. Deliberately gentle: tween easing, no spring/bounce.
         val infiniteTransition = rememberInfiniteTransition(label = "alarm_ringing_pulse")
         val pulseAlpha by infiniteTransition.animateFloat(

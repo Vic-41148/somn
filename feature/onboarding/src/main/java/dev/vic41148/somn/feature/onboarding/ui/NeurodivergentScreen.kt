@@ -65,7 +65,7 @@ fun NeurodivergentScreen(
 
         Text(
             text = "ADHD and autism have distinct, measurable effects on sleep. " +
-                "Enable these modes to adjust how we score and interpret your data — " +
+                "Enable these modes to adjust how we score and interpret your data. " +
                 "your patterns are valid, not problems to fix.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -33,7 +33,7 @@ object CaptchaTaskRegistry {
      * The per-alarm [CaptchaType] (received via [AlarmService.currentCaptchaType], from
      * `Alarm.captchaType`) wins when it names a real task. `NONE` (or an unmappable value) falls
      * back to the global Settings preference so both layers keep working together. A QR task is
-     * swapped for math when no QR value has been configured — an unsettable captcha must never
+     * swapped for math when no QR value has been configured, an unsettable captcha must never
      * lock the user out of dismissing their own alarm.
      *
      * Shared by [dev.vic41148.somn.feature.alarm.ui.AlarmActivity] and the in-app firing screen so
@@ -42,7 +42,7 @@ object CaptchaTaskRegistry {
      * [nfcAvailable] is the device's NFC capability ([PackageManager.FEATURE_NFC]). An NFC
      * captcha on a device that cannot read tags can never be solved, so it falls back to the
      * global preference (and to math if that is itself the NFC task). Both fallbacks are
-     * checked on the *final* task — the NFC fallback can land on a QR task, and a QR captcha
+     * checked on the *final* task, the NFC fallback can land on a QR task, and a QR captcha
      * with no configured value must never lock the user out either.
      */
     fun resolveTask(

@@ -47,14 +47,14 @@ fun AlarmEditScreen(
 
         // Hoisted to screen level, outside AnimatedVisibility. rememberTimePickerState used
         // to live inside the AnimatedVisibility content, so the dial's state (including its
-        // needle-animation clock) was tied to the enter/exit subcomposition — after tapping
+        // needle-animation clock) was tied to the enter/exit subcomposition, after tapping
         // AM/PM and dragging, the needle froze while the time still moved. It survives now.
         //
         // The AM/PM toggle inside the Material3 picker mutates `isAfternoon` on the *same*
         // state object, whose internal needle Animatable is then left pointing at a stale
         // angle; the first drag after the flip can orphan the draw layer so the hand stops
         // drawing until the screen reopens. Rebuild the picker with a fresh state (and a
-        // fresh needle animation) whenever AM/PM flips and no finger is down — the policy
+        // fresh needle animation) whenever AM/PM flips and no finger is down, the policy
         // lives in AlarmTimePickerState.kt and is unit-tested.
         val initialPickerState = rememberTimePickerState(initialHour = 7, initialMinute = 0)
         var timePickerState by remember { mutableStateOf<TimePickerState>(initialPickerState) }
@@ -110,7 +110,7 @@ fun AlarmEditScreen(
             ) {
         // The save button used to be the last child of an unscrollable Column. A Material3
         // TimePicker dial alone is ~300dp, and with the day chips, label field and wake-window
-        // slider above it the button sat past the bottom of the screen on a normal phone — laid
+        // slider above it the button sat past the bottom of the screen on a normal phone, laid
         // out, clipped, and completely unreachable, so an alarm could never actually be saved.
         // The dial now sits FIXED above the scroll region with the button pinned below it: a
         // verticalScroll parent used to steal the dial's circular drags (vertical components
@@ -169,7 +169,7 @@ fun AlarmEditScreen(
                 modifier = Modifier.align(Alignment.Start)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            // FlowRow, not a squeezed SpaceEvenly row — seven chips at minimum touch width
+            // FlowRow, not a squeezed SpaceEvenly row, seven chips at minimum touch width
             // overflow a 360dp screen once padding and font scale are accounted for.
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(

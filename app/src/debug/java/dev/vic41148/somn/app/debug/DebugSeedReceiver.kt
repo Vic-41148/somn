@@ -8,6 +8,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import dev.vic41148.somn.core.data.audio.AudioClipStore
 import dev.vic41148.somn.core.data.repository.HabitLogRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.data.repository.TagRepository
@@ -36,7 +37,9 @@ class DebugSeedReceiver : BroadcastReceiver() {
                 DebugSeeder.seed(
                     sleepRepo = entry.sleepRepository(),
                     habitRepo = entry.habitLogRepository(),
-                    tagRepo = entry.tagRepository()
+                    tagRepo = entry.tagRepository(),
+                    clipStore = entry.audioClipStore(),
+                    filesDir = context.applicationContext.filesDir
                 )
                 Log.i(TAG, "Seeded a week of debug data")
             } catch (t: Throwable) {
@@ -51,6 +54,7 @@ class DebugSeedReceiver : BroadcastReceiver() {
         fun sleepRepository(): SleepRepository
         fun habitLogRepository(): HabitLogRepository
         fun tagRepository(): TagRepository
+        fun audioClipStore(): AudioClipStore
     }
 
     companion object {

@@ -3,12 +3,12 @@ package dev.vic41148.somn.core.domain.usecase
 import dev.vic41148.somn.core.domain.model.SleepDebt
 
 /**
- * Daily Outlook sentence engine — WHOOP-Daily-Outlook voice, zero LLM. One short
+ * Daily Outlook sentence engine, WHOOP-Daily-Outlook voice, zero LLM. One short
  * template-built paragraph, different morning vs evening, from numbers already in the
  * DB. Pure function so the copy variants stay unit-tested.
  *
  * Copy guardrails (orthosomnia row): trend framing over nightly judgment, never a
- * verdict on the person, "perfection is not the goal" tone. Never blank — every
+ * verdict on the person, "perfection is not the goal" tone. Never blank, every
  * null combination falls back to a generic line rather than crashing or emptying
  * the widget.
  */
@@ -32,7 +32,7 @@ fun buildOutlook(
         else "Wind down early tonight for a better morning."
     }
     if (restMode && isMorning) {
-        return "Rest Mode is on — only rest counts today. " +
+        return "Rest Mode is on. Only rest counts today. " +
             "Nights logged now will not move the streak or baselines."
     }
     val debtWord = when {
@@ -54,7 +54,7 @@ fun buildOutlook(
         val first = buildString {
             append(lead)
             if (debtWord != null) append(" with $debtWord")
-            append(" — $advice")
+            append(": $advice")
         }
         val second = if (correlationInsight != null) "$first $correlationInsight" else first
         val activitySentence = activitySentence(activity)
@@ -63,7 +63,7 @@ fun buildOutlook(
     } else {
         val parts = mutableListOf<String>()
         when (readiness.zone) {
-            ReadinessZone.REST -> parts.add("Today took its toll — protect tonight.")
+            ReadinessZone.REST -> parts.add("Today took its toll. Protect tonight.")
             else -> parts.add("Close out the day well.")
         }
         if (recoveryMinutesHint != null && recoveryMinutesHint > 0) {
@@ -76,14 +76,14 @@ fun buildOutlook(
 }
 
 /**
- * R6 morning-only activity copy. Movement framing, never a verdict on the person —
+ * R6 morning-only activity copy. Movement framing, never a verdict on the person,
  * a quiet yesterday gets a nudge ("a short walk"), a busy one gets a "backs readiness".
  */
 private fun activitySentence(activity: ActivityDeviation?): String? {
     if (activity == null || activity.priorDaySteps == null) return null
     return when {
-        activity.priorDaySteps >= 10_000 -> "Yesterday's movement backs readiness — keep the pace."
+        activity.priorDaySteps >= 10_000 -> "Yesterday's movement backs readiness. Keep the pace."
         activity.priorDaySteps >= 5_000 -> "Yesterday's movement feeds today's outlook."
-        else -> "Yesterday was quiet — a short walk pays back tonight."
+        else -> "Yesterday was quiet. A short walk pays back tonight."
     }
 }

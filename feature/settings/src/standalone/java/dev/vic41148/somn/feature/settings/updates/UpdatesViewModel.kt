@@ -77,7 +77,7 @@ class UpdatesViewModel @Inject constructor(
 
     // Declared before the init block on purpose: init launches coroutines that write this,
     // and on a cold entry (main thread busy verifying classes) an IO resume can win the
-    // race against the rest of construction — a later declaration NPEs under R8.
+    // race against the rest of construction, a later declaration NPEs under R8.
     private val _currentVersionName = MutableStateFlow("")
     val currentVersionName: StateFlow<String> = _currentVersionName.asStateFlow()
 

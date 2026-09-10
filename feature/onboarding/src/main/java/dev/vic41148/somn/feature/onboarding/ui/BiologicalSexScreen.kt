@@ -64,7 +64,7 @@ fun BiologicalSexScreen(
 
         Text(
             text = "This enables hormonal context for your sleep. For example, menstrual cycles " +
-                "directly alter sleep architecture — we can adjust your scores accordingly.",
+                "directly alter sleep architecture, so we can adjust your scores accordingly.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

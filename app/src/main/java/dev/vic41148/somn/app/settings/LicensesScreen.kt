@@ -24,7 +24,7 @@ import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
 import dev.vic41148.somn.app.R
 
 /**
- * Every bundled dependency and its license, generated at build time from Gradle metadata —
+ * Every bundled dependency and its license, generated at build time from Gradle metadata,
  * never a hand-maintained list that rots. FOSS AboutLibraries, not Google's
  * oss-licenses-plugin (which drags in Play Services).
  *
@@ -63,7 +63,7 @@ fun LicensesScreen(onBack: () -> Unit) {
                     .weight(1f)
             )
             Text(
-                text = "YAMNet audio model — Google, Apache-2.0. Downloaded on request " +
+                text = "YAMNet audio model by Google, Apache-2.0. Downloaded on request " +
                     "(Settings → Experimental), checksum-verified, runs on-device.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

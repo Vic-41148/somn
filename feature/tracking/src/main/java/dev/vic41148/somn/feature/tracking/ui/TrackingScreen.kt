@@ -56,7 +56,7 @@ fun TrackingScreen(
     // Back must never strand a live session. Popping this screen mid-tracking dumps the user
     // back on Home with a running foreground service and no in-app way to stop it (the Home
     // moon button only starts sessions). Block system back for as long as the service is
-    // actually tracking — the stop has to go through the explicit Wake Up button, same as the
+    // actually tracking, the stop has to go through the explicit Wake Up button, same as the
     // alarm firing screen's BackHandler {}. Once tracking ends (Wake Up, or the service stops
     // via smart-alarm wake) the back stack unlocks again.
     BackHandler(enabled = trackingState == TrackingState.TRACKING) { }
@@ -90,19 +90,19 @@ fun TrackingScreen(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Sonar mode — high battery usage",
+                text = "Sonar mode: high battery usage",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )
         } else if (isSonar) {
             Text(
-                text = "Sonar active — contactless sensing",
+                text = "Sonar active: contactless sensing",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Sonar mode — high battery usage",
+                text = "Sonar mode: high battery usage",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )

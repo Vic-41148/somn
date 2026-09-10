@@ -58,7 +58,7 @@ class MorningBriefingWidget : AppWidgetProvider() {
 
                 // SESS-04: morning briefing should reflect last night's main sleep, not a stray nap.
                 // Readiness runs on lightweight domain copies (the entity→domain mapper lives
-                // private in SleepRepository) with no debt/vitals here — the engine degrades
+                // private in SleepRepository) with no debt/vitals here, the engine degrades
                 // to sleep signals, which is all a 30-minute widget refresh needs.
                 val recentEntities = sleepSessionDao.getRecentMainSleepSessions(14)
                 val session = recentEntities.firstOrNull()

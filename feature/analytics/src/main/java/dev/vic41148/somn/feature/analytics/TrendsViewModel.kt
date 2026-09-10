@@ -21,7 +21,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
-/** DATA-03: which metric the trend line currently plots — one at a time, since the metrics do not share a scale. */
+/** DATA-03: which metric the trend line currently plots, one at a time, since the metrics do not share a scale. */
 enum class TrendMetric(val displayName: String) {
     SCORE("Score"),
     DURATION_HOURS("Duration"),
@@ -30,7 +30,7 @@ enum class TrendMetric(val displayName: String) {
     REM_PERCENT("REM Sleep")
 }
 
-/** One metric's headline numbers for the selected range — null when fewer than 2 sessions. */
+/** One metric's headline numbers for the selected range, null when fewer than 2 sessions. */
 data class TrendStats(
     val current: String,
     val average: String,
@@ -51,7 +51,7 @@ class TrendsViewModel @Inject constructor(
     private val _selectedMetric = MutableStateFlow(TrendMetric.SCORE)
     val selectedMetric: StateFlow<TrendMetric> = _selectedMetric.asStateFlow()
 
-    // SESS-04: trends are a bedtime-consistency signal — naps/commute/shift sessions would skew it,
+    // SESS-04: trends are a bedtime-consistency signal, naps/commute/shift sessions would skew it,
     // the same reasoning CircadianViewModel already applies.
     /** DATA-03: one metric at a time, since the metrics do not share a scale. */
     val sessions: StateFlow<List<SleepSession>> = sleepRepository.observeMainSleepSessions()
@@ -62,7 +62,7 @@ class TrendsViewModel @Inject constructor(
         .map { it?.deepSleepTargetPercent }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** DATA-04: null when the user's profile does not have cycle tracking enabled/configured — screen hides the overlay entirely rather than showing an empty one. */    val cyclePhaseRuns: StateFlow<List<CyclePhaseRun>?> = combine(
+    /** DATA-04: null when the user's profile does not have cycle tracking enabled/configured, screen hides the overlay entirely rather than showing an empty one. */    val cyclePhaseRuns: StateFlow<List<CyclePhaseRun>?> = combine(
         userProfileRepository.observeProfile(),
         sessions
     ) { profile, sessions ->
@@ -84,7 +84,7 @@ class TrendsViewModel @Inject constructor(
     }
 
     /**
-     * R5: pregnancy/postpartum context banner — the phase-run overlay above only fits
+     * R5: pregnancy/postpartum context banner, the phase-run overlay above only fits
      * cycling users, so non-cycling life stages get their trend context as words.
      */
     val lifeStageBanner: StateFlow<String?> = userProfileRepository.observeProfile()

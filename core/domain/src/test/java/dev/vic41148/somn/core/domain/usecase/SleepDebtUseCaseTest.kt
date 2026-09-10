@@ -57,7 +57,7 @@ class SleepDebtUseCaseTest {
             isCompleted = false
         )
         val (debt, _) = useCase.calculate(listOf(incompleteSession), targetSleepMinutes = 480)
-        // Excluded session means that day has no data — contributes 0, not a huge debt spike.
+        // Excluded session means that day has no data, contributes 0, not a huge debt spike.
         assertThat(debt.totalDebtMinutes).isEqualTo(0)
     }
 
@@ -91,7 +91,7 @@ class SleepDebtUseCaseTest {
 
     @Test
     fun calculate_smallWeekOverWeekDifference_trendStaysStable() {
-        // Only a 5min swing between weeks — within the +/-10min STABLE band.
+        // Only a 5min swing between weeks, within the +/-10min STABLE band.
         val sessions = buildWindow { daysAgo -> if (daysAgo <= 6) 475 else 480 }
         val (debt, _) = useCase.calculate(sessions, targetSleepMinutes = 480)
         assertThat(debt.trend).isEqualTo(DebtTrend.STABLE)

@@ -18,7 +18,7 @@ fun BystanderNoticeDialog(onDismiss: () -> Unit) {
         text = {
             Text(
                 "Sonar mode keeps the microphone on all night. It records snoring, " +
-                    "sleep talk, and breathing — from anyone in the room, not just you. " +
+                    "sleep talk, and breathing, from anyone in the room, not just you. " +
                     "If someone shares your bed or bedroom, make sure they know " +
                     "recording is on before you track."
             )

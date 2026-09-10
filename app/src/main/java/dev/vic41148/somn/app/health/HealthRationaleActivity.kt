@@ -39,7 +39,7 @@ class HealthRationaleActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "Somn reads sleep and vitals from Health Connect only to enrich " +
-                            "your sleep history — heart rate, HRV, SpO2, and skin temperature " +
+                            "your sleep history: heart rate, HRV, SpO2, and skin temperature " +
                             "next to your tracked nights. Nothing leaves your phone: there is " +
                             "no account, no analytics, no cloud. You can pause sync any time " +
                             "in Settings without revoking the system permission.",

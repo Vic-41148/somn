@@ -11,7 +11,7 @@ import org.junit.Test
  *
  * Regression source: toggling AM/PM then dragging the hand could make the hand stop
  * drawing until the screen reopened. The fix rebuilds the picker state whenever noon
- * flips while no finger is on the dial — these tests pin both the decision and the
+ * flips while no finger is on the dial, these tests pin both the decision and the
  * state-preservation of the rebuild.
  */
 @OptIn(ExperimentalMaterial3Api::class)

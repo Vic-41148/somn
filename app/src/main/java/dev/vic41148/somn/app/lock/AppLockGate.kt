@@ -32,7 +32,7 @@ import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
  * Opt-in cold-start gate: when the user enabled app lock, the UI stays behind biometrics
  * or the device credential until unlocked. Process-scoped ([rememberSaveable] survives
  * rotation, not process death), so background tracking, alarms, and workers are never
- * gated — only what is on screen. If the OS cannot authenticate (no screen lock
+ * gated, only what is on screen. If the OS cannot authenticate (no screen lock
  * enrolled), the gate opens rather than bricking the app.
  */
 @Composable
@@ -57,7 +57,7 @@ fun AppLockGate(
         )
     }
     if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
-        // Nothing to verify against — locking here would brick the app until a credential
+        // Nothing to verify against, locking here would brick the app until a credential
         // is enrolled elsewhere. Open instead; the toggle stays on for when one exists.
         content()
         return

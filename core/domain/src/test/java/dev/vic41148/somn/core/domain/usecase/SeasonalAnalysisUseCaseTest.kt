@@ -12,7 +12,7 @@ import java.time.ZoneId
 /**
  * Locks in the hemisphere override for [SeasonalAnalysisUseCase]: AUTO keeps the UTC-offset
  * heuristic, NORTHERN/SOUTHERN force the season mapping for every session (and the current
- * season). June is SUMMER in the north and WINTER in the south — the clearest discriminator.
+ * season). June is SUMMER in the north and WINTER in the south, the clearest discriminator.
  */
 class SeasonalAnalysisUseCaseTest {
 

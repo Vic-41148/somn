@@ -39,7 +39,7 @@ class SleepRepository @Inject constructor(
 
     /**
      * Full wipe: every clip file on disk, then every table. Preferences are cleared
-     * separately by the caller (they live in another repository). The DB key file stays —
+     * separately by the caller (they live in another repository). The DB key file stays,
      * a fresh empty database under the same key is exactly a fresh install.
      */
     suspend fun deleteAllData() {
@@ -89,7 +89,7 @@ class SleepRepository @Inject constructor(
         }
         // AudioEventEntity has no FK/cascade to sleep_sessions (unlike SleepEpochEntity, which
         // does), so without this the audio_events rows for a deleted session were orphaned in
-        // the DB forever — clip files got cleaned up above, but the rows themselves never did.
+        // the DB forever, clip files got cleaned up above, but the rows themselves never did.
         audioEventDao.deleteBySession(session.id)
         sessionDao.delete(session.toEntity())
     }
@@ -101,7 +101,7 @@ class SleepRepository @Inject constructor(
     /**
      * R2 per-category purge: deletes completed sessions older than the cutoff via
      * [deleteSession], so clip files, audio rows go explicitly and epochs/vitals/tags
-     * follow their FK cascades — same path as single-session delete, no orphans.
+     * follow their FK cascades, same path as single-session delete, no orphans.
      *
      * @return how many sessions were deleted.
      */
@@ -111,7 +111,7 @@ class SleepRepository @Inject constructor(
         return old.size
     }
 
-    /** Emits the session whenever its row changes — the review screen keys its data on this, never the shared lastSession flow. */
+    /** Emits the session whenever its row changes, the review screen keys its data on this, never the shared lastSession flow. */
     fun observeSession(id: Long): Flow<SleepSession?> {
         return sessionDao.observeById(id).map { it?.toDomain() }
     }
@@ -134,7 +134,7 @@ class SleepRepository @Inject constructor(
         return sessionDao.getRecentSessions(limit).map { it.toDomain() }
     }
 
-    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates, excludes naps/commute/shift. */
     suspend fun getRecentMainSleepSessions(limit: Int): List<SleepSession> {
         return sessionDao.getRecentMainSleepSessions(limit).map { it.toDomain() }
     }
@@ -143,12 +143,12 @@ class SleepRepository @Inject constructor(
         return sessionDao.getSessionsSince(fromMillis).map { it.toDomain() }
     }
 
-    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates, excludes naps/commute/shift. */
     suspend fun getMainSleepSessionsSince(fromMillis: Long): List<SleepSession> {
         return sessionDao.getMainSleepSessionsSince(fromMillis).map { it.toDomain() }
     }
 
-    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates, excludes naps/commute/shift. */
     fun observeMainSleepSessions(): Flow<List<SleepSession>> {
         return sessionDao.observeMainSleepSessions().map { list -> list.map { it.toDomain() } }
     }
@@ -212,7 +212,7 @@ class SleepRepository @Inject constructor(
 
     /**
      * Deletes every sleep-talk recording on disk and forgets their paths. The audio events stay
-     * in the history — only the audio itself goes. Backs the "delete all recordings" control in
+     * in the history, only the audio itself goes. Backs the "delete all recordings" control in
      * Settings, so a user who wants the recordings gone does not have to wait for retention to
      * catch up or delete whole sessions to get there.
      *

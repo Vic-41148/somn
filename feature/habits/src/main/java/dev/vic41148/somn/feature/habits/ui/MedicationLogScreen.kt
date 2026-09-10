@@ -262,7 +262,7 @@ private fun MedicationRow(log: HabitLog, timeFormatter: DateTimeFormatter) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${entry.name}${if (entry.dose.isNotBlank()) " — ${entry.dose}" else ""}",
+                    text = "${entry.name}${if (entry.dose.isNotBlank()) " (${entry.dose})" else ""}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )

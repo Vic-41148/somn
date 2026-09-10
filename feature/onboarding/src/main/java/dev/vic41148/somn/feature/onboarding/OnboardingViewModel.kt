@@ -74,7 +74,7 @@ class OnboardingViewModel @Inject constructor(
         _state.update { it.copy(dateOfBirth = date) }
         // Auto-set recommended sleep target based on age. This used to duplicate a subset of
         // UserProfile.recommendedSleepHours's age brackets inline (only 13-18/19-64/else),
-        // collapsing every age under 13 into the 65+ "7.5h" bucket — the old code would
+        // collapsing every age under 13 into the 65+ "7.5h" bucket, the old code would
         // recommend *less* sleep to a young child than to an adult instead of the 10-14h they actually need.
         // Deferring to the canonical property keeps this in sync with the one source of truth.
         val recommended = UserProfile(dateOfBirth = date).recommendedSleepHours

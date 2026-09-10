@@ -42,7 +42,7 @@ fun Hypnogram(
 ) {
     if (stages.isEmpty()) return
 
-    // Canvas bars never inherit RTL mirroring — flip run order explicitly so the night
+    // Canvas bars never inherit RTL mirroring, flip run order explicitly so the night
     // still reads start-to-end in the layout direction.
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
@@ -54,7 +54,7 @@ fun Hypnogram(
         val barWidth = size.width / stages.size
         val stageHeight = size.height / 4f  // 4 stage levels
 
-        // A full night is ~960 30s epochs, but stages run in multi-minute streaks — merging
+        // A full night is ~960 30s epochs, but stages run in multi-minute streaks, merging
         // consecutive same-stage epochs into one rect per run cuts draw calls by an order of
         // magnitude with identical output, since adjacent same-stage bars already share the
         // same y/height and abut at their x boundary.

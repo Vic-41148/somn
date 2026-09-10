@@ -21,10 +21,10 @@ import javax.inject.Singleton
 import kotlin.reflect.KClass
 
 /**
- * Thin wrapper over the Health Connect SDK — permission set, client lifecycle, raw record
+ * Thin wrapper over the Health Connect SDK, permission set, client lifecycle, raw record
  * read/insert. Deliberately platform-typed (returns HC `Record` subtypes); mapping to Somn's
  * own domain models happens one layer up in `core:data`'s `HealthConnectRepository`, per the
- * "core:health is a pure adapter" architecture decision — no Room/domain knowledge here.
+ * "core:health is a pure adapter" architecture decision, no Room/domain knowledge here.
  */
 @Singleton
 class HealthConnectManager @Inject constructor(
@@ -59,7 +59,7 @@ class HealthConnectManager @Inject constructor(
 
     /**
      * HEALTH-03: re-checks the actual OS-granted permission set on every call rather than caching
-     * a stale "was granted once" flag — the user can revoke Health Connect access at any time from
+     * a stale "was granted once" flag, the user can revoke Health Connect access at any time from
      * system settings, entirely outside Somn's control.
      */
     suspend fun hasAllPermissions(): Boolean {
@@ -73,7 +73,7 @@ class HealthConnectManager @Inject constructor(
         return client.permissionController.getGrantedPermissions().containsAll(WRITE_PERMISSIONS)
     }
 
-    /** [ActivityResultContract] for the Health Connect permission request flow — hosted from a Composable/Activity. */
+    /** [ActivityResultContract] for the Health Connect permission request flow, hosted from a Composable/Activity. */
     fun requestPermissionsContract() = PermissionController.createRequestPermissionResultContract()
 
     suspend fun <T : Record> readRecords(recordType: KClass<T>, start: Instant, end: Instant): List<T> {
@@ -84,7 +84,7 @@ class HealthConnectManager @Inject constructor(
     }
 
     /**
-     * R6: total steps any source recorded in [start, end) — Health Connect stores steps as
+     * R6: total steps any source recorded in [start, end), Health Connect stores steps as
      * per-interval records, so the day's total is the sum of each interval's count.
      */
     suspend fun readSteps(start: Instant, end: Instant): Int {
@@ -98,7 +98,7 @@ class HealthConnectManager @Inject constructor(
     /**
      * R6: active minutes in [start, end) from exercise sessions that started in the window.
      * ExerciseSessionRecords carry explicit start/end times, so summing their durations avoids
-     * the alpha-status aggregate-metric API entirely — only sessions begun inside the window
+     * the alpha-status aggregate-metric API entirely, only sessions begun inside the window
      * count, so a session straddling midnight cannot double-count into two days.
      */
     suspend fun readActiveMinutes(start: Instant, end: Instant): Int {

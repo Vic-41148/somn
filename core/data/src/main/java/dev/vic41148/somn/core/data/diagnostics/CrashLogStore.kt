@@ -8,7 +8,7 @@ import java.io.StringWriter
 
 /**
  * Zero-telemetry crash capture: the uncaught-exception handler writes a redacted stack
- * trace to app-private storage and nothing else. Nothing leaves the device on its own —
+ * trace to app-private storage and nothing else. Nothing leaves the device on its own,
  * the user copies it into a GitHub issue deliberately, via Settings → About.
  */
 object CrashLogStore {
@@ -42,7 +42,7 @@ object CrashLogStore {
         val sw = StringWriter()
         throwable.printStackTrace(PrintWriter(sw))
         file.writeText(redact(buildString {
-            append("Somn crash log — paste into a GitHub issue if you report this.\n")
+            append("Somn crash log. Paste into a GitHub issue if you report this.\n")
             append("Device: ${Build.MANUFACTURER} ${Build.MODEL} (SDK ${Build.VERSION.SDK_INT})\n")
             append("App: ${appVersion(context)}\n\n")
             append(sw.toString())
@@ -57,7 +57,7 @@ object CrashLogStore {
 
     /**
      * Stack traces sometimes embed absolute paths (clip files, DB paths) in exception
-     * messages. Fold app-private and shared-storage prefixes down to a placeholder —
+     * messages. Fold app-private and shared-storage prefixes down to a placeholder,
      * the frames that matter for diagnosis survive.
      */
     internal fun redact(text: String): String =

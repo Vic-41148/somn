@@ -8,7 +8,7 @@ import dev.vic41148.somn.core.domain.usecase.ReportPdfModel
 import java.io.File
 
 /**
- * R3 Reports: on-device PDF export — the Tier-2 doctor-ready report, no cloud.
+ * R3 Reports: on-device PDF export, the Tier-2 doctor-ready report, no cloud.
  * Draws [ReportPdfModel] (unit-tested words) with framework PdfDocument primitives
  * plus a simple score-trend bar strip. Callers share the file via FileProvider.
  */
@@ -122,7 +122,7 @@ object ReportPdfRenderer {
 
     private fun drawFooter(page: PdfDocument.Page, paint: Paint) {
         page.canvas.drawText(
-            "Generated on-device by Somn — your data never left this phone.",
+            "Generated on-device by Somn. Your data never left this phone.",
             MARGIN, PAGE_H - 32f, paint
         )
     }

@@ -94,7 +94,7 @@ fun SomnBottomBar(
     // How far the bubble's bottom edge dips into the pill zone. The rest of
     // the bubble overflows above the bar onto the content behind (neither the
     // Box nor the Scaffold slot clips it), so no dead reserve space is kept
-    // for it — an empty reserve would paint as a black band over content.
+    // for it, an empty reserve would paint as a black band over content.
     val bubbleOverlap = 10.dp
     val pillShape = remember { RoundedCornerShape(percent = 50) }
 
@@ -137,7 +137,7 @@ fun SomnBottomBar(
         animationSpec = glideSpec,
         label = "dockBubbleX",
     )
-    // Allowed to overshoot past 1 slightly for a soft bounce on pop-in — only
+    // Allowed to overshoot past 1 slightly for a soft bounce on pop-in, only
     // the alpha derived from it gets coerced, not the scale.
     val pressProgress by animateFloatAsState(
         targetValue = if (pressing) 1f else 0f,
@@ -163,12 +163,12 @@ fun SomnBottomBar(
             .padding(horizontal = 16.dp)
             .navigationBarsPadding()
             .padding(bottom = 8.dp)
-            // Pill height only — the bubble overflows above the bar instead of
+            // Pill height only, the bubble overflows above the bar instead of
             // sitting in a reserved band, so there is no dead strip painting
             // over content at rest.
             .height(barHeight),
     ) {
-        // The flat pill. No notch — just a shadow and a background fill.
+        // The flat pill. No notch, just a shadow and a background fill.
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

@@ -31,6 +31,7 @@ fun SleepCard(
     modifier: Modifier = Modifier,
     title: String? = null,
     containerColor: androidx.compose.ui.graphics.Color? = null,
+    action: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Card(
@@ -44,12 +45,16 @@ fun SleepCard(
             modifier = Modifier.padding(20.dp)
         ) {
             if (title != null) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    action?.invoke()
+                }
                 Spacer(modifier = Modifier.height(12.dp))
             }
             content()
@@ -63,7 +68,7 @@ fun SleepCard(
  * Pill standard (M3 chips/segmented-button rules applied to our custom stat pills):
  * fixed minimum height, equal-width siblings, centered single-line text with ellipsis.
  * Use inside [PillRow] with `Modifier.weight(1f)` so every pill in the row shares the
- * same height and width — never SpaceEvenly with wrap content, which is what made rows
+ * same height and width, never SpaceEvenly with wrap content, which is what made rows
  * of mixed-length values ("0h 2m" vs "100%") render ragged.
  */
 @Composable
@@ -81,7 +86,7 @@ fun MetricChip(
     ) {
         // fillMaxSize is the actual centering fix: without it this Column wraps its
         // content and sits start-aligned in the card, so CenterHorizontally below only
-        // centers text inside a left-hugging box — the "off-center pills" bug.
+        // centers text inside a left-hugging box, the "off-center pills" bug.
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -113,7 +118,7 @@ fun MetricChip(
 /**
  * The only sanctioned row for [MetricChip]s. Fixes the row height to the tallest pill
  * ([IntrinsicSize.Max]) so every sibling fits its content fully and shorter ones stretch
- * via `fillMaxHeight` instead of floating — pair with `Modifier.weight(1f)` on each chip
+ * via `fillMaxHeight` instead of floating, pair with `Modifier.weight(1f)` on each chip
  * for equal widths. (Min was tried: it pins the row to the smallest height and clips
  * chip text the moment a larger font scale makes content taller than the minimum.)
  */

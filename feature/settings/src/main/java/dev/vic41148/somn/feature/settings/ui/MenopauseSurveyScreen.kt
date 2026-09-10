@@ -40,7 +40,7 @@ private val MENO_OPTIONS = listOf("Not at all", "A little", "Quite a bit", "A lo
 
 /**
  * R5 menopause check-in: Oura-Menopause-Impact-Scale mechanics, Somn-shortened to 10
- * sleep-relevant questions. Pure UI over prefs storage — wellness information, and the
+ * sleep-relevant questions. Pure UI over prefs storage, wellness information, and the
  * top band says "mention to a doctor" because effective treatments exist.
  */
 @OptIn(ExperimentalMaterial3Api::class)

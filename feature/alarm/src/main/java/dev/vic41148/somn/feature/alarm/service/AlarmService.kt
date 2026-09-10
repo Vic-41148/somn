@@ -79,7 +79,7 @@ class AlarmService : Service() {
         const val CHANNEL_ID = "alarm_channel"
         const val NOTIFICATION_ID = 2001
 
-        /** Fail-open cap — after this many missed wake confirmations, dismiss outright rather than ring forever. */
+        /** Fail-open cap, after this many missed wake confirmations, dismiss outright rather than ring forever. */
         private const val MAX_WAKE_CONFIRM_ATTEMPTS = 3
 
         private val _isAlarmFiring = MutableStateFlow(false)
@@ -110,7 +110,7 @@ class AlarmService : Service() {
             context.startService(intent)
         }
 
-        /** WAKE-01: normal dismiss path — stops the ring and, if wake verification is enabled, starts the confirmation window instead of stopping the service outright. */
+        /** WAKE-01: normal dismiss path, stops the ring and, if wake verification is enabled, starts the confirmation window instead of stopping the service outright. */
         fun requestDismiss(context: Context) {
             val intent = Intent(context, AlarmService::class.java).apply {
                 action = "REQUEST_DISMISS"
@@ -118,7 +118,7 @@ class AlarmService : Service() {
             context.startService(intent)
         }
 
-        /** User confirmed they're awake within the window — completes the dismiss. */
+        /** User confirmed they're awake within the window, completes the dismiss. */
         fun confirmAwake(context: Context) {
             val intent = Intent(context, AlarmService::class.java).apply {
                 action = "CONFIRM_AWAKE"
@@ -166,7 +166,7 @@ class AlarmService : Service() {
                 stopAlarm()
                 // Ends the firing episode: AlarmActivity's phase watcher finishes it, and the nav
                 // graph pops the in-app firing screen. (Previously phase stayed FIRING. Any UI
-                // that observed the phase — e.g. the alarm_firing route — would sit on a "ringing"
+                // that observed the phase, e.g. the alarm_firing route, would sit on a "ringing"
                 // screen forever after a snooze.)
                 _phase.value = AlarmPhase.DISMISSED
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -205,11 +205,11 @@ class AlarmService : Service() {
                     }
                 }
                 
-                // A failed foreground promotion must never take the whole app down with it — stop
+                // A failed foreground promotion must never take the whole app down with it, stop
                 // cleanly so the system does not kill the process for a service that started but
                 // never went foreground (e.g. ForegroundServiceDidNotStartInTimeException on a
                 // cold start, or ForegroundServiceStartNotAllowedException in a non-exempt edge
-                // case). The alarm is missed rather than crashing — same pattern as
+                // case). The alarm is missed rather than crashing, same pattern as
                 // SleepTrackingService.
                 try {
                     startAlarmForeground()
@@ -270,7 +270,7 @@ class AlarmService : Service() {
      * Android 14+ (targetSdk 34+) throws MissingForegroundServiceTypeException when the two-arg
      * overload is used while the manifest declares a foreground-service type ("mediaPlayback").
      * mediaPlayback has no runtime-permission requirement, so the type can be passed
-     * unconditionally — it exactly matches the manifest declaration. The three-arg overload only
+     * unconditionally, it exactly matches the manifest declaration. The three-arg overload only
      * exists from API 29 (Q); on API 26-28 the two-arg version is required.
      */
     private fun startAlarmForeground() {
@@ -296,7 +296,7 @@ class AlarmService : Service() {
             var soundStarted = false
 
             if (playSound) {
-                // prepare()/start() block synchronously — run off Dispatchers.Main so a slow or
+                // prepare()/start() block synchronously, run off Dispatchers.Main so a slow or
                 // stuck ringtone provider cannot ANR the exact moment the alarm is meant to fire.
                 soundStarted = withContext(Dispatchers.IO) {
                     try {
@@ -375,7 +375,7 @@ class AlarmService : Service() {
 
         wakeConfirmJob = serviceScope.launch {
             delay(windowSeconds * 1000L)
-            // WAKE-02: window elapsed without confirmation — re-ring via the CAPTCHA engine,
+            // WAKE-02: window elapsed without confirmation, re-ring via the CAPTCHA engine,
             // unless the fail-open cap has been hit, in which case dismiss rather than ring forever.
             wakeConfirmAttempts++
             _wakeConfirmDeadlineMillis.value = null

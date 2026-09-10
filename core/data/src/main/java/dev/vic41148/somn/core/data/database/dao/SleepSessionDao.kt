@@ -73,7 +73,7 @@ interface SleepSessionDao {
     @Query("SELECT COUNT(*) FROM sleep_sessions WHERE isCompleted = 1")
     suspend fun getTotalCompletedCount(): Int
 
-    /** HEALTH-04: completed sessions that never reached Health Connect — either not yet synced, or silently skipped by the cross-source dedup check in HealthConnectRepository.writeSleepSession. */
+    /** HEALTH-04: completed sessions that never reached Health Connect, either not yet synced, or silently skipped by the cross-source dedup check in HealthConnectRepository.writeSleepSession. */
     @Query("SELECT COUNT(*) FROM sleep_sessions WHERE isCompleted = 1 AND healthConnectRecordId IS NULL")
     fun observeUnsyncedToHealthConnectCount(): Flow<Int>
 }

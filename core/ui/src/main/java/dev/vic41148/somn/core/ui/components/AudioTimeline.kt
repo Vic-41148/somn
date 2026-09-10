@@ -50,7 +50,7 @@ fun AudioEventType.label(): String = when (this) {
 /**
  * Full-session audio event strip: one tappable marker per event, bar height scaled by
  * loudness, full alpha for events that kept a recording. Tapping a marker calls
- * [onEventSelected] — the caller decides whether that plays a clip. Wrap in [SleepCard].
+ * [onEventSelected], the caller decides whether that plays a clip. Wrap in [SleepCard].
  */
 @Composable
 fun AudioTimeline(
@@ -85,7 +85,7 @@ fun AudioTimeline(
         }.joinToString(", ")
     }
     val density = LocalDensity.current
-    // Custom Canvas drawing never inherits RTL mirroring — mirror the time axis explicitly.
+    // Custom Canvas drawing never inherits RTL mirroring, mirror the time axis explicitly.
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     fun xFor(timestampMillis: Long, width: Float): Float {
         val fraction = ((timestampMillis - sessionStartTime).toFloat() / sessionDurationMillis)

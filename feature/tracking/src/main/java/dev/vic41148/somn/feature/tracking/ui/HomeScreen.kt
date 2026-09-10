@@ -79,7 +79,7 @@ fun HomeScreen(
     val readinessVitals by viewModel.readinessVitals.collectAsState()
     val readinessActivity by viewModel.readinessActivity.collectAsState()
     val sleepDebt by habitViewModel.sleepDebt.collectAsState()
-    // Morning verdict — the same inputs as the History header plus vitals, so numbers agree.
+    // Morning verdict, the same inputs as the History header plus vitals, so numbers agree.
     // restModeSince excludes sick nights from every baseline (R2 Rest Mode).
     val restModeSince by viewModel.restModeSince.collectAsState()
     val restMode = restModeSince != null
@@ -92,7 +92,7 @@ fun HomeScreen(
             excludeSinceMillis = restModeSince
         )
     }
-    // Outlook sentence — strongest settled correlation + debt-plan hint, template-built.
+    // Outlook sentence, strongest settled correlation + debt-plan hint, template-built.
     val recoveryPlan by habitViewModel.recoveryPlan.collectAsState()
     val correlationReport by habitViewModel.correlationReport.collectAsState()
     // R5: luteal coaching + widened debt hint inside the cycle's luteal window.
@@ -114,7 +114,7 @@ fun HomeScreen(
             activity = readinessActivity
         )
     }
-    // 7-day rollup for the rings — the same math the History header uses, so the numbers agree.
+    // 7-day rollup for the rings, the same math the History header uses, so the numbers agree.
     val weekSummary = remember(recentSessions) {
         val cutoff = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
         summarizeSessions(recentSessions.filter { it.startTimeMillis >= cutoff })
@@ -142,7 +142,7 @@ fun HomeScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // REL-03: battery-optimization exemption re-check — OEM power managers can silently
+        // REL-03: battery-optimization exemption re-check, OEM power managers can silently
         // revoke this after an OTA, which kills overnight tracking without any user-visible error.
         val isBatteryExempted by dev.vic41148.somn.core.ui.battery.BatteryExemptionState.isExempted.collectAsState()
         var batteryBannerDismissed by remember { mutableStateOf(false) }
@@ -160,7 +160,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 // Compact single-row banner. This used to be a full SleepCard with three
                 // stacked action rows (~300dp tall) that pushed the moon button and every
-                // stat below the fold — a warning is glanceable, not a screen.
+                // stat below the fold, a warning is glanceable, not a screen.
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
@@ -236,47 +236,27 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Session type selector (SESS-01/02) — only meaningful before a session starts.
+        // Session type selector (SESS-01/02), only meaningful before a session starts.
+        // Same expandable-card language as the habit sections, not a stock dropdown.
         var selectedSessionType by remember {
             mutableStateOf(dev.vic41148.somn.core.domain.model.SessionType.MAIN_SLEEP)
         }
-        var expanded by remember { mutableStateOf(false) }
         AnimatedVisibility(visible = trackingState == TrackingState.IDLE, enter = fadeIn(), exit = fadeOut()) {
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = selectedSessionType.displayName,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Session Type") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    dev.vic41148.somn.core.domain.model.SessionType.entries.forEach { type ->
-                        DropdownMenuItem(
-                            text = { Text(type.displayName) },
-                            onClick = {
-                                selectedSessionType = type
-                                expanded = false
-                            }
-                        )
-                    }
+            dev.vic41148.somn.core.ui.components.ExpandablePickerCard(
+                title = "Session Type",
+                icon = Icons.Default.Nightlight,
+                iconColor = MaterialTheme.colorScheme.primary,
+                options = dev.vic41148.somn.core.domain.model.SessionType.entries.map { it.displayName },
+                selectedIndex = dev.vic41148.somn.core.domain.model.SessionType.entries.indexOf(selectedSessionType),
+                onSelect = {
+                    selectedSessionType = dev.vic41148.somn.core.domain.model.SessionType.entries[it]
                 }
-            }
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Moon button — start tracking
+        // Moon button, start tracking
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -297,7 +277,7 @@ fun HomeScreen(
                         }
                         // A session is running but this screen is showing (app relaunched, or the
                         // process was restarted while the FGS kept tracking). The moon becomes the
-                        // re-entry point to the tracking screen — without this, a live foreground
+                        // re-entry point to the tracking screen, without this, a live foreground
                         // session has no in-app way back to the Wake Up button.
                         TrackingState.TRACKING -> onNavigateToTracking()
                         TrackingState.PAUSED -> Unit
@@ -329,7 +309,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Morning verdict — the prescription to Last Night's description. Sits above
+        // Morning verdict, the prescription to Last Night's description. Sits above
         // it so the first thing a woken-up user reads is what today should look like.
         val showReadiness by viewModel.showReadinessCard.collectAsState()
         if (showReadiness) {
@@ -340,7 +320,7 @@ fun HomeScreen(
                 onRingClick = onNavigateToTrends
             )
 
-            // Daily Outlook — one template-built sentence, morning vs evening variants.
+            // Daily Outlook, one template-built sentence, morning vs evening variants.
             Spacer(modifier = Modifier.height(16.dp))
             SleepCard(title = "Today") {
                 Text(
@@ -439,7 +419,7 @@ fun HomeScreen(
             }
         }
 
-        // This week — per-stat rings so each stat's current state reads at a glance.
+        // This week, per-stat rings so each stat's current state reads at a glance.
         weekSummary?.let { summary ->
             Spacer(modifier = Modifier.height(16.dp))
             SleepCard(title = "This Week") {
@@ -511,11 +491,11 @@ private fun MorningReadyCard(
     var expanded by remember { mutableStateOf(false) }
     val verdict = when (readiness.zone) {
         dev.vic41148.somn.core.domain.usecase.ReadinessZone.READY ->
-            "Push today — your body is primed for it."
+            "Push today. Your body is primed for it."
         dev.vic41148.somn.core.domain.usecase.ReadinessZone.STEADY ->
-            "A steady day — normal load is fine, save max efforts."
+            "A steady day. Normal load is fine, save max efforts."
         dev.vic41148.somn.core.domain.usecase.ReadinessZone.REST ->
-            "Take it easy — rest beats training today."
+            "Take it easy. Rest beats training today."
     }
     SleepCard(title = "Morning Ready") {
         if (restMode) {
@@ -562,7 +542,7 @@ private fun MorningReadyCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${readiness.nightsUsed}/3 nights — settling your baseline",
+                        text = "${readiness.nightsUsed}/3 nights, settling your baseline",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

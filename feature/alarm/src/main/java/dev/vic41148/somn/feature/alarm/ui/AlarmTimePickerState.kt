@@ -11,7 +11,7 @@ import androidx.compose.material3.TimePickerState
  * needle's internal Animatable at a stale angle; the first drag after the flip can
  * orphan the draw layer so the hand stops drawing until the screen reopens (numbers
  * stay, the time still moves). Replacing the instance with a fresh one re-keys every
- * per-state animation, which heals the stale state deterministically — but only when
+ * per-state animation, which heals the stale state deterministically, but only when
  * no finger is on the dial, otherwise a mid-drag rebuild would fight the user's hand.
  */
 internal fun alarmPickerShouldRebuild(pointerDown: Boolean, nowPm: Boolean, lastPm: Boolean): Boolean =

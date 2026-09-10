@@ -278,11 +278,11 @@ enum class CorrelationStrength(val displayName: String) {
  * this qualifier exists so the UI never presents a bare-minimum finding as a settled one.
  */
 enum class CorrelationConfidence(val displayName: String, val minNights: Int) {
-    /** 7-13 nights — above the data floor but statistically underpowered. It may flip with a few more nights. */
+    /** 7-13 nights, above the data floor but statistically underpowered. It may flip with a few more nights. */
     LOW("Low confidence", 7),
-    /** 14-29 nights — two to four weeks of paired data. The pattern is visible but not yet stable. */
+    /** 14-29 nights, two to four weeks of paired data. The pattern is visible but not yet stable. */
     MEDIUM("Medium confidence", 14),
-    /** 30+ nights — a month or more. Close to the point where small-to-moderate effects become distinguishable from noise. */
+    /** 30+ nights, a month or more. Close to the point where small-to-moderate effects become distinguishable from noise. */
     HIGH("High confidence", 30);
 
     companion object {

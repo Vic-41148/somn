@@ -56,7 +56,7 @@ class CircadianViewModel @Inject constructor(
             try {
                 combine(
                     userProfileRepository.observeProfile(),
-                    // SESS-04: chronotype/social-jetlag/seasonal analysis is bedtime-based —
+                    // SESS-04: chronotype/social-jetlag/seasonal analysis is bedtime-based,
                     // naps/commute/shift sessions would skew it.
                     sleepRepository.observeMainSleepSessions(),
                     // Seasonal analysis can be pinned to a hemisphere. A change to the override

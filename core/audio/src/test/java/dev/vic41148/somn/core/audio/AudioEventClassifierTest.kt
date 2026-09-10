@@ -11,7 +11,7 @@ class AudioEventClassifierTest {
 
     private val sampleRate = AudioCollector.SAMPLE_RATE
 
-    // Full-scale-ish 1kHz sine ≈ 81dB RMS — well above the 45dB "loud" threshold so every
+    // Full-scale-ish 1kHz sine ≈ 81dB RMS, well above the 45dB "loud" threshold so every
     // buffer is treated as loud.
     private fun loudBuffer(): ShortArray = ShortArray(sampleRate) { i ->
         (sin(2 * PI * (i % sampleRate) / sampleRate) * 0.5 * Short.MAX_VALUE).toInt().toShort()

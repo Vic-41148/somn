@@ -20,11 +20,11 @@ data class SleepSession(
     val notes: String = "",
     val isCompleted: Boolean = false,
     // Phase 3: Circadian intelligence fields
-    /** Timezone ID at session start — used for correct local-time circadian calculations. */
+    /** Timezone ID at session start, used for correct local-time circadian calculations. */
     val timezoneId: String = "UTC",
     /** False when sleep occurred away from home. Used to tag non-baseline sessions. */
     val isHomeSleep: Boolean = true,
-    /** True if an alarm was active — false = alarm-free night, used for chronotype detection. */
+    /** True if an alarm was active, false = alarm-free night, used for chronotype detection. */
     val alarmUsed: Boolean = false,
     /** Average breathing rate in breaths per minute for the session, computed from audio analysis. Null if microphone not used. */
     val avgBreathingRateBrpm: Float? = null,
@@ -32,11 +32,11 @@ data class SleepSession(
     val coughEventCount: Int = 0,
     /** True when the session was auto-finalized from a stale/abandoned tracking session (service died mid-night) rather than a normal user-initiated stop. */
     val isPartial: Boolean = false,
-    /** What kind of session this was — only MAIN_SLEEP feeds nightly consistency/streak/circadian aggregates. */
+    /** What kind of session this was, only MAIN_SLEEP feeds nightly consistency/streak/circadian aggregates. */
     val sessionType: SessionType = SessionType.MAIN_SLEEP,
     /** True when sleepDurationMinutes exceeded the user's healthy-duration threshold. */
     val isOversleep: Boolean = false,
-    /** HEALTH-04: Health Connect record ID this session was written as, once synced — null until then. */
+    /** HEALTH-04: Health Connect record ID this session was written as, once synced, null until then. */
     val healthConnectRecordId: String? = null
 ) {
     val isTracking: Boolean get() = !isCompleted && endTimeMillis == 0L

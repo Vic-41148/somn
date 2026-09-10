@@ -5,7 +5,7 @@ import dev.vic41148.somn.core.domain.model.SleepSession
 import kotlin.math.sqrt
 
 /**
- * Morning readiness verdict — "should I push today", computed from data already in the DB.
+ * Morning readiness verdict, "should I push today", computed from data already in the DB.
  * The WHOOP-Recovery / Oura-Readiness half of the loop Somn was missing: the sleep score
  * describes last night, readiness prescribes today.
  *
@@ -14,7 +14,7 @@ import kotlin.math.sqrt
  *   population norms.
  * - Graceful degradation: phone-only users with no Health Connect vitals still get a
  *   number from sleep signals alone. Missing contributors are skipped (weights
- *   renormalize) and reported as `hasData = false` — never scored as zero.
+ *   renormalize) and reported as `hasData = false`, never scored as zero.
  * - Debt dominance: a very short last night caps the verdict no matter how good the
  *   vitals look, because one bad night of physiology readings cannot offset lost sleep.
  * - Pure function, unit-tested independently of any ViewModel (same pattern as
@@ -48,14 +48,14 @@ data class ReadinessResult(
     val score: Int,
     val zone: ReadinessZone,
     val contributors: List<ReadinessContributor>,
-    /** Completed nights inside the 14-day window — drives the n/14 calibration counter. */
+    /** Completed nights inside the 14-day window, drives the n/14 calibration counter. */
     val nightsUsed: Int,
     val isCalibrated: Boolean
 )
 
 /**
  * Last-night wearable deltas vs the user's own 14-day median. All null when Health
- * Connect vitals are unavailable — the engine degrades to sleep signals (see above).
+ * Connect vitals are unavailable, the engine degrades to sleep signals (see above).
  * Positive HRV delta is good (higher variability = better recovery). For RHR and
  * temperature, closeness to baseline is good in either direction.
  */
@@ -70,10 +70,10 @@ data class VitalsDeviation(
 
 /**
  * Prior-day movement, for the activity contributor. Null fields when Health Connect has
- * nothing — the engine degrades to sleep signals instead of scoring missing data as zero.
+ * nothing, the engine degrades to sleep signals instead of scoring missing data as zero.
  *
  * Scored against daily targets (10,000 steps / 45 active minutes) rather than a personal
- * baseline because step history is not persisted — an honest, documented exception to the
+ * baseline because step history is not persisted, an honest, documented exception to the
  * "personal baselines only" rule, and one that never fires without data.
  */
 data class ActivityDeviation(
@@ -86,7 +86,7 @@ data class ActivityDeviation(
 private const val WINDOW_DAYS = 14
 private const val CALIBRATED_NIGHTS = 3
 
-/** Null when there is nothing to assess — callers render calibration/empty state. */
+/** Null when there is nothing to assess, callers render calibration/empty state. */
 fun assessReadiness(
     sessions: List<SleepSession>,
     debt: SleepDebt?,
@@ -107,7 +107,7 @@ fun assessReadiness(
 
     val contributors = mutableListOf<ReadinessContributor>()
 
-    // Last night (weight 0.35) — the score Somn already computes, reused directly.
+    // Last night (weight 0.35), the score Somn already computes, reused directly.
     contributors.add(
         ReadinessContributor(
             label = "Last night",
@@ -117,7 +117,7 @@ fun assessReadiness(
         )
     )
 
-    // Debt position (weight 0.25) — 0 debt scores 100, 10h+ scores 0, linear between.
+    // Debt position (weight 0.25), 0 debt scores 100, 10h+ scores 0, linear between.
     if (debt != null) {
         val debtScore = ((1f - debt.totalDebtMinutes / 600f).coerceIn(0f, 1f) * 100).toInt()
         contributors.add(
@@ -130,7 +130,7 @@ fun assessReadiness(
         )
     }
 
-    // Consistency (weight 0.20) — bedtime variance across the window. Needs 3+ nights.
+    // Consistency (weight 0.20), bedtime variance across the window. Needs 3+ nights.
     val bedtimes = window.map { millisToMinutesOfDay(it.startTimeMillis) }
     if (bedtimes.size >= CALIBRATED_NIGHTS) {
         val stdev = circularStdevMinutes(bedtimes)
@@ -154,7 +154,7 @@ fun assessReadiness(
         )
     }
 
-    // Vitals (weight 0.20) — deviation from personal baseline, when available.
+    // Vitals (weight 0.20), deviation from personal baseline, when available.
     if (vitals != null && vitals.hasAnyData) {
         val subs = mutableListOf<Float>()
         vitals.restingHrDeltaBpm?.let { d ->
@@ -178,7 +178,7 @@ fun assessReadiness(
         )
     }
 
-    // Activity (weight 0.10) — prior-day movement vs daily targets, when Health Connect
+    // Activity (weight 0.10), prior-day movement vs daily targets, when Health Connect
     // has steps or exercise sessions. Absent by default (no data → skipped, not zero).
     if (activity != null && activity.hasAnyData) {
         contributors.add(
@@ -203,7 +203,7 @@ fun assessReadiness(
     var score = if (totalWeight <= 0f) 0
     else (available.sumOf { it.score * (weights[it.label] ?: 0f).toDouble() } / totalWeight).toInt()
 
-    // Debt dominance: a very short last night caps the verdict — good vitals cannot
+    // Debt dominance: a very short last night caps the verdict, good vitals cannot
     // offset lost sleep.
     if (last.sleepScore < 45) score = minOf(score, 59)
 

@@ -35,7 +35,7 @@ import dev.vic41148.somn.core.data.database.dao.AlarmEventDao
         ExternalVitalsEntity::class,
         AlarmEventEntity::class
     ],
-    version = 14,  // alarm_events table — keep SCHEMA_VERSION below in sync
+    version = 14,  // alarm_events table, keep SCHEMA_VERSION below in sync
     exportSchema = true
 )
 abstract class SleepDatabase : RoomDatabase() {
@@ -53,7 +53,7 @@ abstract class SleepDatabase : RoomDatabase() {
         const val DATABASE_NAME = "sleep_tracker.db"
         /**
          Ad-hoc SQLCipher handles (verify, copy) stamp this version instead of a
-         placeholder — Room validates the identity hash against it on open.
+         placeholder, Room validates the identity hash against it on open.
          */
         const val SCHEMA_VERSION = 14
     }

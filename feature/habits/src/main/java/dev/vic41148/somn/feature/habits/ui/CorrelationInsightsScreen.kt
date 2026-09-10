@@ -101,9 +101,9 @@ fun CorrelationInsightsScreen(
             elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Text(
-                text = "These patterns are personal to you — not population averages. " +
+                text = "These patterns are personal to you, not population averages. " +
                     "Minimum ${CorrelationUseCase.MIN_DATA_POINTS} sleep sessions needed per correlation. " +
-                    "Findings from fewer nights are a tentative early read — they firm up as you log more.",
+                    "Findings from fewer nights are a tentative early read. They firm up as you log more.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.padding(16.dp)
@@ -112,7 +112,7 @@ fun CorrelationInsightsScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Was `if (isLoading) { ...; return }` followed by `!report?.hasAnyData!!` — if
+        // Was `if (isLoading) { ...; return }` followed by `!report?.hasAnyData!!`, if
         // loadDebtAndCorrelations() ever hit its catch block before report was first assigned
         // (isLoading still gets set back to false there), report stays null forever and
         // `null!!` crashed this screen with an NPE. Guard on report == null directly instead.

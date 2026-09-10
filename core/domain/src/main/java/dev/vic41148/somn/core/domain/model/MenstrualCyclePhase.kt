@@ -11,7 +11,7 @@ import java.time.temporal.ChronoUnit
  * effects are well-documented (Sleep and Biological Rhythms, 2025).
  *
  * Key implication: symptom frequency has a stronger impact on sleep than cycle phase
- * alone (Frontiers in Physiology, 2025) — the app must track both.
+ * alone (Frontiers in Physiology, 2025), the app must track both.
  */
 enum class MenstrualCyclePhase(
     val displayName: String,
@@ -25,7 +25,7 @@ enum class MenstrualCyclePhase(
     ),
     FOLLICULAR(
         displayName = "Follicular",
-        sleepImpact = "Best sleep window of the cycle — faster onset, higher efficiency.",
+        sleepImpact = "Best sleep window of the cycle: faster onset, higher efficiency.",
         scoreAdjustment = 0
     ),
     OVULATION(
@@ -40,7 +40,7 @@ enum class MenstrualCyclePhase(
     ),
     PREMENSTRUAL(
         displayName = "Premenstrual",
-        sleepImpact = "Worst sleep quality of the cycle. More awakenings, lighter sleep — this is hormonal.",
+        sleepImpact = "Worst sleep quality of the cycle. More awakenings, lighter sleep. This is hormonal.",
         scoreAdjustment = 10
     );
 

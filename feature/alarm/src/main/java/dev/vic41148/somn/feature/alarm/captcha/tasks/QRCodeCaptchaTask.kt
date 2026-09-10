@@ -60,7 +60,7 @@ class QRCodeCaptchaTask : CaptchaTask {
         val currentExpectedValue = expectedValue
         if (currentExpectedValue == null) {
             // AlarmActivity already verified a QR value is configured before selecting this
-            // task (falling back to math otherwise) — a null here just means this DataStore
+            // task (falling back to math otherwise), a null here just means this DataStore
             // flow has not emitted its first value yet. It is not a real "not configured" state.
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -140,7 +140,7 @@ class QRCodeCaptchaTask : CaptchaTask {
     }
 
     /**
-     * zxing-cpp decodes synchronously on the calling thread — this runs on the single-threaded
+     * zxing-cpp decodes synchronously on the calling thread, this runs on the single-threaded
      * analyzer executor, not the main thread. Close the ImageProxy exactly once for
      * CameraX to deliver the next frame, hence [use].
      */

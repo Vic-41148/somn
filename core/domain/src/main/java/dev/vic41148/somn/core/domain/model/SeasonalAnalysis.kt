@@ -1,7 +1,7 @@
 package dev.vic41148.somn.core.domain.model
 
 /**
- * Seasonal sleep pattern analysis. Detects winter hypersomnia and summer insomnia —
+ * Seasonal sleep pattern analysis. Detects winter hypersomnia and summer insomnia,
  * manifestations of Seasonal Affective Disorder and circadian disruption caused by
  * day-length changes.
  *

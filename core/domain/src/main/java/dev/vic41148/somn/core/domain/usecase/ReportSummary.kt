@@ -16,14 +16,14 @@ data class ReportSummary(
     val avgDeepPercent: Int,
     val avgRemPercent: Int,
     val bestScore: Int,
-    /** Last (most recent) score minus first (oldest) score — positive means improving. */
+    /** Last (most recent) score minus first (oldest) score, positive means improving. */
     val scoreDelta: Int,
     /** Consecutive calendar days with at least one session, counting back from the newest. */
     val streakNights: Int,
     val totalSleepMinutes: Int
 )
 
-/** Null when there is nothing to summarize — callers render their empty state instead. */
+/** Null when there is nothing to summarize, callers render their empty state instead. */
 fun summarizeSessions(
     sessions: List<SleepSession>,
     /** Rest Mode boundary: nights on/after this are sick nights, not signal. */
@@ -70,7 +70,7 @@ fun currentStreak(
     return streak
 }
 
-/** "7h 12m", "45m", or "0m" — never blank, so tiles always have something to show. */
+/** "7h 12m", "45m", or "0m", never blank, so tiles always have something to show. */
 fun formatDurationShort(totalMinutes: Int): String {
     if (totalMinutes <= 0) return "0m"
     val h = totalMinutes / 60
