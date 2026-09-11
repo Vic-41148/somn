@@ -18,6 +18,8 @@ updates:
         versions: [">= 1.4.0"]
       - dependency-name: "androidx.health.connect:connect-client"
         versions: [">= 1.2.0-alpha06"]
+      - dependency-name: "androidx.core:core-ktx"
+        versions: [">= 1.19.0"]
       # 2.1.5 pin is load-bearing (2.1.6+ splits litert-api namespace, AGP merger
       # rejects the duplicate). See the tensorflow-lite comment in libs.versions.toml.
       - dependency-name: "com.google.ai.edge.litert:litert"
