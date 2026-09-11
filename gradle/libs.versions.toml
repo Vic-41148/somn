@@ -136,9 +136,9 @@ jtransforms = { group = "com.github.wendykierp", name = "JTransforms", version =
 # libtensorflowlite_jni.so with 4KB (0x1000) ELF segment alignment, which Android 15+ flags as
 # incompatible with 16KB-page devices. LiteRT is the same runtime, still exposing
 # org.tensorflow.lite.Interpreter, built with 16KB (0x4000) alignment.
-# Pinned to 2.1.5: 2.1.6 splits out a litert-api artifact that declares the same
+# Pinned to 2.2.0: 2.1.6 splits out a litert-api artifact that declares the same
 # com.google.ai.edge.litert namespace as litert itself, which AGP's manifest merger rejects.
-tensorflow-lite = { group = "com.google.ai.edge.litert", name = "litert", version = "2.1.5" }
+tensorflow-lite = { group = "com.google.ai.edge.litert", name = "litert", version = "2.2.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
