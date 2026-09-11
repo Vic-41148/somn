@@ -98,12 +98,12 @@ feature/
 
 The easiest way to try Somn is the latest release:
 
-- **v0.1.2** — download `app-release-signed.apk` from the
+- **v0.1.3** — download `app-release-signed.apk` from the
   [releases page](https://github.com/Vic-41148/somn/releases) and open it on your device
   (Android 8.0 / API 26+). Allow "install unknown apps" when asked.
 
 > **Do not install v0.1.0.** It is deprecated. We removed its release. Tapping the
-> Sleep button (and in some cases Settings) can close the app on Android 14+. Use v0.1.2
+> Sleep button (and in some cases Settings) can close the app on Android 14+. Use v0.1.3
 > or newer instead.
 
 Every release ships `SHA256SUMS.txt`, a CycloneDX SBOM (`somn-bom.json`), and a
