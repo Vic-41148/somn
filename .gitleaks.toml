@@ -1,0 +1,6 @@
+# Local working-tree scans (gitleaks detect --no-git) also see untracked files.
+# keystore.properties holds this machine's release-signing passwords: it is
+# gitignored by design (see app/build.gradle.kts) and never enters history,
+# so allowlist it here to keep local scans as clean as the CI history scan.
+[allowlist]
+paths = ['''keystore.properties''', '''local.properties''']

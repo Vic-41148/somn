@@ -34,6 +34,28 @@ class SomnApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Debug-only tripwires: main-thread disk/network IO, leaked closables and
+        // cursors, untagged sockets. penaltyLog, never penaltyDeath — a debug
+        // watchdog must shout in logcat, not crash the session under test.
+        // Release builds never install this: zero behavior or size difference.
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            android.os.StrictMode.setThreadPolicy(
+                android.os.StrictMode.ThreadPolicy.Builder()
+                    .detectDiskReads()
+                    .detectDiskWrites()
+                    .detectNetwork()
+                    .penaltyLog()
+                    .build()
+            )
+            android.os.StrictMode.setVmPolicy(
+                android.os.StrictMode.VmPolicy.Builder()
+                    .detectLeakedSqlLiteObjects()
+                    .detectLeakedClosableObjects()
+                    .detectLeakedRegistrationObjects()
+                    .penaltyLog()
+                    .build()
+            )
+        }
         // Zero-telemetry crash capture first: nothing leaves the device, the log just waits
         // in app-private storage until the user copies it out of Settings → About.
         dev.vic41148.somn.core.data.diagnostics.CrashLogStore.install(this)

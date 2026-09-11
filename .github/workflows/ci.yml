@@ -35,6 +35,13 @@ jobs:
       - name: Assemble debug APK (standalone channel)
         run: ./gradlew assembleStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
+      # The core:notifications-vs-core:ui compileSdk split (35 vs 36) compiled fine in
+      # debug and only exploded on a release assemble. Nothing else in CI builds the
+      # minified standalone artifact, so that whole class of break hid until tag day.
+      # Unsigned fallback is fine here — this proves compilation + R8, not signatures.
+      - name: Assemble release APK (standalone channel, catches release-only breaks)
+        run: ./gradlew :app:assembleStandaloneRelease -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
       # Runs BOTH the flavored-module suite (testStandaloneDebugUnitTest) and the non-flavored
       # modules' suite (testDebugUnitTest). core:domain/core:ui/core:health are deliberately kept
       # on compileSdk 35 without the channel dimension, so their unit tests only exist under
@@ -105,6 +112,29 @@ jobs:
 
       - name: Android Lint
         run: ./gradlew lintStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      # Debug lint and release lint are different configs (minify/shrink flags change
+      # what lint can see); release-only findings hid until now. Runs after the release
+      # assemble above so the intermediates it inspects exist.
+      - name: Android Lint (release)
+        run: ./gradlew lintStandaloneRelease -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      # The CycloneDX BOM lists every resolvable artifact including Gradle-plugin
+      # internals (Netty, Bouncy Castle) that never enter the APK, so gating on the
+      # raw scanner output would fail on every AGP bump. scripts/verify-shipped-cve.sh
+      # intersects the findings with the DEX content and fails only on CVEs in
+      # shipped code. Pinned scanner version, same as the local pre-tag run.
+      - name: CVE scan (fails only on CVEs in shipped DEX)
+        run: |
+          set -euo pipefail
+          curl -sL --max-time 120 -o osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.2.3/osv-scanner_linux_amd64
+          chmod +x osv-scanner
+          ./gradlew :app:cyclonedxBom -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+          ./osv-scanner scan --sbom=app/build/reports/cyclonedx/bom.json \
+            --format=json --output=osv.json || true
+          bash scripts/verify-shipped-cve.sh \
+            "$(ls app/build/outputs/apk/standalone/release/*.apk | head -1)" osv.json
 
       # androidTest sources are invisible to every task above: unit-test compilation never
       # touches them and assemble skips them, so a backup-integrity change once broke them
