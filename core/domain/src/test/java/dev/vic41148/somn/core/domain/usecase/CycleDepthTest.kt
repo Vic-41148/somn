@@ -12,7 +12,7 @@ class CycleDepthTest {
     fun `no cycle data explains itself`() {
         val r = refinePhase(null, emptyList())
         assertThat(r.source).isEqualTo(PhaseSource.CALENDAR)
-        assertThat(r.note).contains("enable cycle tracking")
+        assertThat(r.note).contains("Enable cycle tracking")
     }
 
     @Test
@@ -30,7 +30,7 @@ class CycleDepthTest {
         val r = refinePhase(MenstrualCyclePhase.FOLLICULAR, temps)
         assertThat(r.phase).isEqualTo(MenstrualCyclePhase.LUTEAL)
         assertThat(r.source).isEqualTo(PhaseSource.CALENDAR_AND_TEMP)
-        assertThat(r.note).contains("ovulation likely passed")
+        assertThat(r.note).contains("Ovulation likely passed")
     }
 
     @Test

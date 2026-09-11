@@ -290,6 +290,10 @@ jobs:
       # key/token-shaped anywhere in history reachable from this ref.
       - name: Gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          # v2 requires the token for pull_request scans; without it the step
+          # fails with "GITHUB_TOKEN is now required".
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   style-guardrails:
     name: Style guardrails

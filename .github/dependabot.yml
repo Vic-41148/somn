@@ -7,6 +7,21 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    # These majors need compileSdk 37 (project is on 36): offered PRs fail AAR
+    # metadata checks by design until the SDK bump. Revisit, don't delete.
+    ignore:
+      - dependency-name: "androidx.hilt:hilt-navigation-compose"
+        versions: [">= 1.4.0"]
+      - dependency-name: "androidx.hilt:hilt-work"
+        versions: [">= 1.4.0"]
+      - dependency-name: "androidx.hilt:hilt-compiler"
+        versions: [">= 1.4.0"]
+      - dependency-name: "androidx.health.connect:connect-client"
+        versions: [">= 1.2.0-alpha06"]
+      # 2.1.5 pin is load-bearing (2.1.6+ splits litert-api namespace, AGP merger
+      # rejects the duplicate). See the tensorflow-lite comment in libs.versions.toml.
+      - dependency-name: "com.google.ai.edge.litert:litert"
+        versions: ["> 2.1.5"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
