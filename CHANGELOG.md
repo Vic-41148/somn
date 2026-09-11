@@ -5,7 +5,7 @@ Release for every `v*` tag using the section of this file whose header contains
 the tag — keep section headers unique and tag-containing (for example
 `## Somn v0.1.2 — ...`).
 
-## Unreleased
+## Somn v0.1.3 — brand refresh, crash export, pipeline hardening
 
 - **Batch 4: a11y, Maestro, MobSF, lint-zero.** Static a11y audit clean (all IconButtons labeled, dock carries Role.Tab semantics); alarm repeat days and pill selectors now expose full 48dp touch targets. Three Maestro smoke flows green on-device (`maestro/flows/`: tabs, alarm-create, settings-export). Full MobSF static scan triaged: score 51, one HIGH (CBC in third-party defpackage code — ours is AES/GCM throughout), exported-component warnings all required-by-platform, zero trackers, zero shipped CVEs. Release lint has zero findings left (dead resources/strings removed, stale-DB and phones-only findings suppressed with reasons, duplicate org.json alias merged).
 - **Supply-chain hardening (Batch 2+3).** All GitHub Actions pinned to commit SHAs (Dependabot keeps them fresh), Dependency Review on PRs, OpenSSF Scorecard workflow, and Sigstore-adjacent GitHub attestations next to cosign on releases. SECURITY.md, CODE_OF_CONDUCT, CODEOWNERS, .editorconfig added; bug template now prompts for the on-device crash log. Lint is fully clean (removed dead colors.xml, widget strings extracted). APK size baseline captured in APP-SIZE-BASELINE.txt.
