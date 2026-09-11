@@ -32,6 +32,7 @@ import dev.vic41148.somn.app.R
  * footer entry below rather than appearing in the generated list.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LocalContextResourcesRead") // one-shot raw read inside remember(), not per-recomposition.
 @Composable
 fun LicensesScreen(onBack: () -> Unit) {
     val context = LocalContext.current

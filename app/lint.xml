@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- targetSdk 36 is the current Play/F-Droid ceiling (Sept 2026); lint's
+         bundled API database predates it, so OldTargetApi is a false positive. -->
+    <issue id="OldTargetApi" severity="ignore" />
+    <!-- Phones only by design (see ndk abiFilters comment in app/build.gradle.kts):
+         x86/x86_64 exist for emulators and cost ~14 MB of .so weight. -->
+    <issue id="ChromeOsAbiSupport" severity="ignore" />
+    <!-- mipmap-anydpi-v26 is the adaptive-icon mechanism, not a redundant
+         qualifier: the v26 suffix is what makes the launcher use the XML. -->
+    <issue id="ObsoleteSdkInt" severity="ignore" />
+</lint>

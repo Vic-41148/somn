@@ -210,9 +210,10 @@ fun AlarmEditScreen(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(1f)
+                            // 48dp minimum touch target: the visible circle stays
+                            // compact so all seven fit, the tap area doesn't.
+                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                             .clip(CircleShape)
-                            .background(container)
                             .clickable(
                                 onClickLabel = if (isSelected) "Remove $initial" else "Repeat on $initial",
                                 role = androidx.compose.ui.semantics.Role.Checkbox
@@ -224,12 +225,21 @@ fun AlarmEditScreen(
                                 }
                             }
                     ) {
-                        Text(
-                            text = initial,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = content
-                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .aspectRatio(1f)
+                                .clip(CircleShape)
+                                .background(container)
+                        ) {
+                            Text(
+                                text = initial,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = content
+                            )
+                        }
                     }
                 }
             }

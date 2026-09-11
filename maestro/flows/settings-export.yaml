@@ -1,0 +1,12 @@
+# Settings path: expand Data category, open export screen, back. No crash = pass.
+appId: dev.vic41148.somn
+---
+- launchApp
+- tapOn: "Settings"
+- tapOn: "Data"
+- scrollUntilVisible:
+    element: "Backup, restore.*"
+    direction: DOWN
+- tapOn: "Backup, restore.*"
+- assertVisible: "Data Export & Backup"
+- back
