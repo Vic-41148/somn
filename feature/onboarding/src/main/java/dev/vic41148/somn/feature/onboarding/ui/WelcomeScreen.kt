@@ -59,8 +59,8 @@ fun WelcomeScreen(onNext: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "We'll ask a few questions to personalize your experience. " +
-                "Your data stays on your device — always.",
+            text = "We will ask a few questions to personalize your experience. " +
+                "Your data stays on your device, always.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

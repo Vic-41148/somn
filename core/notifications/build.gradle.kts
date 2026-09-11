@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.core.notifications"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -22,11 +22,21 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+        }
+        create("store") {
+            dimension = "channel"
+        }
+    }
 }
 
 dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:data"))
+    implementation(project(":core:ui"))
     
     implementation(libs.core.ktx)
     implementation(libs.work.runtime)

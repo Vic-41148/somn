@@ -1,7 +1,7 @@
 package dev.vic41148.somn.core.domain.model
 
 /**
- * Seasonal sleep pattern analysis. Detects winter hypersomnia and summer insomnia —
+ * Seasonal sleep pattern analysis. Detects winter hypersomnia and summer insomnia,
  * manifestations of Seasonal Affective Disorder and circadian disruption caused by
  * day-length changes.
  *
@@ -26,7 +26,7 @@ data class SeasonalAnalysis(
     /** Education or contextual insight, or null if no data. */
     val insight: String?
 ) {
-    /** Whether there's enough data across seasons to draw conclusions. */
+    /** Whether there is enough data across seasons to draw conclusions. */
     val hasMultiSeasonData: Boolean get() = seasonalPatterns.size >= 2
 }
 

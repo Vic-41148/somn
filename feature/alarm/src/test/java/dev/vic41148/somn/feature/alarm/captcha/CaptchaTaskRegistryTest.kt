@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * Covers [CaptchaTaskRegistry.resolveTask] — the shared per-alarm-vs-global precedence used by
+ * Covers [CaptchaTaskRegistry.resolveTask], the shared per-alarm-vs-global precedence used by
  * both [dev.vic41148.somn.feature.alarm.ui.AlarmActivity] and the in-app firing screen.
  *
  * This was the exact gap the alarm deep-dive flagged: the per-alarm `captchaType` was decorative
@@ -81,7 +81,7 @@ class CaptchaTaskRegistryTest {
     fun resolveTask_returnsFreshTask_resetEachCall() {
         val first = CaptchaTaskRegistry.resolveTask("MATH", globalMath, null)
         val second = CaptchaTaskRegistry.resolveTask("MATH", globalMath, null)
-        // Registry hands out singletons, so both calls return the same instance — but each call
+        // Registry hands out singletons, so both calls return the same instance, but each call
         // must reset it so a solved state from a previous firing episode never leaks forward.
         assertThat(first).isSameInstanceAs(second)
         assertThat(first?.isComplete()).isFalse()
@@ -105,7 +105,7 @@ class CaptchaTaskRegistryTest {
 
     @Test
     fun perAlarmNFC_onDeviceWithoutNfc_fallsBackToGlobalPreference() {
-        // A tag-tap captcha on hardware that can't read tags can never be solved — same
+        // A tag-tap captcha on hardware that can't read tags can never be solved, same
         // lock-out rule as QR-without-a-value: fall back to the global preference.
         val task = CaptchaTaskRegistry.resolveTask(
             perAlarmType = "NFC",
@@ -140,7 +140,7 @@ class CaptchaTaskRegistryTest {
 
     @Test
     fun perAlarmNFC_onDeviceWithoutNfc_globalQrWithoutValue_fallsBackToMath() {
-        // The NFC fallback lands on the global "qrcode" task — but with no QR value configured
+        // The NFC fallback lands on the global "qrcode" task, but with no QR value configured
         // that is equally unsolvable, so the QR check must apply to the *final* task too.
         val task = CaptchaTaskRegistry.resolveTask(
             perAlarmType = "NFC",

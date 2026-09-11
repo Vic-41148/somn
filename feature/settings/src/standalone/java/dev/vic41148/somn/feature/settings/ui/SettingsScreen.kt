@@ -1,0 +1,1637 @@
+package dev.vic41148.somn.feature.settings.ui
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.provider.Settings
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import zxingcpp.BarcodeReader
+import dev.vic41148.somn.core.domain.haptic.HapticsIntensity
+import dev.vic41148.somn.core.domain.model.HealthConnectStatus
+import dev.vic41148.somn.core.domain.model.HemisphereOverride
+import dev.vic41148.somn.core.domain.model.TrackingMode
+import dev.vic41148.somn.core.ui.haptic.LocalHaptics
+import dev.vic41148.somn.feature.settings.SettingsViewModel
+import dev.vic41148.somn.feature.settings.updates.UpdatesSection
+import java.util.concurrent.Executors
+import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
+
+@Composable
+fun SettingsScreen(
+    viewModel: SettingsViewModel = hiltViewModel(),
+    onNavigateToWindDownToolkit: () -> Unit = {},
+    onNavigateToDataExport: () -> Unit = {},
+    onNavigateToUpdates: () -> Unit = {},
+    onNavigateToBreathing: () -> Unit = {},
+    onNavigateToCognitiveWindDown: () -> Unit = {},
+    onNavigateToADHDCooldown: () -> Unit = {},
+    onNavigateToMenoSurvey: () -> Unit = {},
+    onNavigateToLicenses: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val settings by viewModel.settings.collectAsState()
+    val profile by viewModel.userProfile.collectAsState()
+    val menoAnswers by viewModel.menoAnswers.collectAsState()
+    val exportStatus by viewModel.exportStatus.collectAsState()
+    val importStatus by viewModel.importStatus.collectAsState()
+    val clipDeletionStatus by viewModel.clipDeletionStatus.collectAsState()
+    val haptics = LocalHaptics.current
+
+    // The raw-vibrator path bypasses the system's automatic touch-feedback gating, so when the
+    // OS-level toggle is off the user should know why some effects feel muted rather than wonder.
+    val systemTouchFeedbackEnabled = remember {
+        Settings.System.getInt(
+            context.contentResolver,
+            Settings.System.HAPTIC_FEEDBACK_ENABLED,
+            1
+        ) != 0
+    }
+
+    // Async operation results (export/import/NAS test) used to be plain Text sitting in a long
+    // scrolling layout - easy to miss, never dismissed itself, no action. Snackbars instead.
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(exportStatus) {
+        exportStatus?.let { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(importStatus) {
+        importStatus?.let { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(settings.nasTestResult) {
+        settings.nasTestResult?.let { snackbarHostState.showSnackbar(it) }
+    }
+    LaunchedEffect(clipDeletionStatus) {
+        clipDeletionStatus?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearClipDeletionStatus()
+        }
+    }
+
+    Scaffold(
+        // This screen sits inside the app-level Scaffold's NavHost, which already consumed the
+        // system-bar insets (innerPadding + imePadding). Re-applying them here double-pads the top
+        // (~90px) and pushes the whole screen down, see Notes in SleepNavGraph.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        // Lifted clear of the floating dock, which overlays content.
+        snackbarHost = { SnackbarHost(snackbarHostState, modifier = Modifier.padding(bottom = 88.dp)) }
+    ) { scaffoldPadding ->
+    // Lazy so a cold entry composes only the visible rows instead of all ~20 sections:
+    // opening Settings used to drop 600ms+ frames and visibly hitch the tab animation.
+    // Hoisted above the LazyColumn: item-scoped remember state would reset
+    // whenever its section scrolls out of view (typed NAS password included).
+    var showQrSetup by remember { mutableStateOf(false) }
+    var confirmingClipDeletion by remember { mutableStateOf(false) }
+    var confirmingHabitPurge by remember { mutableStateOf(false) }
+    var confirmingOldSessionPurge by remember { mutableStateOf(false) }
+    var confirmingFullWipe by remember { mutableStateOf(false) }
+        var nasPortInput by rememberSaveable { mutableStateOf(settings.nasPort.toString()) }
+        var nasPasswordInput by remember { mutableStateOf("") }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) showQrSetup = true
+    }
+    val listState = rememberLazyListState()
+    // Settings search lives above the LazyColumn: item-scoped remember would reset
+    // the query whenever the field scrolls out of view (same reason the other
+    // form state is hoisted). Each section below declares its own match terms.
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+    val searchTrimmed = searchQuery.trim()
+    fun settingMatches(vararg haystacks: String): Boolean =
+        searchTrimmed.isBlank() || haystacks.any { it.contains(searchTrimmed, ignoreCase = true) }
+    val showUpdates = settingMatches("Updates", "update", "upgrade", "OTA", "new version", "download", "check")
+    val showSleepTarget = settingMatches("Sleep Target", "target", "goal", "hours", "bedtime")
+    val showRecovery = settingMatches("Recovery", "rest mode", "sick", "injured", "streak", "baseline")
+    val showCycle = settingMatches("Cycle & hormones", "cycle", "hormone", "menopause", "period", "check-in", "symptom")
+    val showHaptics = settingMatches("Haptics", "haptic", "vibration", "vibrate", "feedback", "intensity", "tap")
+    val showAbout = settingMatches("About", "about", "app lock", "lock", "biometric", "PIN", "license", "open source", "version")
+    val showAppearance = settingMatches("Appearance", "appearance", "theme", "dark", "light", "wallpaper", "dynamic color", "morning ready")
+    val showWakeVerify = settingMatches("Wake-Up Verification", "wake", "verification", "awake", "confirm", "alarm")
+    val showSnore = settingMatches("Anti-Snore Nudge", "snore", "snoring", "nudge", "vibrate")
+    val showSleepTalk = settingMatches("Sleep-Talk Recordings", "sleep talk", "recording", "microphone", "audio", "clip", "retention", "delete")
+    val showDeleteData = settingMatches("Delete Data", "delete", "erase", "wipe", "purge", "reset", "remove")
+    val showSensor = settingMatches("Sensor Mode", "sensor", "accelerometer", "sonar", "tracking mode", "contactless", "pets", "nightstand")
+    val showBattery = settingMatches("Battery Threshold", "battery", "threshold", "standby", "percent", "level")
+    val showOversleep = settingMatches("Oversleep Threshold", "oversleep", "target", "late", "past")
+    val showSeasonal = settingMatches("Seasonal Analysis", "seasonal", "season", "timezone", "hemisphere", "winter", "summer")
+    val showCaptcha = settingMatches("Alarm CAPTCHA", "captcha", "alarm", "dismiss", "task", "QR", "math", "camera")
+    val showExport = settingMatches("Data Export & Backup", "export", "backup", "restore", "import", "CSV", "JSON", "recovery key")
+    val showNas = settingMatches("NAS Sync", "NAS", "sync", "WebDAV", "server", "host", "self-hosted", "upload", "HTTPS", "password")
+    val showHealth = settingMatches("Health Connect", "health", "connect", "sync", "share")
+    val showExperimental = settingMatches("Experimental", "experimental", "beta", "YAMNet", "ML", "model", "audio classification", "download")
+    val showWindDown = settingMatches("Wind-Down Toolkit", "wind down", "wind-down", "toolkit", "breathing", "relax", "cognitive", "ADHD", "cooldown")
+    val anySectionVisible = showUpdates || showSleepTarget || showRecovery || showCycle ||
+        showHaptics || showAbout || showAppearance || showWakeVerify || showSnore ||
+        showSleepTalk || showDeleteData || showSensor || showBattery || showOversleep ||
+        showSeasonal || showCaptcha || showExport || showNas || showHealth ||
+        showExperimental || showWindDown
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(scaffoldPadding),
+        contentPadding = PaddingValues(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Search sits right under the title so it is visible on entry, sections
+        // below only compose when they match.
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                placeholder = { Text("Search settings") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search settings") },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
+            )
+        }
+        // Sleep
+        if (showSleepTarget || showOversleep || showSeasonal || showWindDown) item {
+            SettingCategory(title = "Sleep", forceExpand = searchQuery.isNotBlank()) {
+
+            // Sleep Target
+            if (showSleepTarget) SettingSection(title = "Sleep Target") {
+                    SliderWithValueLabel(
+                        value = settings.targetSleepHours,
+                        onValueChange = { viewModel.updateSleepTarget(it) },
+                        valueRange = 5f..12f,
+                        steps = 13,
+                        valueLabel = String.format("%.1f hours", settings.targetSleepHours),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+
+        
+
+            // Oversleep Threshold (SESS-03)
+            if (showOversleep) SettingSection(title = "Oversleep Threshold") {
+                    val hours = settings.oversleepThresholdMinutes / 60
+                    val mins = settings.oversleepThresholdMinutes % 60
+                    Text(
+                        text = if (hours > 0) "${hours}h ${mins}m past target" else "${mins}m past target",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Flag a session as oversleep once it runs this far beyond your target sleep hours.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Small slider with the same floating-value style as "Sleep Target", but snapped to
+                    // 30-minute steps (30m / 1h / 1h30 / 2h / 2h30 / 3h) so it stays compact. The value
+                    // shown on the thumb repeats the header above, keeping units obvious.
+                    SliderWithValueLabel(
+                        value = settings.oversleepThresholdMinutes.toFloat(),
+                        onValueChange = { viewModel.updateOversleepThresholdMinutes(it.roundToInt()) },
+                        valueRange = 30f..180f,
+                        steps = 4,
+                        valueLabel = oversleepLabel(settings.oversleepThresholdMinutes),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+
+        
+
+            // Seasonal Analysis - hemisphere override for the seasons used in circadian insights.
+            // The default AUTO uses the device-timezone heuristic, travelers near the equator or on
+            // the wrong side of a timezone boundary can pin the correct hemisphere here.
+            if (showSeasonal) SettingSection(title = "Seasonal Analysis") {
+                    Text(
+                        text = "Seasons are detected from your timezone. If the app labels the wrong " +
+                            "season for your location, set your hemisphere here.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HemisphereOverride.entries.forEach { override ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    haptics.tick()
+                                    viewModel.updateHemisphereOverride(override)
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = settings.hemisphereOverride == override,
+                                onClick = {
+                                    haptics.tick()
+                                    viewModel.updateHemisphereOverride(override)
+                                }
+                            )
+                            Text(text = override.displayName, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+
+
+        
+
+            // Wind-Down Toolkit
+            if (showWindDown) SettingSection(title = "Wind-Down Toolkit") {
+                    Button(
+                        onClick = onNavigateToBreathing,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Breathing Exercise (4-7-8)")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onNavigateToCognitiveWindDown,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cognitive Dump")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onNavigateToADHDCooldown,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("ADHD Cooldown")
+                    }
+                }
+            }
+        }
+
+        // Tracking
+        if (showSensor || showBattery || showRecovery || showSnore || showSleepTalk) item {
+            SettingCategory(title = "Tracking", forceExpand = searchQuery.isNotBlank()) {
+
+            // Tracking (sensor selection + standby control)
+            if (showSensor) SettingSection(title = "Sensor Mode") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Accelerometer button
+                        Button(
+                            onClick = {
+                                haptics.tick()
+                                viewModel.updateTrackingMode(TrackingMode.ACCELEROMETER)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = if (settings.trackingMode == TrackingMode.ACCELEROMETER)
+                                ButtonDefaults.buttonColors()
+                            else
+                                ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text(
+                                "Accelerometer",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Spacer(modifier = Modifier.padding(horizontal = 4.dp))
+                        // Sonar button
+                        Button(
+                            onClick = {
+                                haptics.tick()
+                                viewModel.updateTrackingMode(TrackingMode.SONAR)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = if (settings.trackingMode == TrackingMode.SONAR)
+                                ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiary
+                                )
+                            else
+                                ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text(
+                                "Sonar (Beta)",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (settings.trackingMode == TrackingMode.ACCELEROMETER) {
+                        Text(
+                            text = "Accelerometer - phone on the bed, low battery usage.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            text = "Sonar (Beta) - contactless, phone on nightstand. "
+                                + "Uses speaker + mic continuously. Significantly higher battery drain.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Pets and partners moving may affect accuracy. "
+                                + "Test on a physical device only.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (!settings.bystanderNoticeShown) {
+                            BystanderNoticeDialog(onDismiss = { viewModel.dismissBystanderNotice() })
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SettingToggle(
+                        title = "Auto Do Not Disturb",
+                        checked = settings.dndEnabled,
+                        onCheckedChange = { viewModel.updateDndEnabled(it) }
+                    )
+                }
+
+
+            // Battery Threshold
+            if (showBattery) SettingSection(title = "Battery Threshold") {
+                    Text(
+                        text = "${settings.batteryThreshold}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Tracking enters standby mode below this level.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // Same floating-value slider as the other thresholds, snapped to 5-point steps
+                    // (5/10/15/20/25/30). The value shown on the thumb repeats the header above.
+                    SliderWithValueLabel(
+                        value = settings.batteryThreshold.toFloat(),
+                        onValueChange = { viewModel.updateBatteryThreshold(it.roundToInt()) },
+                        valueRange = 5f..30f,
+                        steps = 4,
+                        valueLabel = "${settings.batteryThreshold}%",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+
+            // R2 Rest Mode, sick/injured nights stop counting: streak freezes, sick
+            // nights leave baselines and correlations, Outlook switches to recovery copy.
+            if (showRecovery) SettingSection(title = "Recovery") {
+                    SettingToggle(
+                        title = "Rest Mode",
+                        checked = settings.restModeSince != null,
+                        onCheckedChange = { viewModel.setRestMode(it) }
+                    )
+                    Text(
+                        text = if (settings.restModeSince != null) {
+                            "On. Nights logged now will not move your streak or baselines. " +
+                                "Turn it off when you are back and counting resumes."
+                        } else {
+                            "Turn on while sick or injured so bad nights do not poison " +
+                                "your streak, baselines, or correlations."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+
+            // Anti-Snore Nudge
+            if (showSnore) SettingSection(title = "Anti-Snore Nudge") {
+                    SettingToggle(
+                        title = "Vibrate on Snoring",
+                        checked = settings.snoreNudgeEnabled,
+                        onCheckedChange = { viewModel.updateSnoreNudgeEnabled(it) }
+                    )
+                }
+
+
+            // Sleep-talk recording retention. These clips are the most sensitive thing the app
+            // stores, so the retention window is surfaced here rather than buried in a backup screen.
+            if (showSleepTalk) SettingSection(title = "Sleep-Talk Recordings") {
+                    val retentionDays = settings.clipRetentionDays
+                    Text(
+                        text = "Somn saves a short audio clip when it detects you talking in your sleep. " +
+                            "Set this to \"keep forever\" only if you want them to stay on the device indefinitely.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SliderWithValueLabel(
+                        value = retentionDays.toFloat(),
+                        onValueChange = { viewModel.updateClipRetentionDays(it.toInt()) },
+                        // 0 is the "keep forever" sentinel, so the slider's floor doubles as the opt-out.
+                        valueRange = 0f..30f,
+                        steps = 29,
+                        valueLabel = if (retentionDays <= 0) "Kept until you delete them" else
+                            "Deleted after $retentionDays day${if (retentionDays == 1) "" else "s"}",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedButton(
+                        onClick = { confirmingClipDeletion = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Delete all recordings now")
+                    }
+
+                    if (confirmingClipDeletion) {
+                        AlertDialog(
+                            onDismissRequest = { confirmingClipDeletion = false },
+                            title = { Text("Delete all recordings?") },
+                            text = {
+                                Text(
+                                    "Every sleep-talk audio clip on this device will be permanently " +
+                                        "deleted. Your sleep history and the events themselves are kept - " +
+                                        "only the audio goes. This cannot be undone."
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    confirmingClipDeletion = false
+                                    viewModel.deleteAllAudioClips()
+                                }) {
+                                    Text("Delete")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { confirmingClipDeletion = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Alarm
+        if (showCaptcha || showWakeVerify) item {
+            SettingCategory(title = "Alarm", forceExpand = searchQuery.isNotBlank()) {
+
+        
+
+            // Alarm CAPTCHA
+            if (showCaptcha) SettingSection(title = "Alarm CAPTCHA") {
+                    val hasCameraPermission = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.CAMERA
+                    ) == PackageManager.PERMISSION_GRANTED
+
+
+                    Text(
+                        text = "Require a task to dismiss the morning alarm.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val tasks = listOf(
+                        "math" to "Basic Math",
+                        "shake" to "Physical Shake",
+                        "sequence" to "Typed Sequence",
+                        "qrcode" to "QR Code Scan",
+                        "nfc" to "NFC Tag Tap"
+                    )
+
+                    tasks.forEach { (id, label) ->
+                        val selected = settings.selectedCaptchaTaskId == id
+                        val rowColor by animateColorAsState(
+                            targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer
+                            else Color.Transparent,
+                            animationSpec = tween(180),
+                            label = "captchaRowColor"
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(rowColor)
+                                .clickable { viewModel.updateCaptchaTask(id) }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selected,
+                                onClick = { viewModel.updateCaptchaTask(id) }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = label, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    if (settings.selectedCaptchaTaskId == "qrcode") {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                if (hasCameraPermission) showQrSetup = true
+                                else launcher.launch(Manifest.permission.CAMERA)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (settings.qrCodeValue == null) "Set up QR Code" else "Update QR Code"
+                            )
+                        }
+                        if (settings.qrCodeValue != null) {
+                            Text(
+                                text = "QR Code configured",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+
+                    if (showQrSetup) {
+                        QRSetupDialog(
+                            onDismiss = { showQrSetup = false },
+                            onScanSuccess = {
+                                viewModel.updateQRCodeValue(it)
+                                showQrSetup = false
+                            }
+                        )
+                    }
+                }
+
+
+            // Wake-Up Verification (WAKE-01/02)
+            if (showWakeVerify) SettingSection(title = "Wake-Up Verification") {
+                    SettingToggle(
+                        title = "Confirm You Are Awake",
+                        checked = settings.wakeVerificationEnabled,
+                        onCheckedChange = { viewModel.updateWakeVerificationEnabled(it) }
+                    )
+                    if (settings.wakeVerificationEnabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SliderWithValueLabel(
+                            value = settings.wakeVerificationWindowSeconds.toFloat(),
+                            onValueChange = { viewModel.updateWakeVerificationWindowSeconds(it.toInt()) },
+                            valueRange = 5f..60f,
+                            steps = 10,
+                            valueLabel = "${settings.wakeVerificationWindowSeconds}s to confirm",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+
+        // Appearance
+        if (showAppearance || showHaptics) item {
+            SettingCategory(title = "Appearance", forceExpand = searchQuery.isNotBlank()) {
+
+            // Appearance (THEME-01)
+            if (showAppearance) SettingSection(title = "Appearance") {
+                    SettingToggle(
+                        title = "Match My Wallpaper",
+                        checked = settings.useDynamicColor,
+                        onCheckedChange = { viewModel.updateUseDynamicColor(it) }
+                    )
+                    SettingToggle(
+                        title = "Morning Ready Card",
+                        checked = settings.showReadinessCard,
+                        onCheckedChange = { viewModel.updateShowReadinessCard(it) }
+                    )
+                }
+
+
+            // Haptics - app-wide feedback master switch with intensity, a live preview so the user can
+            // feel the current combo without triggering a real event, and a note when the system-level
+            // toggle would mute some effects. Near the top because it affects the whole app, not a
+            // single feature.
+            if (showHaptics) SettingSection(title = "Haptics") {
+                    SettingToggle(
+                        title = "Haptic Feedback",
+                        checked = settings.hapticsEnabled,
+                        onCheckedChange = { viewModel.updateHapticsEnabled(it) }
+                    )
+                    Text(
+                        text = "Feel a tap for toggles, confirmations, and completed background tasks.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!systemTouchFeedbackEnabled && settings.hapticsEnabled) {
+                        Text(
+                            text = "System touch feedback is off - some effects may be muted. " +
+                                "Fix in phone settings.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    if (settings.hapticsEnabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Intensity",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val intensityOptions = HapticsIntensity.entries
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            intensityOptions.forEachIndexed { index, intensity ->
+                                SegmentedButton(
+                                    selected = settings.hapticsIntensity == intensity,
+                                    onClick = {
+                                        haptics.tick()
+                                        viewModel.updateHapticsIntensity(intensity)
+                                    },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = index,
+                                        count = intensityOptions.size
+                                    ),
+                                    label = { Text(intensity.label) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = { haptics.preview() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Tap to feel it")
+                        }
+                    }
+                }
+            }
+        }
+
+        // Health
+        if (showHealth || showCycle) item {
+            SettingCategory(title = "Health", forceExpand = searchQuery.isNotBlank()) {
+
+        
+
+            // Health Connect (HEALTH-01..04)
+            if (showHealth) SettingSection(title = "Health Connect") {
+                    val healthConnectContract = remember(viewModel) { viewModel.healthConnectPermissionsContract() }
+                    val permissionLauncher = rememberLauncherForActivityResult(
+                        contract = healthConnectContract
+                    ) {
+                        viewModel.refreshHealthConnectStatus()
+                    }
+
+                    SettingToggle(
+                        title = "Sync with Health Connect",
+                        checked = settings.healthConnectEnabled,
+                        onCheckedChange = { viewModel.updateHealthConnectEnabled(it) }
+                    )
+
+                    if (settings.healthConnectEnabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val (statusText, statusColor) = when (settings.healthConnectStatus) {
+                            HealthConnectStatus.AUTHORIZED -> "Connected" to MaterialTheme.colorScheme.primary
+                            HealthConnectStatus.NOT_AUTHORIZED -> "Not authorized" to MaterialTheme.colorScheme.error
+                            HealthConnectStatus.UNAVAILABLE -> "Health Connect is not installed on this device" to MaterialTheme.colorScheme.error
+                        }
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = statusColor
+                        )
+
+                        if (settings.healthConnectStatus == HealthConnectStatus.NOT_AUTHORIZED) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = { permissionLauncher.launch(viewModel.healthConnectRequiredPermissions) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Connect Health Connect")
+                            }
+                        }
+
+                        // HEALTH-04: writeSleepSession() silently skips a session whenever another source
+                        // already wrote overlapping sleep data (dedup), and that skip is permanent - the
+                        // session's healthConnectRecordId stays null forever, so it would otherwise never be
+                        // surfaced anywhere. This count also includes sessions simply not synced yet, so
+                        // it is worded as "haven't reached" rather than claiming they were all dedup-skipped.
+                        if (settings.healthConnectStatus == HealthConnectStatus.AUTHORIZED && settings.healthConnectUnsyncedCount > 0) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (settings.healthConnectUnsyncedCount == 1)
+                                    "1 session has not reached Health Connect yet - " +
+                                        "either not synced, or another app already recorded overlapping sleep for that night."
+                                else
+                                    "${settings.healthConnectUnsyncedCount} sessions have not reached Health Connect yet - " +
+                                        "either not synced, or another app already recorded overlapping sleep for that night.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+
+            // R5: menopause check-in lives here so the peri/meno stages Somn already
+            // models get Oura's questionnaire mechanic as pure UI over prefs.
+            if (showCycle) SettingSection(title = "Cycle & hormones") {
+                if (profile?.showMenopauseFeatures == true) {
+                        Text(
+                            text = "Menopause check-in: 10 questions on how symptoms have " +
+                                "bothered you the last 2 weeks, with an honest read at the end.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(onClick = onNavigateToMenoSurvey) {
+                            Text(
+                                if (menoAnswers != null) "Review check-in"
+                                else "Start check-in"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Data
+        if (showExport || showNas || showDeleteData) item {
+            SettingCategory(title = "Data", forceExpand = searchQuery.isNotBlank()) {
+        
+        
+
+            // Data export / backup / import is the one section that outgrew a card - pushing ~6 URLs,
+            // file pickers and destructive actions into a single scrolling group. Moved to its own
+            // screen, this row is just the pointer.
+            if (showExport) SettingSection(title = "Data Export & Backup") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable(onClick = onNavigateToDataExport)
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Backup, restore, export & import",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Backups, recovery key, CSV/JSON export, Sleep as Android import",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+
+        
+
+            // NAS / Self-Hosted Backup
+            if (showNas) SettingSection(title = "NAS Sync (Self-Hosted)") {
+                    SettingToggle(
+                        title = "Enable NAS Sync",
+                        checked = settings.nasEnabled,
+                        onCheckedChange = { viewModel.updateNasEnabled(it) }
+                    )
+
+                    if (settings.nasEnabled) {
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Protocol - WebDAV is the only transport NasProtocol defines (REL-05). Kept as a
+                        // labelled read-only row rather than a one-option picker so adding a second
+                        // transport later is a UI change, not a re-layout.
+                        Text(
+                            text = "Protocol",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "WebDAV",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "SMB and NFS support are planned for a future release.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Host
+                        OutlinedTextField(
+                            value = settings.nasHost,
+                            onValueChange = { viewModel.updateNasHost(it) },
+                            label = { Text("Host / IP") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Port + Path row. The port field keeps a local string state so clearing it to type a new
+                        // value does not snap it back to the default via the repository flow's emission.
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = nasPortInput,
+                                onValueChange = {
+                                    nasPortInput = it
+                                    it.toIntOrNull()?.let { viewModel.updateNasPort(it) }
+                                },
+                                label = { Text("Port") },
+                                singleLine = true,
+                                modifier = Modifier.weight(0.3f)
+                            )
+                            OutlinedTextField(
+                                value = settings.nasPath,
+                                onValueChange = { viewModel.updateNasPath(it) },
+                                label = { Text("Path") },
+                                singleLine = true,
+                                modifier = Modifier.weight(0.7f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Transport security is an explicit switch, not something inferred from the port.
+                        SettingToggle(
+                            title = "Use HTTPS",
+                            checked = settings.nasUseHttps,
+                            onCheckedChange = { viewModel.updateNasUseHttps(it) }
+                        )
+                        if (!settings.nasUseHttps) {
+                            Text(
+                                text = "HTTPS is off. Credentials would be sent unencrypted, and the " +
+                                    "connection will be refused by Android.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Username
+                        OutlinedTextField(
+                            value = settings.nasUsername,
+                            onValueChange = { viewModel.updateNasUsername(it) },
+                            label = { Text("Username") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Password - write-only: encrypted via Android Keystore, never read back (REL-06)
+                        OutlinedTextField(
+                            value = nasPasswordInput,
+                            onValueChange = {
+                                nasPasswordInput = it
+                                viewModel.updateNasPassword(it)
+                            },
+                            label = { Text("Password") },
+                            placeholder = { Text("Leave blank to keep existing") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Test + Sync buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { viewModel.testNasConnection() },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors()
+                            ) {
+                                Text("Test Connection")
+                            }
+                            Button(
+                                onClick = { viewModel.triggerNasSync(context) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Sync Now")
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "The app encrypts all uploads with AES-256-GCM via the Android Keystore.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+
+            // R2 per-category purge, Oura-style selective deletion without an account to
+            // delete. Each category confirms separately, each reports through the shared
+            // deletion status snackbar.
+            if (showDeleteData) SettingSection(title = "Delete Data") {
+                    OutlinedButton(
+                        onClick = { confirmingHabitPurge = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Clear all habit logs")
+                    }
+                    if (confirmingHabitPurge) {
+                        AlertDialog(
+                            onDismissRequest = { confirmingHabitPurge = false },
+                            title = { Text("Clear habit logs?") },
+                            text = {
+                                Text(
+                                    "Every caffeine, alcohol, exercise, stress and medication " +
+                                        "entry will be permanently deleted. Sleep sessions are kept. " +
+                                        "This cannot be undone."
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    confirmingHabitPurge = false
+                                    viewModel.purgeHabitLogs()
+                                }) {
+                                    Text("Delete")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { confirmingHabitPurge = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = { confirmingOldSessionPurge = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Delete sessions older than 90 days")
+                    }
+                    if (confirmingOldSessionPurge) {
+                        AlertDialog(
+                            onDismissRequest = { confirmingOldSessionPurge = false },
+                            title = { Text("Delete old sessions?") },
+                            text = {
+                                Text(
+                                    "Completed sessions older than 90 days will be permanently " +
+                                        "deleted, with their audio clips, epochs and vitals. " +
+                                        "This cannot be undone."
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    confirmingOldSessionPurge = false
+                                    viewModel.purgeOldSessions()
+                                }) {
+                                    Text("Delete")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { confirmingOldSessionPurge = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = { confirmingFullWipe = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Delete everything")
+                    }
+                    if (confirmingFullWipe) {
+                        AlertDialog(
+                            onDismissRequest = { confirmingFullWipe = false },
+                            title = { Text("Delete everything?") },
+                            text = {
+                                Text(
+                                    "Every sleep session, habit log, tag, recording, and setting " +
+                                        "on this device will be permanently deleted. Somn restarts " +
+                                        "as a fresh install. This cannot be undone."
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    confirmingFullWipe = false
+                                    viewModel.wipeEverything()
+                                }) {
+                                    Text(
+                                        "Delete everything",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { confirmingFullWipe = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        // About
+        if (showAbout || showExperimental || showUpdates) item {
+            SettingCategory(title = "About", forceExpand = searchQuery.isNotBlank()) {
+
+            // About
+            if (showAbout) SettingSection(title = "About") {
+                    Image(
+                        painter = painterResource(
+                            id = dev.vic41148.somn.core.ui.R.drawable.img_somn_logotype_mask
+                        ),
+                        contentDescription = "Somn logo",
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                            MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SettingToggle(
+                        title = "Lock Somn on start",
+                        checked = settings.appLockEnabled,
+                        onCheckedChange = { viewModel.updateAppLockEnabled(it) }
+                    )
+                    Text(
+                        text = "Ask for biometrics or the device PIN before showing your sleep " +
+                            "data. Tracking, alarms, and backups keep running while locked.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .clickable(onClick = onNavigateToLicenses)
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Open source licenses",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Every bundled library and its license",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    CrashLogRow(context = context)
+                }
+
+
+        
+
+            // Experimental: YAMNet audio classification (Task 14, AUDIO-01)
+            if (showExperimental) SettingSection(title = "Experimental") {
+                    val yamnetState by viewModel.yamnetModelState.collectAsState()
+
+                    // Toggling ON is consent-gated: with the model already verified on disk it turns on
+                    // immediately, otherwise the download consent dialog is raised first.
+                    SettingToggle(
+                        title = "ML Audio Classification (YAMNet)",
+                        checked = settings.yamnetClassificationEnabled,
+                        onCheckedChange = { viewModel.onYamnetToggle(it) }
+                    )
+
+                    when (val state = yamnetState) {
+                        is SettingsViewModel.YamnetModelState.Idle -> {
+                            // Enabling the toggle above moves us to ConfirmingDownload. This hint covers
+                            // the leftover setting on a fresh install whose model was never downloaded.
+                            if (settings.yamnetClassificationEnabled) {
+                                Text(
+                                    text = "Model not downloaded yet - switch it off and on to download.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        is SettingsViewModel.YamnetModelState.ConfirmingDownload -> {
+                            AlertDialog(
+                                onDismissRequest = { viewModel.dismissYamnetModelDialog() },
+                                title = { Text("Download ML model?") },
+                                text = {
+                                    Text(
+                                        "This downloads the ~4 MB YAMNet audio model once over the " +
+                                            "internet (HTTPS, checksum-verified, open-source Apache-2.0). " +
+                                            "It then runs entirely " +
+                                            "on-device - audio never leaves your phone."
+                                    )
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = { viewModel.confirmYamnetDownload() }) {
+                                        Text("Download")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { viewModel.dismissYamnetModelDialog() }) {
+                                        Text("Not now")
+                                    }
+                                }
+                            )
+                        }
+                        is SettingsViewModel.YamnetModelState.Downloading -> {
+                            Column(modifier = Modifier.padding(top = 8.dp)) {
+                                LinearProgressIndicator(
+                                    progress = { state.progress ?: 0f },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Downloading model...",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        is SettingsViewModel.YamnetModelState.Error -> {
+                            Column(modifier = Modifier.padding(top = 8.dp)) {
+                                Text(
+                                    text = "Model download failed: ${state.message}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                TextButton(onClick = { viewModel.confirmYamnetDownload() }) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                        is SettingsViewModel.YamnetModelState.Ready -> {
+                            // Model on disk - toggle alone is the whole surface.
+                        }
+                    }
+                }
+
+
+            // Updates (OTA)
+            if (showUpdates)
+                UpdatesSection(
+                    onNavigateToUpdates = onNavigateToUpdates,
+                    onNavigateToBackupSetup = onNavigateToDataExport
+                )
+            }
+        }
+
+        // About - version comes from the installed package (PackageInfo) so it always matches the
+        // channel actually installed (0.1.2 vs 0.1.2-store and future releases), never a stale
+        // hardcoded constant.
+        // Footers stay out of search results, they are version furniture, not settings.
+        if (searchTrimmed.isBlank()) item {
+            // PackageManager is binder IPC: resolving it during composition would hitch
+            // the tab animation, so the footer fills in a frame later.
+            val appVersion by produceState(initialValue = "") {
+                value = withContext(Dispatchers.IO) {
+                    runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+                        .getOrNull() ?: ""
+                }
+            }
+            Text(
+                text = "Somn v$appVersion",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (searchTrimmed.isBlank()) item {
+            Text(
+                text = "Open source • Privacy first • No subscriptions",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (searchTrimmed.isNotBlank() && !anySectionVisible) {
+            item {
+                Text(
+                    text = "No settings match \"$searchTrimmed\".",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+    }
+}
+
+@Composable
+private fun QRSetupDialog(
+    onDismiss: () -> Unit,
+    onScanSuccess: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth().height(450.dp),
+            shape = MaterialTheme.shapes.large
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Setup QR Code",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Scan the QR code you want to use for alarm dismissal. Scan something far from your bed!",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(vertical = 8.dp)
+                ) {
+                    AndroidView(
+                        factory = { ctx ->
+                            val previewView = PreviewView(ctx)
+                            val executor = Executors.newSingleThreadExecutor()
+                            val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+
+                            cameraProviderFuture.addListener({
+                                val cameraProvider = cameraProviderFuture.get()
+                                val preview = Preview.Builder().build().apply {
+                                    surfaceProvider = previewView.surfaceProvider
+                                }
+
+                                val barcodeReader = BarcodeReader()
+                                val imageAnalysis = ImageAnalysis.Builder()
+                                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                    .build()
+
+                                // zxing-cpp decodes synchronously on the analyzer executor.
+                                // use() closes the ImageProxy exactly once so CameraX keeps
+                                // delivering frames.
+                                imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                                    val results = try {
+                                        imageProxy.use { barcodeReader.read(it) }
+                                    } catch (e: Exception) {
+                                        Log.e("QRSetup", "QR scan failed", e)
+                                        return@setAnalyzer
+                                    }
+                                    results.firstOrNull { it.text != null }?.text?.let(onScanSuccess)
+                                }
+
+                                try {
+                                    cameraProvider.unbindAll()
+                                    cameraProvider.bindToLifecycle(
+                                        lifecycleOwner,
+                                        CameraSelector.DEFAULT_BACK_CAMERA,
+                                        preview,
+                                        imageAnalysis
+                                    )
+                                } catch (e: Exception) {
+                                    Log.e("QRSetup", "Camera binding failed", e)
+                                }
+                            }, ContextCompat.getMainExecutor(ctx))
+                            previewView
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cancel")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingSection(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedCard(shape = RoundedCornerShape(20.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/**
+ * One broad settings category holding several [SettingSection]s under their
+ * own headings. Rests collapsed, an active search forces matches open.
+ */
+@Composable
+internal fun SettingCategory(
+    title: String,
+    forceExpand: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    // Categories rest collapsed, an active search forces matches open.
+    var expanded by remember { mutableStateOf(false) }
+    val open = expanded || forceExpand
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(
+                    onClickLabel = if (open) "Collapse $title" else "Expand $title",
+                    role = Role.Button
+                ) { expanded = !expanded }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (open) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        AnimatedVisibility(
+            visible = open,
+            enter = expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) + fadeIn(animationSpec = tween(durationMillis = 150)),
+            exit = shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) + fadeOut(animationSpec = tween(durationMillis = 100))
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Spacer(modifier = Modifier.height(4.dp))
+                content()
+            }
+        }
+    }
+}
+
+/**
+ * An M3 [Slider] with a live value callout floating above the thumb - replaces the old "label
+ * line above the slider" pattern, which read as two separate controls. Slot above the track is a
+ * fixed-height strip, the callout centers itself on the thumb via the same geometry the slider
+ * uses (thumb travels between one thumb-radius inset and width-inset).
+ */
+@Composable
+private fun SliderWithValueLabel(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    valueLabel: String,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val thumbRadius = with(density) { 10.dp.toPx() }
+    val fraction = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start))
+        .coerceIn(0f, 1f)
+
+    var stripWidthPx by remember { mutableIntStateOf(0) }
+    var labelWidthPx by remember { mutableIntStateOf(0) }
+    var labelHeightPx by remember { mutableIntStateOf(0) }
+
+    val haptics = LocalHaptics.current
+    var lastHapticTickValue by remember { mutableFloatStateOf(value) }
+    val stepSize = (valueRange.endInclusive - valueRange.start) / (steps + 1)
+
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .onSizeChanged { stripWidthPx = it.width }
+        ) {
+            Text(
+                text = valueLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .onSizeChanged {
+                        labelWidthPx = it.width
+                        labelHeightPx = it.height
+                    }
+                    .offset {
+                        val travelPx = stripWidthPx - 2f * thumbRadius
+                        val x = (thumbRadius + fraction * travelPx - labelWidthPx / 2f)
+                            .coerceIn(0f, (stripWidthPx - labelWidthPx).coerceAtLeast(0).toFloat())
+                        IntOffset(x.roundToInt(), -labelHeightPx / 2)
+                    }
+            )
+        }
+        Slider(
+            value = value,
+            onValueChange = { newValue ->
+                // Physical-image haptics: one subtle tick each time the drag crosses a step stop,
+                // so scrubbing between discrete options feels stepped, not continuous.
+                if (abs(newValue - lastHapticTickValue) >= stepSize) {
+                    lastHapticTickValue = newValue
+                    haptics.tick()
+                }
+                onValueChange(newValue)
+            },
+            valueRange = valueRange,
+            steps = steps,
+            modifier = Modifier.fillMaxWidth(),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
+    }
+}
+
+@Composable
+private fun SettingToggle(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    val haptics = LocalHaptics.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            // Only the Switch itself was clickable - the label row did nothing, so a tap aimed at
+            // the (wide) title silently missed. Make the whole row a toggle with a Switch role so
+            // TalkBack reads the switch state and both access paths toggle the same setting.
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = {
+                    haptics.tick()
+                    onCheckedChange(it)
+                }
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        // Visual-only switch - the Row's toggleable owns the interaction so row and switch share
+        // one click target instead of fighting for the same tap.
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            modifier = Modifier.clearAndSetSemantics {}
+        )
+    }
+}
+
+private val HapticsIntensity.label: String
+    get() = when (this) {
+        HapticsIntensity.LIGHT -> "Light"
+        HapticsIntensity.STANDARD -> "Standard"
+        HapticsIntensity.STRONG -> "Strong"
+    }
+
+// Oversleep pill labels: compact enough to stay single-line inside a six-way split on a 411dp
+// screen, but with units so the row reads like the battery one yet stays self-explanatory.
+// "1h30" = 1h 30m (minutes are the unit across the whole section, per the header above it).
+private fun oversleepLabel(minutes: Int): String = when (minutes) {
+    30 -> "30m"
+    60 -> "1h"
+    90 -> "1h30"
+    120 -> "2h"
+    150 -> "2h30"
+    180 -> "3h"
+    else -> "${minutes}m"
+}

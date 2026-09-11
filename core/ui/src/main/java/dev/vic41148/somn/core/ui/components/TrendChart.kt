@@ -4,32 +4,67 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.log10
+import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
-/** One data point in a [TrendLineChart] series — X is a wall-clock timestamp, not an index. */
+/** One data point in a [TrendLineChart] series, X is a wall-clock timestamp, not an index. */
 data class TrendPoint(val timestampMillis: Long, val value: Float)
 
 /**
  * DATA-04: a colored background band drawn behind the line, e.g. a menstrual cycle phase's
- * date range — [startMillis, endMillis) in the same timestamp space as [TrendPoint]s.
+ * date range, [startMillis, endMillis) in the same timestamp space as [TrendPoint]s.
+ * Set [valueRange] instead to draw a full-width band between two Y values (e.g. the age
+ * calibrated deep-sleep target window), for metrics where the band is value-driven, not
+ * date-driven.
  */
-data class TrendBand(val startMillis: Long, val endMillis: Long, val color: Color, val label: String = "")
+data class TrendBand(
+    val startMillis: Long,
+    val endMillis: Long,
+    val color: Color,
+    val label: String = "",
+    /** When set, the band spans the chart's full width at these plot values instead of an X-range. */
+    val valueRange: ClosedFloatingPointRange<Float>? = null
+)
 
 /**
  * DATA-03: minimal multi-metric-capable trend line chart. Deliberately simple (no axis text
- * rendering, no interaction/tooltips) — callers render their own labels/legend around it, matching
+ * rendering, no interaction/tooltips), callers render their own labels/legend around it, matching
  * this codebase's existing pattern of plain-Canvas components with no charting library dependency
  * (see [Hypnogram]).
  */
@@ -40,58 +75,227 @@ fun TrendLineChart(
     height: Dp = 180.dp,
     lineColors: List<Color> = emptyList(),
     bands: List<TrendBand> = emptyList(),
-    strokeWidthDp: Dp = 3.dp
+    strokeWidthDp: Dp = 3.dp,
+    /** Formats a Y value for the axis labels, callers pass metric-aware formatting. */
+    yLabel: (Float) -> String = { it.toInt().toString() },
+    /** [first, last] date captions drawn under the chart's left/right edges. */
+    xLabels: List<String> = emptyList(),
+    /**
+     * Pre-formatted (date, value) rows for the "View as table" toggle. Empty means no
+     * toggle, the chart is then the only representation, which is only acceptable when
+     * the caller already shows the same numbers as text nearby.
+     */
+    tableEntries: List<Pair<String, String>> = emptyList(),
+    /** Dashed horizontal line at this plot value (e.g. the period average). */
+    averageLine: Float? = null,
+    /**
+     * Formats the vs-previous-night delta shown beside each table row (after
+     * the first). Null hides the delta column.
+     */
+    tableDeltaLabel: ((Float) -> String)? = null
 ) {
     val allPoints = series.flatten()
     if (allPoints.isEmpty()) return
 
+    var showTable by remember { mutableStateOf(false) }
+
+    if (showTable && tableEntries.isNotEmpty()) {
+        Column(modifier = modifier.fillMaxWidth()) {
+            TableToggleRow(showTable = true, onToggle = { showTable = false })
+            // Deltas run against the time-sorted series, same order as the rows.
+            val orderedValues = remember(series) {
+                series.flatten().sortedBy { it.timestampMillis }.map { it.value }
+            }
+            tableEntries.forEachIndexed { index, (date, value) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (tableDeltaLabel != null && index > 0 && index < orderedValues.size) {
+                        val delta = orderedValues[index] - orderedValues[index - 1]
+                        Text(
+                            text = tableDeltaLabel(delta),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (delta >= 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
+                    }
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+        return
+    }
+
     val minX = allPoints.minOf { it.timestampMillis }
     val maxX = allPoints.maxOf { it.timestampMillis }
-    val minY = minOf(0f, allPoints.minOf { it.value })
-    val maxY = allPoints.maxOf { it.value }.let { if (it <= minY) minY + 1f else it }
+    val minVal = allPoints.minOf { it.value }
+    val maxVal = allPoints.maxOf { it.value }
+    val span = (maxVal - minVal).coerceAtLeast(1f)
+    val minY = if (minVal >= 0f) max(0f, minVal - span * 0.15f) else minVal - span * 0.15f
+    val maxY = maxVal + span * 0.15f
 
-    // DATA-03: entrance animation — the chart used to draw fully formed in a single Canvas pass
-    // with no motion at all. Bands (context) reach full opacity quickly; the line then draws in
-    // progressively, segment by segment, left to right — reads as "being plotted," not a fade.
+    // Nice-number the axis so gridlines land on round values (90/80/70, not
+    // 90/81/71): snap the padded range out to 1/2/5/10 steps.
+    val rawStep = ((maxY - minY) / 3f).coerceAtLeast(0.0001f)
+    val magnitude = 10.0.pow(floor(log10(rawStep.toDouble()))).toFloat()
+    val norm = rawStep / magnitude
+    val step = when {
+        norm < 1.5f -> 1f
+        norm < 3.5f -> 2f
+        norm < 7.5f -> 5f
+        else -> 10f
+    } * magnitude
+    val niceMin = floor((minY / step).toDouble()).toFloat() * step
+    val niceMax = ceil((maxY / step).toDouble()).toFloat() * step
+    val lineCount = ((niceMax - niceMin) / step).roundToInt().coerceIn(1, 12)
+    val gridValues = List(lineCount + 1) { niceMin + it * step }
+
+    // DATA-03: entrance animation, the chart used to draw fully formed in a single Canvas pass
+    // with no motion at all. Bands (context) reach full opacity quickly, the line then draws in
+    // progressively, segment by segment, left to right, reads as "being plotted," not a fade.
     val progress = remember(series) { Animatable(0f) }
     LaunchedEffect(series) {
         progress.snapTo(0f)
         progress.animateTo(1f, animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing))
     }
 
-    // Sorted once per series change rather than inside the Canvas draw scope below, which runs on
-    // every animation frame (~42 times over the 700ms entrance) — re-sorting each series that often
-    // was pure wasted UI-thread work every frame, and the visible cause of dropped frames on this
+    // Sort once per series change, not inside the Canvas draw scope below. That scope runs on
+    // every animation frame (~42 times over the 700ms entrance). Re-sorting that often wastes
+    // UI-thread work every frame, and the visible cause of dropped frames on this
     // screen for any real amount of trend data.
     val sortedSeries = remember(series) { series.map { it.sortedBy { point -> point.timestampMillis } } }
+
+    val textMeasurer = rememberTextMeasurer()
+    val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+    // Time-series Canvas drawing never inherits RTL mirroring, mirror the X mapping and
+    // the edge captions explicitly. The Y gutter stays left, only the time axis flips.
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
+    if (tableEntries.isNotEmpty()) {
+        TableToggleRow(showTable = false, onToggle = { showTable = true })
+    }
 
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
     ) {
+        val labelStyle = TextStyle(color = axisColor, fontSize = 11.sp)
+        // Reserve room for the Y labels on the left and date captions at the bottom.
+        val yGutter = 40.dp.toPx()
+        val xGutter = if (xLabels.isNotEmpty()) 18.dp.toPx() else 0f
+        val plotWidth = (size.width - yGutter).coerceAtLeast(1f)
+        val plotHeight = (size.height - xGutter).coerceAtLeast(1f)
         val xSpan = (maxX - minX).coerceAtLeast(1L).toFloat()
-        val ySpan = (maxY - minY).coerceAtLeast(0.0001f)
+        val ySpan = (niceMax - niceMin).coerceAtLeast(0.0001f)
         val animatedProgress = progress.value
         // Bands fade in over the first third of the animation, ahead of the line, since they're
         // background context rather than the focal point.
         val bandAlpha = (animatedProgress / 0.35f).coerceIn(0f, 1f)
 
-        fun xFor(timestampMillis: Long): Float =
-            ((timestampMillis - minX).toFloat() / xSpan) * size.width
+        fun xFor(timestampMillis: Long): Float {
+            val fraction = ((timestampMillis - minX).toFloat() / xSpan).coerceIn(0f, 1f)
+            return yGutter + (if (rtl) 1f - fraction else fraction) * plotWidth
+        }
 
         fun yFor(value: Float): Float =
-            size.height - ((value - minY) / ySpan) * size.height
+            plotHeight - ((value - niceMin) / ySpan) * plotHeight
+
+        // Horizontal gridlines + Y labels on round steps so the line's scale
+        // reads at a glance. Previously min/mid/max of the padded range drew
+        // values like 90/81/71.
+        for (gridValue in gridValues) {
+            val y = yFor(gridValue)
+            drawLine(
+                color = gridColor,
+                start = Offset(x = yGutter, y = y),
+                end = Offset(x = size.width, y = y),
+                strokeWidth = 1.dp.toPx()
+            )
+            val measured = textMeasurer.measure(text = yLabel(gridValue), style = labelStyle)
+            drawText(
+                textLayoutResult = measured,
+                topLeft = Offset(x = 0f, y = (y - measured.size.height / 2f).coerceIn(0f, plotHeight))
+            )
+        }
+
+        // Dashed period-average line tying the chart to the stats card above.
+        averageLine?.let { avg ->
+            val y = yFor(avg.coerceIn(niceMin, niceMax))
+            drawLine(
+                color = axisColor.copy(alpha = 0.7f),
+                start = Offset(x = yGutter, y = y),
+                end = Offset(x = size.width, y = y),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx()))
+            )
+            val tag = textMeasurer.measure(text = "avg", style = labelStyle)
+            drawText(
+                textLayoutResult = tag,
+                topLeft = Offset(
+                    x = (size.width - tag.size.width).coerceAtLeast(yGutter),
+                    y = (y - tag.size.height - 2.dp.toPx()).coerceAtLeast(0f)
+                )
+            )
+        }
+
+        // Date captions under the left/right edges (swapped in RTL to match the mirrored axis).
+        if (xLabels.isNotEmpty()) {
+            val (edgeFirst, edgeLast) = if (rtl) {
+                xLabels.last() to xLabels.first()
+            } else {
+                xLabels.first() to xLabels.last()
+            }
+            val first = textMeasurer.measure(text = edgeFirst, style = labelStyle)
+            drawText(
+                textLayoutResult = first,
+                topLeft = Offset(x = yGutter, y = plotHeight + 4.dp.toPx())
+            )
+            if (xLabels.size > 1) {
+                val last = textMeasurer.measure(text = edgeLast, style = labelStyle)
+                drawText(
+                    textLayoutResult = last,
+                    topLeft = Offset(
+                        x = (size.width - last.size.width).coerceAtLeast(yGutter),
+                        y = plotHeight + 4.dp.toPx()
+                    )
+                )
+            }
+        }
 
         // Cycle-phase (or other) background bands, drawn first so the line renders on top.
         for (band in bands) {
+            if (band.valueRange != null) {
+                val yBottom = yFor(band.valueRange.start)
+                val yTop = yFor(band.valueRange.endInclusive)
+                val top = minOf(yTop, yBottom)
+                drawRect(
+                    color = band.color.copy(alpha = band.color.alpha * bandAlpha),
+                    topLeft = Offset(x = yGutter, y = top),
+                    size = Size(width = plotWidth, height = abs(yBottom - yTop))
+                )
+                continue
+            }
             val left = xFor(band.startMillis.coerceIn(minX, maxX))
             val right = xFor(band.endMillis.coerceIn(minX, maxX))
             if (right <= left) continue
             drawRect(
                 color = band.color.copy(alpha = band.color.alpha * bandAlpha),
                 topLeft = Offset(x = left, y = 0f),
-                size = Size(width = right - left, height = size.height)
+                size = Size(width = right - left, height = plotHeight)
             )
         }
 
@@ -100,7 +304,7 @@ fun TrendLineChart(
             val color = lineColors.getOrElse(seriesIndex) { Color.Gray }
             val segmentCount = sorted.size - 1
 
-            // Position along the whole polyline, in "segments" — e.g. 2.4 means segments 0 and 1
+            // Position along the whole polyline, in "segments", e.g. 2.4 means segments 0 and 1
             // are fully drawn and segment 2 is 40% drawn.
             val drawnSegments = animatedProgress * segmentCount
             val fullyDrawnCount = floor(drawnSegments).toInt().coerceIn(0, segmentCount)
@@ -148,6 +352,20 @@ fun TrendLineChart(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Right-aligned chart/table switch shared by the chart components. */
+@Composable
+internal fun TableToggleRow(showTable: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = onToggle) {
+            Text(if (showTable) "View as chart" else "View as table")
         }
     }
 }

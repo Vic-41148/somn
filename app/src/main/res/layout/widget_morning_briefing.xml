@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="16dp"
+    tools:ignore="Overdraw"
     android:background="@android:color/background_dark">
+    <!-- tools:ignore above: RemoteViews get no activity theme, so the widget
+        must paint its own background or be transparent. -->
 
     <TextView
         android:id="@+id/widget_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Somn"
+        android:text="@string/app_name"
         android:textSize="14sp"
         android:textColor="@android:color/white"
         android:textStyle="bold" />
@@ -20,7 +24,7 @@
         android:id="@+id/widget_score"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="--"
+        android:text="@string/widget_score_placeholder"
         android:textSize="28sp"
         android:textColor="@android:color/white"
         android:textStyle="bold" />
@@ -29,7 +33,7 @@
         android:id="@+id/widget_insight"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="No sleep data yet"
+        android:text="@string/widget_no_data"
         android:textSize="12sp"
         android:textColor="@android:color/darker_gray" />
 

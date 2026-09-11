@@ -19,7 +19,7 @@ import kotlin.math.min
  * Score = (Duration × 0.25) + (Efficiency × 0.20) + (DeepSleep% × 0.20)
  *       + (Consistency × 0.20) + (WakeEvents × 0.15)
  *
- * The score is then adjusted upward based on biological factors that the
+ * The use case then adjusts the score upward for biological factors that the
  * user cannot control (menstrual phase, age-appropriate expectations, etc.).
  * This produces both a raw score and an adjusted score with transparent explanations.
  */
@@ -33,7 +33,7 @@ class CalculateSleepScoreUseCase {
     }
 
     /**
-     * Calculate score without profile — backward compatible with existing usage.
+     * Calculate the score without a profile, backward compatible with existing usage.
      */
     operator fun invoke(
         session: SleepSession,
@@ -71,7 +71,7 @@ class CalculateSleepScoreUseCase {
     }
 
     /**
-     * Calculate score WITH biological profile — produces adjusted score with explanations.
+     * Calculate the score WITH a biological profile, produces the adjusted score with explanations.
      */
     fun calculateWithProfile(
         session: SleepSession,
@@ -176,7 +176,7 @@ class CalculateSleepScoreUseCase {
                     AdjustmentReason(
                         factor = "Menopausal sleep disruption",
                         adjustment = 6,
-                        explanation = "Frequent awakenings are common during ${profile.lifeStage.displayName.lowercase()} — this is hormonal, not a behavioral problem.",
+                        explanation = "Frequent awakenings are common during ${profile.lifeStage.displayName.lowercase()}. This is hormonal, not a behavioral problem.",
                         category = AdjustmentCategory.HORMONAL
                     )
                 )
@@ -228,7 +228,7 @@ class CalculateSleepScoreUseCase {
     private fun calculateDurationScore(actualMinutes: Int, targetHours: Float): Int {
         val targetMinutes = targetHours * 60
         val ratio = actualMinutes / targetMinutes
-        // The oversleep branch (ratio > 1.1f) used to be unreachable — `ratio >= 0.8f` is checked
+        // The oversleep branch (ratio > 1.1f) used to be unreachable, `ratio >= 0.8f` is checked
         // first and matches everything oversleeping too, so a session slept way past its target
         // (e.g. ratio 2.0) hit `80 + (ratio - 0.8) * 200`, coerced straight to a perfect 100
         // instead of the intended oversleep penalty. Oversleep must be checked before the >= 0.8f
@@ -327,7 +327,7 @@ class CalculateSleepScoreUseCase {
 
     /**
      * Adjust expected wake events based on life stage and age.
-     * Older adults and menopausal women naturally wake more — don't penalise normal biology.
+     * Older adults and menopausal women naturally wake more, do not penalise normal biology.
      */
     private fun adjustWakeExpectation(profile: UserProfile): Int {
         val ageAdjustment = when (profile.age) {
@@ -366,7 +366,7 @@ class CalculateSleepScoreUseCase {
         return when {
             total >= 80 -> "Great night! All your sleep metrics look healthy."
             total >= 60 -> "Decent sleep. Your ${weakest?.key} could use some improvement."
-            total >= 40 -> "Below average night. Your ${weakest?.key} was the biggest factor — consider adjusting your routine."
+            total >= 40 -> "Below average night. Your ${weakest?.key} was the biggest factor. Consider adjusting your routine."
             else -> "Rough night. Your ${weakest?.key} was significantly below your normal baseline."
         }
     }
@@ -381,7 +381,7 @@ class CalculateSleepScoreUseCase {
             return when {
                 rawScore >= 80 -> "Great night! All your sleep metrics look healthy."
                 rawScore >= 60 -> "Decent sleep overall."
-                rawScore >= 40 -> "Below average night — consider adjusting your routine."
+                rawScore >= 40 -> "Below average night. Consider adjusting your routine."
                 else -> "Rough night. Try to prioritise rest tonight."
             }
         }
@@ -389,7 +389,7 @@ class CalculateSleepScoreUseCase {
         val adjustmentSummary = adjustments.joinToString("; ") { it.factor }
         return when {
             adjustedScore >= 80 -> "You scored $rawScore, adjusted to $adjustedScore. Accounting for: $adjustmentSummary. Great sleep given your circumstances!"
-            adjustedScore >= 60 -> "You scored $rawScore, adjusted to $adjustedScore ($adjustmentSummary). Decent sleep — your body is doing its best."
+            adjustedScore >= 60 -> "You scored $rawScore, adjusted to $adjustedScore ($adjustmentSummary). Decent sleep. Your body is doing its best."
             else -> "You scored $rawScore, adjusted to $adjustedScore ($adjustmentSummary). Consider prioritizing rest."
         }
     }

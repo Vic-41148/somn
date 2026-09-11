@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.feature.settings"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -26,6 +26,16 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+        }
+        create("store") {
+            dimension = "channel"
+        }
     }
 }
 
@@ -61,6 +71,9 @@ dependencies {
 
     // WorkManager for NAS sync triggers
     implementation(libs.work.runtime)
+
+    // zxcvbn strength gate for user-chosen backup passphrases
+    implementation(libs.zxcvbn)
 
     // Tests — guardedCollect flow-failure guard (collectInto's exception-proofing)
     testImplementation(libs.junit)

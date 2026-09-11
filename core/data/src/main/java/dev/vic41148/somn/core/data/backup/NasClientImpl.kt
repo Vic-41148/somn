@@ -13,7 +13,7 @@ import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** WebDAV NasClient implementation — the only transport [NasProtocol] currently offers. */
+/** WebDAV NasClient implementation, the only transport [NasProtocol] currently offers. */
 @Singleton
 class NasClientImpl @Inject constructor(
     private val preferencesRepository: SomnPreferencesRepository
@@ -23,9 +23,14 @@ class NasClientImpl @Inject constructor(
         private const val TAG = "NasClientImpl"
         private const val CONNECT_TIMEOUT = 10_000
         private const val READ_TIMEOUT = 30_000
+        /**
+         * PROPFIND listings are small XML, anything past this from a NAS is a
+         * misconfiguration or a hostile box, never a directory listing.
+         */
+        internal const val MAX_LISTING_BYTES = 2L * 1024 * 1024
 
         /**
-         * Pure so the scheme decision can be tested directly — this is the line that used to leak
+         * Pure so the scheme decision can be tested directly, this is the line that used to leak
          * WebDAV credentials. The scheme follows the user's explicit [NasConfig.useHttps] choice,
          * never the port number: inferring it from the port meant a NAS on, say, 8443 silently got
          * plain HTTP and sent its Basic-auth header in the clear.
@@ -77,18 +82,21 @@ class NasClientImpl @Inject constructor(
     /**
      * Android blocks cleartext HTTP by default at this targetSdk, so a plain-HTTP NAS fails with a
      * generic-looking IOException that reads like an unreachable host. Name the real cause instead
-     * of letting users chase a network problem they don't have.
+     * of letting users chase a network problem they do not have.
+     *
+     * Release builds keep Log.e but strip everything below it, so failure details here carry the
+     * exception class only, never the host, remote path, or the throwable itself, whose message
+     * routinely embeds the request URL.
      */
     private fun logWebDavFailure(message: String, config: NasConfig, e: Exception) {
         if (!config.useHttps && e.message?.contains("Cleartext", ignoreCase = true) == true) {
             Log.e(
                 TAG,
-                "$message: Android blocked a cleartext HTTP request to ${config.host}. " +
-                    "Enable HTTPS on the NAS connection — Somn does not permit unencrypted traffic.",
-                e
+                "$message: Android blocked a cleartext HTTP request. " +
+                    "Enable HTTPS on the NAS connection. Somn does not permit unencrypted traffic."
             )
         } else {
-            Log.e(TAG, message, e)
+            Log.e(TAG, "$message (${e.javaClass.simpleName})")
         }
     }
 
@@ -110,7 +118,7 @@ class NasClientImpl @Inject constructor(
     }
 
     private suspend fun testWebDav(config: NasConfig): Boolean {
-        // disconnect() used to only run on the success path — an exception from
+        // disconnect() used to only run on the success path, an exception from
         // conn.responseCode (network failure, the exact scenario a NAS sync worker frequently
         // hits) left the underlying socket connection leaked instead of released.
         var conn: HttpURLConnection? = null
@@ -148,7 +156,7 @@ class NasClientImpl @Inject constructor(
             val code = conn.responseCode
             code in 200..299
         } catch (e: Exception) {
-            Log.e(TAG, "WebDAV upload failed: $remotePath", e)
+            Log.e(TAG, "WebDAV upload failed (${e.javaClass.simpleName})")
             false
         } finally {
             conn?.disconnect()
@@ -167,9 +175,12 @@ class NasClientImpl @Inject constructor(
             if (code !in 200..299) {
                 return emptyList()
             }
+            if (conn.contentLengthLong > MAX_LISTING_BYTES) {
+                return emptyList()
+            }
 
-            // Simple href extraction — good enough for file listing
-            val body = conn.inputStream.bufferedReader().readText()
+            // Simple href extraction, good enough for file listing
+            val body = conn.inputStream.readBoundedText(MAX_LISTING_BYTES, Charsets.UTF_8)
 
             val hrefRegex = Regex("<D:href>(.*?)</D:href>", RegexOption.IGNORE_CASE)
             hrefRegex.findAll(body)
@@ -177,7 +188,7 @@ class NasClientImpl @Inject constructor(
                 .filter { it.isNotBlank() }
                 .toList()
         } catch (e: Exception) {
-            Log.e(TAG, "WebDAV list failed: $remotePath", e)
+            Log.e(TAG, "WebDAV list failed (${e.javaClass.simpleName})")
             emptyList()
         } finally {
             conn?.disconnect()
@@ -192,7 +203,7 @@ class NasClientImpl @Inject constructor(
             val code = conn.responseCode
             code in 200..299
         } catch (e: Exception) {
-            Log.e(TAG, "WebDAV delete failed: $remotePath", e)
+            Log.e(TAG, "WebDAV delete failed (${e.javaClass.simpleName})")
             false
         } finally {
             conn?.disconnect()

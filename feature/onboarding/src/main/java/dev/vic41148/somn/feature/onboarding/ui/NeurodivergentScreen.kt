@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -33,10 +34,10 @@ fun NeurodivergentScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    // Body scrolls, footer stays pinned. This was one unscrollable Column whose footer was held
-    // down by a weight(1f) Spacer — fine until the content above outgrew the viewport (a large
-    // system font scale, or the optional sections below expanding), at which point the spacer
-    // collapsed to zero and the buttons were pushed off the bottom with no way to scroll to them.
+    // Body scrolls, footer stays pinned. This was one unscrollable Column. A weight(1f) Spacer
+    // held the footer down. This worked until the content above outgrew the viewport (a large
+    // system font scale, or the optional sections below expanding). Then the spacer
+    // collapsed to zero and pushed the buttons off the bottom with no way to scroll to them.
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -64,7 +65,7 @@ fun NeurodivergentScreen(
 
         Text(
             text = "ADHD and autism have distinct, measurable effects on sleep. " +
-                "Enabling these modes adjusts how we score and interpret your data — " +
+                "Enable these modes to adjust how we score and interpret your data. " +
                 "your patterns are valid, not problems to fix.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -88,11 +89,12 @@ fun NeurodivergentScreen(
                 )
                 Text(
                     text = "Delayed chronotype is neurological, not behavioral. " +
-                        "We won't penalize a consistent 1 AM bedtime.",
+                        "We will not penalize a consistent 1 AM bedtime.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Spacer(modifier = Modifier.width(16.dp))
             Switch(
                 checked = adhdEnabled,
                 onCheckedChange = onAdhdToggled
@@ -128,11 +130,12 @@ fun NeurodivergentScreen(
                 )
                 Text(
                     text = "Sensory differences can affect sleep onset. " +
-                        "We provide gentler alarms and non-penalizing scoring.",
+                        "We provide gentler alarms and scoring that does not penalize you.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            Spacer(modifier = Modifier.width(16.dp))
             Switch(
                 checked = asdEnabled,
                 onCheckedChange = onAsdToggled

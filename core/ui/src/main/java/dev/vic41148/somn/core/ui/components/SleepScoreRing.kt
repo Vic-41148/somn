@@ -1,5 +1,6 @@
 package dev.vic41148.somn.core.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -19,13 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.vic41148.somn.core.ui.theme.ScoreFair
-import dev.vic41148.somn.core.ui.theme.ScoreGood
-import dev.vic41148.somn.core.ui.theme.ScoreGreat
-import dev.vic41148.somn.core.ui.theme.ScorePoor
+import dev.vic41148.somn.core.ui.theme.ScoreTier
+import dev.vic41148.somn.core.ui.theme.scoreColor
 
 /**
  * Animated circular score ring displaying 0-100 sleep score.
@@ -39,12 +40,11 @@ fun SleepScoreRing(
     showLabel: Boolean = true,
     animationDuration: Int = 1200
 ) {
-    val scoreColor = when {
-        score >= 80 -> ScoreGreat
-        score >= 60 -> ScoreGood
-        score >= 40 -> ScoreFair
-        else -> ScorePoor
-    }
+    val animatedColor by animateColorAsState(
+        targetValue = scoreColor(score),
+        animationSpec = tween(durationMillis = animationDuration),
+        label = "scoreColor"
+    )
 
     var targetProgress by remember { mutableFloatStateOf(0f) }
     val animatedProgress by animateFloatAsState(
@@ -59,7 +59,11 @@ fun SleepScoreRing(
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.size(size)
+        modifier = modifier
+            .size(size)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Sleep score $score, ${ScoreTier.of(score).label}"
+            }
     ) {
         Canvas(modifier = Modifier.size(size)) {
             val sweepAngle = 360f * animatedProgress
@@ -70,7 +74,7 @@ fun SleepScoreRing(
 
             // Background track
             drawArc(
-                color = scoreColor.copy(alpha = 0.15f),
+                color = animatedColor.copy(alpha = 0.15f),
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -79,7 +83,7 @@ fun SleepScoreRing(
 
             // Progress arc
             drawArc(
-                color = scoreColor,
+                color = animatedColor,
                 startAngle = -90f,
                 sweepAngle = sweepAngle,
                 useCenter = false,
@@ -93,15 +97,10 @@ fun SleepScoreRing(
                     text = "$score",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
-                    color = scoreColor
+                    color = animatedColor
                 )
                 Text(
-                    text = when {
-                        score >= 80 -> "Great"
-                        score >= 60 -> "Good"
-                        score >= 40 -> "Fair"
-                        else -> "Poor"
-                    },
+                    text = ScoreTier.of(score).label,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -38,7 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import dev.vic41148.somn.core.ui.components.ColorLegendItem
 import dev.vic41148.somn.core.ui.theme.DebtMild
 import dev.vic41148.somn.core.ui.theme.DebtModerate
 import androidx.compose.ui.graphics.TransformOrigin
@@ -63,9 +62,9 @@ fun SleepDebtDetailScreen(
     val plan by viewModel.recoveryPlan.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // This screen (reached by tapping the Sleep Debt card on Home) had no TopAppBar/back button
-    // at all and its route hides the bottom nav bar — a dead end with no visible way back short
-    // of the system back gesture.
+    // The user reaches this screen by tapping the Sleep Debt card on Home. It had no TopAppBar/back
+    // button at all and its route hides the bottom nav bar. It is a dead end with no visible way
+    // back short of the system back gesture.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -83,7 +82,7 @@ fun SleepDebtDetailScreen(
             .padding(padding)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -124,11 +123,10 @@ fun SleepDebtDetailScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Legend
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            LegendItem(color = MaterialTheme.colorScheme.primary, label = "Surplus")
-            LegendItem(color = MaterialTheme.colorScheme.error, label = "Deficit")
-            LegendItem(color = MaterialTheme.colorScheme.surfaceVariant, label = "No data")
+            ColorLegendItem(color = MaterialTheme.colorScheme.primary, label = "Surplus")
+            ColorLegendItem(color = MaterialTheme.colorScheme.error, label = "Deficit")
+            ColorLegendItem(color = MaterialTheme.colorScheme.surfaceVariant, label = "No data")
         }
 
         // ---- Recovery plan ----
@@ -227,7 +225,7 @@ private fun DebtSummaryCard(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (debtMinutes == 0) "You're all caught up" else "accumulated sleep debt",
+                text = if (debtMinutes == 0) "You are all caught up" else "the accumulated sleep debt",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -241,7 +239,7 @@ private fun DebtSummaryCard(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .background(levelColor.copy(alpha = 0.2f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = level.displayName,
@@ -352,20 +350,5 @@ private fun RecoveryMetric(label: String, value: String) {
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
-    }
-}
-
-@Composable
-private fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .width(12.dp)
-                .height(12.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(color)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

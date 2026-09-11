@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Pure JVM tests — no TFLite, no device — for the label list and class-name mapping. */
+/** Pure JVM tests - no TFLite, no device - for the label list and class-name mapping. */
 class YamnetLabelsTest {
 
     @Test
@@ -16,7 +16,7 @@ class YamnetLabelsTest {
     @Test
     fun `class list is index-aligned with the bundled model's known classes`() {
         // Spot-check a handful of fixed indices against the label file embedded in
-        // yamnet.tflite's own metadata — if these drift, the bundled model was swapped
+        // yamnet.tflite's own metadata - if these drift, the bundled model was swapped
         // for a different version and the mapping below is no longer valid.
         assertEquals("Speech", YamnetLabels.CLASS_NAMES[0])
         assertEquals("Snoring", YamnetLabels.CLASS_NAMES[38])

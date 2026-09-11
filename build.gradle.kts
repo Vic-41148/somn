@@ -38,10 +38,10 @@ tasks.register("verifyComposeFoundationAlignment") {
                 .toSet()
         }
 
-        val shipped = foundationVersions(rootProject.project(":app"), "debugRuntimeClasspath")
+        val shipped = foundationVersions(rootProject.project(":app"), "standaloneDebugRuntimeClasspath")
         if (shipped.size != 1) {
             throw GradleException(
-                ":app debugRuntimeClasspath resolves compose foundation to $shipped — expected exactly " +
+                ":app standaloneDebugRuntimeClasspath resolves compose foundation to $shipped — expected exactly " +
                     "one version. Something (a transitive constraint?) is producing an incoherent compose graph."
             )
         }
@@ -49,7 +49,7 @@ tasks.register("verifyComposeFoundationAlignment") {
 
         val offenders = StringBuilder()
         fun audit(project: Project) {
-            val compileVersions = foundationVersions(project, "debugCompileClasspath")
+            val compileVersions = foundationVersions(project, "standaloneDebugCompileClasspath")
             // Modules without foundation on their compile classpath don't compile compose layout
             // code, so they can't drift — skip them.
             if (compileVersions.isNotEmpty() && compileVersions != setOf(shippedVersion)) {

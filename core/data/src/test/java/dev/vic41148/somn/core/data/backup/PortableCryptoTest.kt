@@ -18,7 +18,7 @@ class PortableCryptoTest {
     private val crypto = PortableCrypto()
     private val passphrase = "K3M9-7QRT-8VWX-2NPD-5HJB".toCharArray()
 
-    /** The real KDF cost is deliberately ~200ms; tests use a cheap one and pin params explicitly. */
+    /** The real KDF cost is deliberately ~200ms, tests use a cheap one and pin params explicitly. */
     private fun cheapKek(pass: CharArray = passphrase, salt: ByteArray = ByteArray(16) { it.toByte() }) =
         crypto.deriveKek(pass, salt, iterations = 1_000)
 
@@ -82,7 +82,7 @@ class PortableCryptoTest {
     @Test
     fun `salt and iterations are recovered from the envelope`() {
         // Decryption is given only the passphrase, so it must read salt/iterations back out of the
-        // header — a non-default iteration count proves the header is honoured, not assumed.
+        // header, a non-default iteration count proves the header is honoured, not assumed.
         val salt = ByteArray(16) { (it * 7).toByte() }
         val kek = crypto.deriveKek(passphrase, salt, iterations = 2_048)
 

@@ -1,0 +1,17 @@
+# Dependency Review: runs on the PR diff, not the whole repo. Blocks a PR that
+# introduces a dependency with a known CVE before it ever merges. Complements
+# the release-time shipped-DEX CVE gate (scripts/verify-shipped-cve.sh), which
+# catches what this misses: CVEs that arrive via version bumps of existing deps.
+name: Dependency Review
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0

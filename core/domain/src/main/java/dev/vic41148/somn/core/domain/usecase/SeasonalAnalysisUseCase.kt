@@ -21,21 +21,21 @@ import java.time.ZoneId
  *   4. Classify trend: WINTER_HYPERSOMNIA / SUMMER_INSOMNIA / STABLE / INSUFFICIENT
  *
  * Hemisphere determination:
- *   - UTC offset of the session's stored timezone is used as a proxy
+ *   - The use case uses the UTC offset of the session's stored timezone as a proxy
  *   - Positive offsets (east of UTC) are assumed Northern Hemisphere by default
  *   - Negative offsets beyond -3h are assumed Southern Hemisphere
- *   - This heuristic is imperfect; a user settings override ([HemisphereOverride]) pins it
+ *   - This heuristic is imperfect. A user settings override ([HemisphereOverride]) pins it
  *
- * Research basis §2.8: SAD affects 1.4–9.9% of the population; subsyndromal SAD
+ * Research basis §2.8: SAD affects 1.4–9.9% of the population. Subsyndromal SAD
  * ("winter blues") affects ~14.3% (NIMH). Both winter and summer patterns are circadian
  * disruptions, not behavioral problems. Light therapy timing is the evidence-based intervention.
  */
 class SeasonalAnalysisUseCase {
 
     /**
-     * @param sessions All completed sleep sessions (no date range limit — more = better).
+     * @param sessions All completed sleep sessions (no date range limit, more = better).
      * @param deviceTimezoneId The current device timezone for hemisphere detection.
-     * @param hemisphereOverride User override; [HemisphereOverride.AUTO] keeps the UTC-offset heuristic.
+     * @param hemisphereOverride User override. [HemisphereOverride.AUTO] keeps the UTC-offset heuristic.
      */
     fun analyze(
         sessions: List<SleepSession>,
@@ -125,7 +125,7 @@ class SeasonalAnalysisUseCase {
         return when (type) {
             SeasonalTrendType.WINTER_HYPERSOMNIA ->
                 "You're sleeping about ${absDelta}m longer this winter than your annual average. " +
-                "This is consistent with winter-pattern circadian change — shorter days reduce " +
+                "This is consistent with winter-pattern circadian change. Shorter days reduce " +
                 "morning light exposure, causing melatonin overproduction and earlier sleep pressure. " +
                 "Morning light therapy between 7–9 AM can help anchor your rhythm."
             SeasonalTrendType.SUMMER_INSOMNIA ->
@@ -134,7 +134,7 @@ class SeasonalAnalysisUseCase {
                 "Blackout curtains and keeping your bedroom cool (18–20°C) can help. " +
                 "Aim for consistent wind-down at the same time regardless of outside brightness."
             SeasonalTrendType.STABLE ->
-                "Your sleep duration is consistent across seasons — no significant seasonal drift detected."
+                "Your sleep duration is consistent across seasons, no significant seasonal drift detected."
             SeasonalTrendType.INSUFFICIENT ->
                 "Not enough cross-season data yet to detect a seasonal pattern."
         }
@@ -157,7 +157,7 @@ class SeasonalAnalysisUseCase {
     // ---- Hemisphere & season detection ----
 
     /**
-     * Determine current season from device timezone.
+     * Determine the current season from the device timezone.
      */
     private fun currentSeason(timezoneId: String, northernHemisphere: Boolean): Season {
         val zone  = runCatching { ZoneId.of(timezoneId) }.getOrDefault(ZoneId.systemDefault())
@@ -169,7 +169,7 @@ class SeasonalAnalysisUseCase {
      * Heuristic: UTC offset < -3 hours is assumed Southern Hemisphere (much of South America,
      * South Africa, Australia, New Zealand). UTC offsets ≥ -3h are assumed Northern Hemisphere.
      *
-     * This covers ~90% of users correctly; [HemisphereOverride] in settings pins the rest.
+     * This covers ~90% of users correctly. [HemisphereOverride] in settings pins the rest.
      */
     private fun isNorthernHemisphere(timezoneId: String): Boolean {
         return try {

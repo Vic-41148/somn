@@ -63,7 +63,7 @@ class MathCaptchaTask : CaptchaTask {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Solve to dismiss",
+                text = "Solve to dismiss the alarm",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -101,7 +101,7 @@ class MathCaptchaTask : CaptchaTask {
                         isSolved = true
                         onComplete()
                     } else {
-                        error = "Incorrect, try again"
+                        error = "The answer is incorrect. Try again"
                         userInput = ""
                     }
                 },

@@ -29,7 +29,7 @@ import dev.vic41148.somn.core.domain.model.Chronotype
 
 /**
  * Reduced Morningness-Eveningness Questionnaire (rMEQ).
- * 5 questions that produce a score mapping to Chronotype.
+ * 5 questions that produce a score that maps to Chronotype.
  *
  * Research doc §2.11: Chronotype is neurologically determined,
  * encoded in circadian genes (PNAS, WashU, 2025).
@@ -47,7 +47,7 @@ data class MeqOption(
 
 private val meqQuestions = listOf(
     MeqQuestion(
-        question = "If you had no commitments, what time would you naturally wake up?",
+        question = "With no commitments, what time do you naturally wake?",
         options = listOf(
             MeqOption("Before 6:30 AM", 5),
             MeqOption("6:30 – 7:45 AM", 4),
@@ -57,7 +57,7 @@ private val meqQuestions = listOf(
         )
     ),
     MeqQuestion(
-        question = "If you had no commitments, what time would you naturally go to bed?",
+        question = "With no commitments, what time do you go to bed?",
         options = listOf(
             MeqOption("Before 9:00 PM", 5),
             MeqOption("9:00 – 10:15 PM", 4),
@@ -86,7 +86,7 @@ private val meqQuestions = listOf(
         )
     ),
     MeqQuestion(
-        question = "Would you say you're a morning or evening person?",
+        question = "Are you a morning or an evening person?",
         options = listOf(
             MeqOption("Definitely morning", 6),
             MeqOption("More morning than evening", 4),
@@ -126,8 +126,8 @@ fun ChronotypeQuizScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Your chronotype is wired into your circadian genes — it's not a lifestyle choice. " +
-                "We'll score your consistency against your natural pattern, not a universal ideal.",
+            text = "Your circadian genes set your chronotype. It is not a lifestyle choice. " +
+                "We will score your consistency against your natural pattern, not a universal ideal.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -142,13 +142,12 @@ fun ChronotypeQuizScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             question.options.forEach { option ->
                 val isSelected = answers[qIndex] == option.score
                 OutlinedCard(
                     onClick = { onAnswer(qIndex, option.score) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     border = BorderStroke(
                         width = if (isSelected) 2.dp else 1.dp,
                         color = if (isSelected) MaterialTheme.colorScheme.primary
@@ -163,15 +162,16 @@ fun ChronotypeQuizScreen(
                     Text(
                         text = option.text,
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(12.dp)
+                        modifier = Modifier.padding(16.dp)
                     )
                 }
+            }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Show result if all answered
+        // Show the result if all answered.
         if (chronotype != Chronotype.UNKNOWN) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedCard(
@@ -188,7 +188,7 @@ fun ChronotypeQuizScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "We'll calibrate your sleep targets and consistency scoring to match.",
+                        text = "We will calibrate your sleep targets and the consistency scoring to match.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

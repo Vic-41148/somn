@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Standalone channel only (GitHub Releases + self-hosted repo). The in-app updater uses the
+      system package installer; store-channel builds deliberately omit this permission because
+      F-Droid / IzzyOnDroid / Accrescent flag and, in Accrescent's case, ban self-updaters
+      entirely. Downloads ride core:data's INTERNET permission, declared in that module's manifest.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+</manifest>

@@ -4,12 +4,14 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,10 +21,10 @@ import javax.inject.Singleton
 import kotlin.reflect.KClass
 
 /**
- * Thin wrapper over the Health Connect SDK — permission set, client lifecycle, raw record
- * read/insert. Deliberately platform-typed (returns HC `Record` subtypes); mapping to Somn's
+ * Thin wrapper over the Health Connect SDK, permission set, client lifecycle, raw record
+ * read/insert. Deliberately platform-typed (returns HC `Record` subtypes), mapping to Somn's
  * own domain models happens one layer up in `core:data`'s `HealthConnectRepository`, per the
- * "core:health is a pure adapter" architecture decision — no Room/domain knowledge here.
+ * "core:health is a pure adapter" architecture decision, no Room/domain knowledge here.
  */
 @Singleton
 class HealthConnectManager @Inject constructor(
@@ -35,7 +37,9 @@ class HealthConnectManager @Inject constructor(
             HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
             HealthPermission.getReadPermission(OxygenSaturationRecord::class),
             HealthPermission.getReadPermission(SkinTemperatureRecord::class),
-            HealthPermission.getReadPermission(SleepSessionRecord::class)
+            HealthPermission.getReadPermission(SleepSessionRecord::class),
+            HealthPermission.getReadPermission(StepsRecord::class),
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class)
         )
 
         /** HEALTH-02: write completed Somn sessions to Health Connect. */
@@ -55,7 +59,7 @@ class HealthConnectManager @Inject constructor(
 
     /**
      * HEALTH-03: re-checks the actual OS-granted permission set on every call rather than caching
-     * a stale "was granted once" flag — the user can revoke Health Connect access at any time from
+     * a stale "was granted once" flag, the user can revoke Health Connect access at any time from
      * system settings, entirely outside Somn's control.
      */
     suspend fun hasAllPermissions(): Boolean {
@@ -69,7 +73,7 @@ class HealthConnectManager @Inject constructor(
         return client.permissionController.getGrantedPermissions().containsAll(WRITE_PERMISSIONS)
     }
 
-    /** [ActivityResultContract] for the Health Connect permission request flow — hosted from a Composable/Activity. */
+    /** [ActivityResultContract] for the Health Connect permission request flow, hosted from a Composable/Activity. */
     fun requestPermissionsContract() = PermissionController.createRequestPermissionResultContract()
 
     suspend fun <T : Record> readRecords(recordType: KClass<T>, start: Instant, end: Instant): List<T> {
@@ -77,6 +81,33 @@ class HealthConnectManager @Inject constructor(
         return client.readRecords(
             ReadRecordsRequest(recordType = recordType, timeRangeFilter = TimeRangeFilter.between(start, end))
         ).records
+    }
+
+    /**
+     * R6: total steps any source recorded in [start, end), Health Connect stores steps as
+     * per-interval records, so the day's total is the sum of each interval's count.
+     */
+    suspend fun readSteps(start: Instant, end: Instant): Int {
+        val client = clientOrNull() ?: return 0
+        val records = client.readRecords(
+            ReadRecordsRequest(recordType = StepsRecord::class, timeRangeFilter = TimeRangeFilter.between(start, end))
+        ).records
+        return records.sumOf { it.count.toInt() }
+    }
+
+    /**
+     * R6: active minutes in [start, end) from exercise sessions that started in the window.
+     * ExerciseSessionRecords carry explicit start/end times, so summing their durations avoids
+     * the alpha-status aggregate-metric API entirely, only sessions begun inside the window
+     * count, so a session straddling midnight cannot double-count into two days.
+     */
+    suspend fun readActiveMinutes(start: Instant, end: Instant): Int {
+        val client = clientOrNull() ?: return 0
+        val records = client.readRecords(
+            ReadRecordsRequest(recordType = ExerciseSessionRecord::class, timeRangeFilter = TimeRangeFilter.between(start, end))
+        ).records
+        return records.filter { it.startTime >= start && it.startTime < end }
+            .sumOf { java.time.Duration.between(it.startTime, it.endTime).toMinutes().coerceAtLeast(0L).toInt() }
     }
 
     /** Returns the Health Connect-assigned record IDs of the inserted records, in the same order. */

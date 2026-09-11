@@ -57,7 +57,7 @@ class ImportSleepAsAndroidUseCaseTest {
         assertThat(session.endTimeMillis).isEqualTo(epochMillisOf("2026-01-02 06:30:00", "Europe/Prague"))
         assertThat(session.timeInBedMinutes).isEqualTo(480)
         // Hours=8.0 matches the 480-minute time-in-bed window exactly here, so duration==timeInBed
-        // and efficiency==100 — but both are now *computed* from Hours, not hardcoded (see the
+        // and efficiency==100, but both are now *computed* from Hours, not hardcoded (see the
         // separate imperfect-efficiency test below, which proves the computation actually runs).
         assertThat(session.sleepDurationMinutes).isEqualTo(480)
         assertThat(session.sleepEfficiency).isEqualTo(100f)
@@ -196,7 +196,7 @@ class ImportSleepAsAndroidUseCaseTest {
     }
 
     // ---- Real-world validation (Task 13) ----
-    // Fetched from urbandroid-team/sleep-csv-to-json (sleep-test2.csv) — the OFFICIAL sample
+    // Fetched from urbandroid-team/sleep-csv-to-json (sleep-test2.csv), the OFFICIAL sample
     // published by Urbandroid, the makers of Sleep as Android, in their own GitHub org. This is
     // the actual confidence upgrade Task 13 asked for: not community-documented assumptions, a
     // real vendor-published file. Testing against it caught two real bugs the earlier
@@ -207,7 +207,7 @@ class ImportSleepAsAndroidUseCaseTest {
     @Test
     fun invoke_realUrbandroidSample_quotedFieldsParseCleanly() {
         // Rows 1-4 of the real file verbatim: header, one data row, a repeated header, a second
-        // data row. Short and clean (no attached movement-graph columns) — proves basic
+        // data row. Short and clean (no attached movement-graph columns), proves basic
         // quote-stripping and the real dd. MM. yyyy H:mm date format (note: single-digit hour,
         // "0:50" not "00:50") work against genuine vendor output, not just hand-written fixtures.
         val csv = "Id,Tz,From,To,Sched,Hours,Rating,Comment,Framerate,Snore,Noise,Cycles,DeepSleep,LenAdjust,Geo\n" +
@@ -222,7 +222,7 @@ class ImportSleepAsAndroidUseCaseTest {
         assertThat(result.warnings.any { it.contains("repeated header") }).isTrue()
 
         val first = result.sessions.first()
-        // No literal quote characters leaking into parsed values — the bug this fix targets.
+        // No literal quote characters leaking into parsed values, the bug this fix targets.
         assertThat(first.notes).doesNotContain("\"")
         assertThat(first.timezoneId).isEqualTo("Europe/Prague")
         assertThat(first.timeInBedMinutes).isEqualTo(7 * 60) // 0:50 -> 7:50
@@ -249,7 +249,7 @@ class ImportSleepAsAndroidUseCaseTest {
         // The whole comma-containing sentence must survive as ONE field, not be truncated at the
         // first comma (which is what naive splitting would have done).
         assertThat(session.notes).contains("v dobe komunismu, jsme s nejakyma kamaradkama na ostrove, kolem nehoz")
-        // Fields AFTER Comment must still be correctly aligned despite the embedded commas —
+        // Fields AFTER Comment must still be correctly aligned despite the embedded commas,
         // deepSleepPercent (column 13) is "-2.0", outside 0..100, so it should fall back to 0f
         // per the existing out-of-range guard, NOT be misread as some fragment of the comment.
         assertThat(session.deepSleepPercent).isEqualTo(0f)
@@ -260,7 +260,7 @@ class ImportSleepAsAndroidUseCaseTest {
     @Test
     fun invoke_realUrbandroidSample_graphContinuationRowWithEmptyLeadingFieldsIsSkippedGracefully() {
         // Reproduces the real file's "graph continuation" row shape: mostly-empty leading fields
-        // (no Id/Tz/From/To of its own — it's a second data array for the same night, e.g. a
+        // (no Id/Tz/From/To of its own, it's a second data array for the same night, e.g. a
         // parallel noise-sample channel) followed by many quoted numeric values. Must degrade to
         // a normal skipped-row, not crash on empty-string parsing.
         val csv = "Id,Tz,From,To,Sched,Hours,Rating,Comment,Framerate,Snore,Noise,Cycles,DeepSleep,LenAdjust,Geo\n" +

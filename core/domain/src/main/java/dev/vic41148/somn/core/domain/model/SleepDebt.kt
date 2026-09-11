@@ -6,8 +6,8 @@ import java.time.LocalDate
  * Represents the user's accumulated sleep debt over the last 14 days.
  *
  * Sleep debt = cumulative difference between target sleep and actual sleep.
- * Research basis §3.6: cognitive performance degrades linearly with increasing debt;
- * recovery requires ~1 additional hour/night for ~1 week per week of debt accumulated.
+ * Research basis §3.6: cognitive performance degrades linearly with increasing debt.
+ * Recovery requires ~1 additional hour/night for ~1 week per week of debt accumulated.
  */
 data class SleepDebt(
     /** Total accumulated sleep shortfall in minutes over the 14-day window. */
@@ -46,7 +46,7 @@ enum class DebtTrend(val displayName: String, val glyph: String) {
 
 /**
  * Severity of accumulated sleep debt.
- * Thresholds based on research doc §3.6 — cognitive impact becomes measurable at ~1h/week.
+ * Thresholds based on research doc §3.6, cognitive impact becomes measurable at ~1h/week.
  */
 enum class DebtLevel(val displayName: String) {
     NONE("None"),          // < 30 min total

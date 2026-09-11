@@ -1,13 +1,25 @@
 package dev.vic41148.somn.feature.alarm.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,33 +49,77 @@ fun AlarmEditScreen(
     }
 
         var repeatDays by remember { mutableStateOf<Set<Int>>(emptySet()) }
-        
+
+        // Hoisted to screen level, outside AnimatedVisibility. rememberTimePickerState used
+        // to live inside the AnimatedVisibility content, so the dial's state (including its
+        // needle-animation clock) was tied to the enter/exit subcomposition, after tapping
+        // AM/PM and dragging, the needle froze while the time still moved. It survives now.
+        //
+        // The AM/PM toggle inside the Material3 picker mutates `isAfternoon` on the *same*
+        // state object, whose internal needle Animatable is then left pointing at a stale
+        // angle, the first drag after the flip can orphan the draw layer so the hand stops
+        // drawing until the screen reopens. Rebuild the picker with a fresh state (and a
+        // fresh needle animation) whenever AM/PM flips and no finger is down, the policy
+        // lives in AlarmTimePickerState.kt and is unit-tested.
+        val initialPickerState = rememberTimePickerState(initialHour = 7, initialMinute = 0)
+        var timePickerState by remember { mutableStateOf<TimePickerState>(initialPickerState) }
+        var activePointers by remember { mutableIntStateOf(0) }
+        var lastNoon by remember { mutableStateOf(if (timePickerState.hour >= 12) 1 else 0) }
+
+        LaunchedEffect(timePickerState.hour >= 12, activePointers) {
+            val nowPm = timePickerState.hour >= 12
+            when {
+                alarmPickerShouldRebuild(
+                    pointerDown = activePointers > 0,
+                    nowPm = nowPm,
+                    lastPm = lastNoon == 1
+                ) -> {
+                    lastNoon = if (nowPm) 1 else 0
+                    timePickerState = rebuiltAlarmPickerState(timePickerState)
+                }
+                else -> lastNoon = if (nowPm) 1 else 0
+            }
+        }
+
         LaunchedEffect(editingAlarm) {
             editingAlarm?.let {
                 label = it.label
                 wakeWindow = it.wakeWindowMinutes.toFloat()
                 repeatDays = it.repeatDays
+                // The picker used to snapshot editingAlarm?.hour at first composition (null →
+                // 7:00) and never sync, so editing an alarm always opened showing 7:00 AM.
+                timePickerState.hour = it.hour
+                timePickerState.minute = it.minute
                 isInitialized = true
             }
         }
 
-        if (alarmId > 0 && !isInitialized) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        // The spinner fades out as the form fades in, so an edit screen opening from the
+        // alarm list does not hard-cut between two surfaces (MOTION-04 entrance).
+        Box(modifier = Modifier.fillMaxSize()) {
+            AnimatedVisibility(
+                visible = !isInitialized,
+                modifier = Modifier.fillMaxSize(),
+                exit = fadeOut(tween(200))
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-            return
-        }
 
-        val timePickerState = rememberTimePickerState(
-            initialHour = editingAlarm?.hour ?: 7,
-            initialMinute = editingAlarm?.minute ?: 0
-        )
-
+            AnimatedVisibility(
+                visible = isInitialized,
+                modifier = Modifier.fillMaxSize(),
+                enter = fadeIn(tween(300)) +
+                    scaleIn(initialScale = 0.98f, animationSpec = tween(300))
+            ) {
         // The save button used to be the last child of an unscrollable Column. A Material3
         // TimePicker dial alone is ~300dp, and with the day chips, label field and wake-window
-        // slider above it the button sat past the bottom of the screen on a normal phone — laid
+        // slider above it the button sat past the bottom of the screen on a normal phone, laid
         // out, clipped, and completely unreachable, so an alarm could never actually be saved.
-        // The scrollable region now holds the form and the button is pinned outside it.
+        // The dial now sits FIXED above the scroll region with the button pinned below it: a
+        // verticalScroll parent used to steal the dial's circular drags (vertical components
+        // scroll the form instead of moving the needle), which froze the needle animation.
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -71,23 +127,44 @@ fun AlarmEditScreen(
                 .padding(top = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
             Text(
                 text = if (alarmId > 0) "Edit Alarm" else "New Alarm",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            TimePicker(state = timePickerState)
+            Box(
+                modifier = Modifier.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            when (event.type) {
+                                PointerEventType.Press -> activePointers += 1
+                                PointerEventType.Release ->
+                                    activePointers = (activePointers - 1).coerceAtLeast(0)
+                                PointerEventType.Move ->
+                                    if (activePointers > 0 && event.changes.none { it.pressed }) {
+                                        activePointers = 0
+                                    }
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+            ) {
+                TimePicker(state = timePickerState)
+            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
             // Repeat Days
             Text(
@@ -97,9 +174,12 @@ fun AlarmEditScreen(
                 modifier = Modifier.align(Alignment.Start)
             )
             Spacer(modifier = Modifier.height(8.dp))
+            // Single-row round day toggles in the pill language: selected days ride
+            // primary/onPrimary, the rest sit on surfaceContainerHigh. One Row, equal
+            // weights, so all seven always fit instead of wrapping 5+2 like the old chips.
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val days = listOf(
                     java.util.Calendar.MONDAY to "M",
@@ -112,17 +192,55 @@ fun AlarmEditScreen(
                 )
                 days.forEach { (calendarDay, initial) ->
                     val isSelected = repeatDays.contains(calendarDay)
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            repeatDays = if (isSelected) {
-                                repeatDays - calendarDay
-                            } else {
-                                repeatDays + calendarDay
-                            }
-                        },
-                        label = { Text(initial) }
+                    val container by animateColorAsState(
+                        targetValue = if (isSelected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                        label = "dayToggle"
                     )
+                    val content by animateColorAsState(
+                        targetValue = if (isSelected)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "dayToggleContent"
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            // 48dp minimum touch target: the visible circle stays
+                            // compact so all seven fit, the tap area doesn't.
+                            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                            .clip(CircleShape)
+                            .clickable(
+                                onClickLabel = if (isSelected) "Remove $initial" else "Repeat on $initial",
+                                role = androidx.compose.ui.semantics.Role.Checkbox
+                            ) {
+                                repeatDays = if (isSelected) {
+                                    repeatDays - calendarDay
+                                } else {
+                                    repeatDays + calendarDay
+                                }
+                            }
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .aspectRatio(1f)
+                                .clip(CircleShape)
+                                .background(container)
+                        ) {
+                            Text(
+                                text = initial,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = content
+                            )
+                        }
+                    }
                 }
             }
 
@@ -198,5 +316,7 @@ fun AlarmEditScreen(
                     Text(if (alarmId > 0) "Update Alarm" else "Save Alarm")
                 }
             }
+            }
         }
+    }
 }

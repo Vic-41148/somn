@@ -33,10 +33,10 @@ fun SleepGoalScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    // Body scrolls, footer stays pinned. This was one unscrollable Column whose footer was held
-    // down by a weight(1f) Spacer — fine until the content above outgrew the viewport (a large
-    // system font scale, or the optional sections below expanding), at which point the spacer
-    // collapsed to zero and the buttons were pushed off the bottom with no way to scroll to them.
+    // Body scrolls, footer stays pinned. This was one unscrollable Column. A weight(1f) Spacer
+    // held the footer down. This worked until the content above outgrew the viewport (a large
+    // system font scale, or the optional sections below expanding). Then the spacer
+    // collapsed to zero and pushed the buttons off the bottom with no way to scroll to them.
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -63,8 +63,8 @@ fun SleepGoalScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Based on your age, we recommend ${recommendedHours.format()} hours. " +
-                "You can adjust this — we'll track your sleep debt based on this target.",
+            text = "We recommend ${recommendedHours.format()} hours for your age. " +
+                "You can adjust this target. We will track your sleep debt against this target.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

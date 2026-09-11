@@ -12,10 +12,17 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"
+        tools:ignore="HighSamplingRate" />
+    <!-- tools:ignore above: sonar sleep tracking genuinely needs >200Hz audio/IMU
+        sampling; this is the app's core sensor path, not a casual read. -->
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Dormant until targetSdk 37: Android 17 gates LAN traffic (the WebDAV NAS sync)
+        behind ACCESS_LOCAL_NETWORK. Declaring now is inert at target 36; the runtime
+        request belongs in the NAS-setup flow in the same change that bumps targetSdk. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <!-- REL-03: package visibility for OEM-specific battery/autostart settings deep links -->
     <queries>
@@ -27,6 +34,7 @@
     <application
         android:name=".SomnApp"
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
@@ -65,6 +73,19 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+
+        <!--
+          Pre-Android-14 path, when Health Connect is a separate app: it fires
+          ACTION_SHOW_PERMISSIONS_RATIONALE when the user taps through from its own
+          permission screen. Same story as the in-app toggle, standalone screen.
+        -->
+        <activity
+            android:name=".health.HealthRationaleActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
 
         <!-- FileProvider for CSV export sharing -->
         <provider

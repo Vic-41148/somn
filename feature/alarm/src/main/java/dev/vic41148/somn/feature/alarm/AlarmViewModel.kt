@@ -41,7 +41,7 @@ class AlarmViewModel @Inject constructor(
 
     /**
      * The captcha task gating the current firing episode, resolved for the in-app firing screen.
-     * Resolved (fresh, reset) on every firing start — first ring and each WAKE-02 re-ring — using
+     * Resolved (fresh, reset) on every firing start, first ring and each WAKE-02 re-ring, using
      * the same [CaptchaTaskRegistry.resolveTask] precedence as [AlarmActivity].
      *
      * Keyed on [AlarmService.isAlarmFiring] rather than `phase`: the phase StateFlow initializes
@@ -54,7 +54,7 @@ class AlarmViewModel @Inject constructor(
 
     /**
      * True once the first resolution has completed. The firing screen keeps Dismiss locked on a
-     * blank surface until this is true — without the gate, the task starts null and the shared
+     * blank surface until this is true, without the gate, the task starts null and the shared
      * [dev.vic41148.somn.feature.alarm.ui.AlarmScreen] treats a null task as "Unlocked!", which
      * would open a small captcha-bypass window while the DataStore reads are in flight.
      */
@@ -88,12 +88,12 @@ class AlarmViewModel @Inject constructor(
         minute: Int,
         label: String = "",
         // Defaults to NONE so a new alarm inherits the global Settings captcha preference.
-        // (Previously "math" — but the per-alarm value was decorative, so it never mattered. Now
+        // (Previously "math", but the per-alarm value was decorative, so it never mattered. Now
         // that AlarmActivity actually honors per-alarm captchaType, a hardcoded "math" default
         // would silently override the user's global choice for every UI-created alarm.)
         captchaType: String = "none",
         repeatDays: Set<Int> = emptySet(),
-        // Was missing entirely, so a new alarm always took Alarm's 30-minute default and silently
+        // It was missing entirely. A new alarm always took the Alarm 30-minute default and silently
         // discarded whatever the user had just set on the edit screen's wake-window slider. Only
         // editing an existing alarm ever persisted the value.
         wakeWindowMinutes: Int = 30

@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,6 +34,56 @@ class SomnPreferencesRepository @Inject constructor(
         const val CLIP_RETENTION_KEEP_FOREVER = 0
     }
 
+    /**
+     * Keystore envelope for sensitive string prefs (NAS endpoint parts, QR value, backup
+     * URI, menopause answers). New writes are always sealed, reads accept pre-encryption
+     * plaintext so v0.1.2 installs keep working until [migrateSensitivePrefsToEncrypted] runs.
+     */
+    private fun seal(plain: String): String =
+        android.util.Base64.encodeToString(
+            encryptionUtils.encryptBytes(plain.toByteArray(Charsets.UTF_8)),
+            android.util.Base64.NO_WRAP
+        )
+
+    private fun unseal(stored: String?): String? {
+        if (stored == null) return null
+        return try {
+            encryptionUtils.decryptBytes(
+                android.util.Base64.decode(stored, android.util.Base64.NO_WRAP)
+            ).toString(Charsets.UTF_8)
+        } catch (_: Exception) {
+            stored
+        }
+    }
+
+    /**
+     * One-time upgrade: re-writes any still-plaintext sensitive values sealed. Only values
+     * that fail to decrypt get sealed, so re-runs are no-ops.
+     */
+    suspend fun migrateSensitivePrefsToEncrypted() {
+        context.dataStore.edit { prefs ->
+            listOf(
+                PreferencesKeys.QR_CODE_VALUE,
+                PreferencesKeys.BACKUP_URI,
+                PreferencesKeys.NAS_HOST,
+                PreferencesKeys.NAS_PATH,
+                PreferencesKeys.NAS_USERNAME,
+                PreferencesKeys.MENO_ANSWERS_CSV
+            ).forEach { key ->
+                val raw = prefs[key] ?: return@forEach
+                val alreadySealed = try {
+                    encryptionUtils.decryptBytes(
+                        android.util.Base64.decode(raw, android.util.Base64.NO_WRAP)
+                    )
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+                if (!alreadySealed) prefs[key] = seal(raw)
+            }
+        }
+    }
+
     private object PreferencesKeys {
         val SELECTED_CAPTCHA_TASK_ID = stringPreferencesKey("selected_captcha_task_id")
         val QR_CODE_VALUE = stringPreferencesKey("qr_code_value")
@@ -46,15 +97,21 @@ class SomnPreferencesRepository @Inject constructor(
         val NAS_USERNAME = stringPreferencesKey("nas_username")
         val NAS_PROTOCOL = stringPreferencesKey("nas_protocol")
         val NAS_PORT = intPreferencesKey("nas_port")
-        /** Explicit TLS choice for the NAS connection; never inferred from [NAS_PORT]. */
+        /** Explicit TLS choice for the NAS connection, never inferred from [NAS_PORT]. */
         val NAS_USE_HTTPS = booleanPreferencesKey("nas_use_https")
-        /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded — never the raw password. */
+        /** AES-256-GCM ciphertext (IV + tag included), Base64-encoded, never the raw password. */
         val NAS_PASSWORD_ENCRYPTED = stringPreferencesKey("nas_password_encrypted")
         val OVERSLEEP_THRESHOLD_MINUTES = intPreferencesKey("oversleep_threshold_minutes")
         val WAKE_VERIFICATION_ENABLED = booleanPreferencesKey("wake_verification_enabled")
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
-        /**
-         * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO — the
+        /** Material You dynamic color on Android 12+, on by default so the theme stays as it was. */
+        val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+        /** R1: Morning Ready verdict + Today outlook cards on Home, on by default. */
+        val SHOW_READINESS_CARD = booleanPreferencesKey("show_readiness_card")
+        /** R2 Rest Mode start timestamp. Absent = off, sick nights on/after this leave baselines. */
+        val REST_MODE_SINCE = longPreferencesKey("rest_mode_since")
+        val MENO_ANSWERS_CSV = stringPreferencesKey("meno_answers_csv")        /**
+         * Which hemisphere seasonal analysis uses. Absent (or unmappable) = AUTO, the
          * UTC-offset heuristic in SeasonalAnalysisUseCase stays in charge.
          */
         val HEMISPHERE_OVERRIDE = stringPreferencesKey("hemisphere_override")
@@ -62,16 +119,27 @@ class SomnPreferencesRepository @Inject constructor(
         val YAMNET_CLASSIFICATION_ENABLED = booleanPreferencesKey("yamnet_classification_enabled")
         /**
          * The user's backup recovery passphrase, Keystore-encrypted at rest so unattended sync can
-         * use it. Keystore protects it *on* the device; the passphrase itself is what makes backups
+         * use it. Keystore protects it *on* the device, the passphrase itself is what makes backups
          * readable *off* the device, which is why the user is also shown it once to store elsewhere.
          */
         val BACKUP_PASSPHRASE_ENCRYPTED = stringPreferencesKey("backup_passphrase_encrypted")
         val SNORE_NUDGE_ENABLED = booleanPreferencesKey("snore_nudge_enabled")
         /**
          * Days to keep sleep-talk recordings on disk. [CLIP_RETENTION_KEEP_FOREVER] disables
-         * pruning entirely — an explicit opt-in, because the default has to be one that forgets.
+         * pruning entirely, an explicit opt-in, because the default has to be one that forgets.
          */
         val CLIP_RETENTION_DAYS = intPreferencesKey("clip_retention_days")
+        val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
+        val HAPTICS_INTENSITY = stringPreferencesKey("haptics_intensity")
+        // ── In-app self-updater ───────────────────────────────────────
+        val UPDATE_AUTO_CHECK = booleanPreferencesKey("update_auto_check")
+        val UPDATE_CHECK_INTERVAL_DAYS = intPreferencesKey("update_check_interval_days")
+        val UPDATE_LAST_CHECKED_MS = longPreferencesKey("update_last_checked_ms")
+        val UPDATE_SKIPPED_VERSION = stringPreferencesKey("update_skipped_version")
+        val UPDATE_STAGED_RELEASE = stringPreferencesKey("update_staged_release")
+        val UPDATE_RESTORE_PROMPT_SHOWN = booleanPreferencesKey("update_restore_prompt_shown")
+        val BYSTANDER_NOTICE_SHOWN = booleanPreferencesKey("bystander_notice_shown")
+        val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
     }
 
     val trackingMode: Flow<dev.vic41148.somn.core.domain.model.TrackingMode> = context.dataStore.data
@@ -99,7 +167,7 @@ class SomnPreferencesRepository @Inject constructor(
                 throw exception
             }
         }.map { preferences ->
-            preferences[PreferencesKeys.BACKUP_URI]
+            unseal(preferences[PreferencesKeys.BACKUP_URI])
         }
 
     val selectedCaptchaTaskId: Flow<String> = context.dataStore.data
@@ -121,7 +189,7 @@ class SomnPreferencesRepository @Inject constructor(
                 throw exception
             }
         }.map { preferences ->
-            preferences[PreferencesKeys.QR_CODE_VALUE]
+            unseal(preferences[PreferencesKeys.QR_CODE_VALUE])
         }
 
     val maxSnoozeCount: Flow<Int> = context.dataStore.data
@@ -141,12 +209,17 @@ class SomnPreferencesRepository @Inject constructor(
         }
     }
 
+    /** Full wipe support: drops every preference, onboarding-completed included. */
+    suspend fun clearAll() {
+        context.dataStore.edit { it.clear() }
+    }
+
     suspend fun updateBackupUri(uri: String?) {
         context.dataStore.edit { preferences ->
             if (uri == null) {
                 preferences.remove(PreferencesKeys.BACKUP_URI)
             } else {
-                preferences[PreferencesKeys.BACKUP_URI] = uri
+                preferences[PreferencesKeys.BACKUP_URI] = seal(uri)
             }
         }
     }
@@ -162,7 +235,7 @@ class SomnPreferencesRepository @Inject constructor(
             if (value == null) {
                 preferences.remove(PreferencesKeys.QR_CODE_VALUE)
             } else {
-                preferences[PreferencesKeys.QR_CODE_VALUE] = value
+                preferences[PreferencesKeys.QR_CODE_VALUE] = seal(value)
             }
         }
     }
@@ -200,8 +273,52 @@ class SomnPreferencesRepository @Inject constructor(
         context.dataStore.edit { it[PreferencesKeys.WAKE_VERIFICATION_WINDOW_SECONDS] = seconds }
     }
 
+    /** THEME-01: whether Material You should tint the app from the wallpaper on Android 12+. */
+    val useDynamicColor: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.USE_DYNAMIC_COLOR] ?: true }
+
+    suspend fun updateUseDynamicColor(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.USE_DYNAMIC_COLOR] = enabled }
+    }
+
+    /** R1: whether the Morning Ready verdict + Today outlook cards show on Home. */
+    val showReadinessCard: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.SHOW_READINESS_CARD] ?: true }
+
+    suspend fun updateShowReadinessCard(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.SHOW_READINESS_CARD] = enabled }
+    }
+
+    /** R2: Rest Mode boundary, null when off. Set = now, clear = remove the key. */
+    val restModeSince: Flow<Long?> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.REST_MODE_SINCE] }
+
+    suspend fun setRestModeSince(sinceMillis: Long?) {
+        context.dataStore.edit {
+            if (sinceMillis == null) it.remove(PreferencesKeys.REST_MODE_SINCE)
+            else it[PreferencesKeys.REST_MODE_SINCE] = sinceMillis
+        }
+    }
+
     /**
-     * Hemisphere pin for seasonal analysis — [HemisphereOverride.AUTO] keeps the UTC-offset
+     * R5 menopause check-in answers as "2,0,3,..." (question order = MENOPAUSE_QUESTIONS).
+     * Null until first completed, prefs, not Room, questionnaire data stays a setting.
+     */
+    val menoAnswers: Flow<List<Int>?> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { prefs ->
+            unseal(prefs[PreferencesKeys.MENO_ANSWERS_CSV])?.split(",")?.mapNotNull { it.toIntOrNull() }
+        }
+
+    suspend fun saveMenoAnswers(answers: List<Int>) {
+        context.dataStore.edit { it[PreferencesKeys.MENO_ANSWERS_CSV] = seal(answers.joinToString(",")) }
+    }
+
+    /**
+     * Hemisphere pin for seasonal analysis, [HemisphereOverride.AUTO] keeps the UTC-offset
      * heuristic, NORTHERN/SOUTHERN force the season mapping.
      */
     val hemisphereOverride: Flow<dev.vic41148.somn.core.domain.model.HemisphereOverride> =
@@ -222,7 +339,7 @@ class SomnPreferencesRepository @Inject constructor(
         context.dataStore.edit { it[PreferencesKeys.HEMISPHERE_OVERRIDE] = override.name }
     }
 
-    /** HEALTH-01/02: user opt-in — off by default, syncing external health data is not implied by installing the app. */
+    /** HEALTH-01/02: user opt-in, off by default, syncing external health data is not implied by installing the app. */
     val healthConnectEnabled: Flow<Boolean> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { it[PreferencesKeys.HEALTH_CONNECT_ENABLED] ?: false }
@@ -232,10 +349,10 @@ class SomnPreferencesRepository @Inject constructor(
     }
 
     /**
-     * Task 14 (AUDIO-01) — off by default. Gates YAMNet-based classification as an alternative
+     * Task 14 (AUDIO-01), off by default. Gates YAMNet-based classification as an alternative
      * to the ZCR heuristic in [dev.vic41148.somn.core.audio.AudioEventClassifier] so it can be
      * A/B'd rather than silently replacing the existing (already-shipped) heuristic. Not
-     * validated for accuracy (AUDIO-02) or battery impact (AUDIO-03) — those are separate,
+     * validated for accuracy (AUDIO-02) or battery impact (AUDIO-03), those are separate,
      * still-open follow-ups.
      */
     val yamnetClassificationEnabled: Flow<Boolean> = context.dataStore.data
@@ -268,6 +385,31 @@ class SomnPreferencesRepository @Inject constructor(
         context.dataStore.edit { it[PreferencesKeys.CLIP_RETENTION_DAYS] = days }
     }
 
+    val hapticsEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.HAPTICS_ENABLED] ?: true }
+
+    suspend fun updateHapticsEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.HAPTICS_ENABLED] = enabled }
+    }
+
+    val hapticsIntensity: Flow<dev.vic41148.somn.core.domain.haptic.HapticsIntensity> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+            .map { prefs ->
+                try {
+                    dev.vic41148.somn.core.domain.haptic.HapticsIntensity.valueOf(
+                        prefs[PreferencesKeys.HAPTICS_INTENSITY] ?: "STANDARD"
+                    )
+                } catch (e: Exception) {
+                    dev.vic41148.somn.core.domain.haptic.HapticsIntensity.STANDARD
+                }
+            }
+
+    suspend fun updateHapticsIntensity(intensity: dev.vic41148.somn.core.domain.haptic.HapticsIntensity) {
+        context.dataStore.edit { it[PreferencesKeys.HAPTICS_INTENSITY] = intensity.name }
+    }
+
     // ── NAS Preferences ──────────────────────────────────────────────
 
     val nasEnabled: Flow<Boolean> = context.dataStore.data
@@ -276,15 +418,15 @@ class SomnPreferencesRepository @Inject constructor(
 
     val nasHost: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_HOST] ?: "" }
+        .map { unseal(it[PreferencesKeys.NAS_HOST]) ?: "" }
 
     val nasPath: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_PATH] ?: "/somn" }
+        .map { unseal(it[PreferencesKeys.NAS_PATH]) ?: "/somn" }
 
     val nasUsername: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map { it[PreferencesKeys.NAS_USERNAME] ?: "" }
+        .map { unseal(it[PreferencesKeys.NAS_USERNAME]) ?: "" }
 
     val nasProtocol: Flow<String> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
@@ -308,15 +450,15 @@ class SomnPreferencesRepository @Inject constructor(
     }
 
     suspend fun updateNasHost(host: String) {
-        context.dataStore.edit { it[PreferencesKeys.NAS_HOST] = host }
+        context.dataStore.edit { it[PreferencesKeys.NAS_HOST] = seal(host) }
     }
 
     suspend fun updateNasPath(path: String) {
-        context.dataStore.edit { it[PreferencesKeys.NAS_PATH] = path }
+        context.dataStore.edit { it[PreferencesKeys.NAS_PATH] = seal(path) }
     }
 
     suspend fun updateNasUsername(username: String) {
-        context.dataStore.edit { it[PreferencesKeys.NAS_USERNAME] = username }
+        context.dataStore.edit { it[PreferencesKeys.NAS_USERNAME] = seal(username) }
     }
 
     suspend fun updateNasProtocol(protocol: String) {
@@ -349,7 +491,7 @@ class SomnPreferencesRepository @Inject constructor(
 
     // ---- Backup recovery passphrase ----
 
-    /** True once a recovery passphrase exists — without one, backups cannot be encrypted portably. */
+    /** True once a recovery passphrase exists, without one, backups cannot be encrypted portably. */
     val backupPassphraseSet: Flow<Boolean> = context.dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
         .map { !it[PreferencesKeys.BACKUP_PASSPHRASE_ENCRYPTED].isNullOrBlank() }
@@ -372,5 +514,114 @@ class SomnPreferencesRepository @Inject constructor(
             ?: return null
         val encrypted = android.util.Base64.decode(encoded, android.util.Base64.NO_WRAP)
         return String(encryptionUtils.decryptBytes(encrypted), Charsets.UTF_8)
+    }
+
+    // ---- In-app self-updater preferences ----
+
+    val updateAutoCheck: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_AUTO_CHECK] ?: true }
+
+    suspend fun updateUpdateAutoCheck(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_AUTO_CHECK] = enabled }
+    }
+
+    val updateCheckIntervalDays: Flow<Int> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_CHECK_INTERVAL_DAYS] ?: 1 }
+
+    suspend fun updateUpdateCheckIntervalDays(days: Int) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_CHECK_INTERVAL_DAYS] = days }
+    }
+
+    val updateLastCheckedMs: Flow<Long> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_LAST_CHECKED_MS] ?: -1L }
+
+    suspend fun updateUpdateLastCheckedMs(ms: Long) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_LAST_CHECKED_MS] = ms }
+    }
+
+    val updateSkippedVersion: Flow<String> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_SKIPPED_VERSION] ?: "" }
+
+    suspend fun updateUpdateSkippedVersion(tag: String) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_SKIPPED_VERSION] = tag }
+    }
+
+    val updateStagedRelease: Flow<dev.vic41148.somn.core.domain.model.StagedRelease> =
+        context.dataStore.data
+            .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+            .map { prefs ->
+                prefs[PreferencesKeys.UPDATE_STAGED_RELEASE]?.let(::parseStagedRelease)
+                    ?: dev.vic41148.somn.core.domain.model.StagedRelease("", "", "", null, null, 0L)
+            }
+
+    suspend fun updateUpdateStagedRelease(release: dev.vic41148.somn.core.domain.model.StagedRelease?) {
+        context.dataStore.edit { prefs ->
+            if (release == null) {
+                prefs.remove(PreferencesKeys.UPDATE_STAGED_RELEASE)
+            } else {
+                prefs[PreferencesKeys.UPDATE_STAGED_RELEASE] = encodeStagedRelease(release)
+            }
+        }
+    }
+
+    val updateRestorePromptShown: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.UPDATE_RESTORE_PROMPT_SHOWN] ?: false }
+
+    suspend fun updateUpdateRestorePromptShown(shown: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.UPDATE_RESTORE_PROMPT_SHOWN] = shown }
+    }
+
+    /** One-time partner/bystander audio notice, shown when continuous-mic tracking is chosen. */
+    val bystanderNoticeShown: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.BYSTANDER_NOTICE_SHOWN] ?: false }
+
+    suspend fun updateBystanderNoticeShown(shown: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.BYSTANDER_NOTICE_SHOWN] = shown }
+    }
+
+    /**
+     * Opt-in app lock. Gates the UI at cold start only, background tracking, alarms, and
+     * workers keep running, because an overnight sleep tracker that stops tracking while
+     * locked would be broken by design. At-rest data stays SQLCipher-encrypted regardless.
+     */
+    val appLockEnabled: Flow<Boolean> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { it[PreferencesKeys.APP_LOCK_ENABLED] ?: false }
+
+    suspend fun updateAppLockEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.APP_LOCK_ENABLED] = enabled }
+    }
+
+    private fun encodeStagedRelease(r: dev.vic41148.somn.core.domain.model.StagedRelease): String {
+        val json = org.json.JSONObject()
+        json.put("tag", r.tag)
+        json.put("versionName", r.versionName)
+        json.put("notes", r.notes)
+        r.apkUrl?.let { json.put("apkUrl", it) }
+        r.sha256?.let { json.put("sha256", it) }
+        json.put("atMs", r.atMs)
+        return json.toString()
+    }
+
+    private fun parseStagedRelease(raw: String): dev.vic41148.somn.core.domain.model.StagedRelease {
+        return try {
+            val json = org.json.JSONObject(raw)
+            dev.vic41148.somn.core.domain.model.StagedRelease(
+                tag = json.optString("tag", ""),
+                versionName = json.optString("versionName", ""),
+                notes = json.optString("notes", ""),
+                apkUrl = if (json.isNull("apkUrl")) null else json.optString("apkUrl", "").ifBlank { null },
+                sha256 = if (json.isNull("sha256")) null else json.optString("sha256", "").ifBlank { null },
+                atMs = json.optLong("atMs", 0L)
+            )
+        } catch (e: Exception) {
+            dev.vic41148.somn.core.domain.model.StagedRelease("", "", "", null, null, 0L)
+        }
     }
 }

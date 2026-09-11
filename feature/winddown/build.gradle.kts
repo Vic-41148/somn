@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.feature.winddown"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -23,6 +23,15 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
+    }
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+        }
+        create("store") {
+            dimension = "channel"
         }
     }
 }

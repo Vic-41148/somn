@@ -28,7 +28,7 @@ class WeeklyReportGenerator @AssistedInject constructor(
             val sessions = sleepRepository.getMainSleepSessionsSince(sevenDaysAgoMillis)
 
             if (sessions.isEmpty()) {
-                // No sessions this week — send encouragement
+                // No sessions this week, send encouragement
                 notificationEngine.showNotification(
                     // 2002, NOT 2001: the alarm FGS owns id 2001 for its ongoing notification
                 // (startForeground), so a weekly report sharing it would silently replace a
@@ -51,7 +51,7 @@ class WeeklyReportGenerator @AssistedInject constructor(
 
             val trend = when {
                 avgScore >= 80 -> "Excellent week!"
-                avgScore >= 60 -> "Solid week — room to improve."
+                avgScore >= 60 -> "Solid week, room to improve."
                 else -> "Tough week. Focus on consistency."
             }
 

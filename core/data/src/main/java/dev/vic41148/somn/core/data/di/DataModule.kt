@@ -6,6 +6,7 @@ import dev.vic41148.somn.core.data.backup.EncryptionUtils
 import dev.vic41148.somn.core.data.backup.NasClient
 import dev.vic41148.somn.core.data.backup.NasClientImpl
 import dev.vic41148.somn.core.data.database.ALL_MIGRATIONS
+import dev.vic41148.somn.core.data.database.DatabaseKeyManager
 import dev.vic41148.somn.core.data.database.SleepDatabase
 import dev.vic41148.somn.core.data.database.dao.AlarmDao
 import dev.vic41148.somn.core.data.database.dao.HabitLogDao
@@ -15,6 +16,7 @@ import dev.vic41148.somn.core.data.database.dao.TagDao
 import dev.vic41148.somn.core.data.database.dao.UserProfileDao
 import dev.vic41148.somn.core.data.database.dao.AudioEventDao
 import dev.vic41148.somn.core.data.database.dao.ExternalVitalsDao
+import dev.vic41148.somn.core.data.database.dao.AlarmEventDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,14 +30,22 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): SleepDatabase {
+    fun provideDatabase(
+        @ApplicationContext context: Context,
+        keyManager: DatabaseKeyManager
+    ): SleepDatabase {
         return Room.databaseBuilder(
             context,
             SleepDatabase::class.java,
             SleepDatabase.DATABASE_NAME
         )
+            .openHelperFactory(
+                // At-rest encryption: SQLCipher with a Keystore-wrapped random key. First
+                // launch on a v0.1.2 install migrates the plaintext DB in place.
+                net.zetetic.database.sqlcipher.SupportOpenHelperFactory(keyManager.getOrCreatePassphrase())
+            )
             .addMigrations(*ALL_MIGRATIONS)
-            // v1 predates exportSchema and never shipped; every later version migrates properly.
+            // v1 predates exportSchema and never shipped. Every later version migrates properly.
             .fallbackToDestructiveMigrationFrom(1)
             .build()
     }
@@ -63,6 +73,9 @@ object DataModule {
 
     @Provides
     fun provideExternalVitalsDao(db: SleepDatabase): ExternalVitalsDao = db.externalVitalsDao()
+
+    @Provides
+    fun provideAlarmEventDao(db: SleepDatabase): AlarmEventDao = db.alarmEventDao()
 
     @Provides
     @Singleton

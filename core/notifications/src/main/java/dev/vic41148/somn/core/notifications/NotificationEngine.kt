@@ -63,8 +63,7 @@ class NotificationEngine @Inject constructor(
         intent: Intent? = null
     ) {
         val builder = NotificationCompat.Builder(context, channelId)
-            // .setSmallIcon(R.drawable.ic_somn_notification) // Optional, using a generic if undefined
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(dev.vic41148.somn.core.ui.R.drawable.ic_somn_notification)
             .setContentTitle(title)
             .setContentText(content)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content))

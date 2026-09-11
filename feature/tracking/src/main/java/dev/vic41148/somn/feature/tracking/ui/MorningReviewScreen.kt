@@ -1,11 +1,11 @@
 package dev.vic41148.somn.feature.tracking.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,17 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,13 +36,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import dev.vic41148.somn.core.ui.components.Hypnogram
+import dev.vic41148.somn.core.ui.components.ColorLegendItem
+import dev.vic41148.somn.core.ui.components.HypnogramWithTable
 import dev.vic41148.somn.core.ui.components.MetricChip
+import dev.vic41148.somn.core.ui.components.PillRow
 import dev.vic41148.somn.core.ui.components.SleepCard
 import dev.vic41148.somn.core.ui.components.SleepScoreRing
 import dev.vic41148.somn.core.ui.theme.StageAwake
@@ -65,11 +67,11 @@ fun MorningReviewScreen(
     var selectedMood by rememberSaveable { mutableIntStateOf(0) }
     var notes by rememberSaveable { mutableStateOf("") }
 
-    // This screen renders the session it was opened for (the sessionId argument) — never the
+    // This screen renders the session it was opened for (the sessionId argument), never the
     // shared lastSession flow. The stop path fills lastSession asynchronously and can race this
     // screen's creation, so a relaunch mid-flow used to show a stale session from a previous
     // night. The detail data (score explanation, epochs, audio) loads once the session row
-    // arrives, so it can't race the stop path's commit either.
+    // arrives, so it cannot race the stop path's commit either.
     LaunchedEffect(sessionFlow?.id) {
         sessionFlow?.let { viewModel.loadSessionDetail(it.id) }
     }
@@ -98,7 +100,7 @@ fun MorningReviewScreen(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
             ) {
                 Text(
-                    text = "Tracking stopped early — this session may be missing data from later in the night.",
+                    text = "Tracking stopped early. This session may be missing data from later in the night.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -114,7 +116,7 @@ fun MorningReviewScreen(
             ) {
                 Text(
                     text = "This session ran well beyond your target sleep duration. Oversleeping can " +
-                        "leave you groggy — consider a consistent wake time even on rest days.",
+                        "leave you groggy. Consider a consistent wake time even on rest days.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -147,7 +149,7 @@ fun MorningReviewScreen(
         if (epochs.isNotEmpty()) {
             SleepCard(title = "Sleep Stages") {
                 val hypnogramStages = remember(epochs) { epochs.map { it.stage } }
-                Hypnogram(
+                HypnogramWithTable(
                     stages = hypnogramStages,
                     modifier = Modifier.fillMaxWidth(),
                     height = 100.dp
@@ -157,10 +159,10 @@ fun MorningReviewScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StageLegendItem(color = StageAwake, label = "Awake")
-                    StageLegendItem(color = StageRem, label = "REM")
-                    StageLegendItem(color = StageLight, label = "Light")
-                    StageLegendItem(color = StageDeep, label = "Deep")
+                    ColorLegendItem(color = StageAwake, label = "Awake")
+                    ColorLegendItem(color = StageRem, label = "REM")
+                    ColorLegendItem(color = StageLight, label = "Light")
+                    ColorLegendItem(color = StageDeep, label = "Deep")
                 }
             }
         }
@@ -192,7 +194,7 @@ fun MorningReviewScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = "We noticed frequent coughing during the night. You may want to monitor your symptoms.",
+                            text = "We noticed frequent coughing during the night. Monitor your symptoms.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -204,22 +206,16 @@ fun MorningReviewScreen(
 
         // Key metrics
         SleepCard(title = "Sleep Stats") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
+            PillRow {
                 val hours = session.sleepDurationMinutes / 60
                 val mins = session.sleepDurationMinutes % 60
-                MetricChip(label = "Duration", value = "${hours}h ${mins}m")
-                MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%")
+                MetricChip(label = "Duration", value = "${hours}h ${mins}m", modifier = Modifier.weight(1f).fillMaxHeight())
+                MetricChip(label = "Efficiency", value = "${session.sleepEfficiency.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                MetricChip(label = "Deep Sleep", value = "${session.deepSleepPercent.toInt()}%")
-                MetricChip(label = "Wake Events", value = "${session.wakeEvents}")
+            PillRow {
+                MetricChip(label = "Deep Sleep", value = "${session.deepSleepPercent.toInt()}%", modifier = Modifier.weight(1f).fillMaxHeight())
+                MetricChip(label = "Wake Events", value = "${session.wakeEvents}", modifier = Modifier.weight(1f).fillMaxHeight())
             }
         }
 
@@ -228,37 +224,44 @@ fun MorningReviewScreen(
         // Audio Events
         if (audioEvents.isNotEmpty()) {
             SleepCard(title = "Audio Events") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
+                PillRow {
                     val snoreCount = audioEvents.count { it.type == AudioEventType.SNORE }
                     val coughCount = audioEvents.count { it.type == AudioEventType.COUGH }
                     val talkCount = audioEvents.count { it.type == AudioEventType.TALK }
-                    MetricChip(label = "Snoring", value = "$snoreCount events")
-                    MetricChip(label = "Coughs", value = "$coughCount events")
-                    MetricChip(label = "Talking", value = "$talkCount events")
+                    MetricChip(label = "Snoring", value = "$snoreCount", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "Coughs", value = "$coughCount", modifier = Modifier.weight(1f).fillMaxHeight())
+                    MetricChip(label = "Talking", value = "$talkCount", modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Mood rating
+        // Mood rating, one full-width radio row per mood so labels never wrap.
         SleepCard(title = "How do you feel?") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 val moods = listOf("Exhausted" to 1, "Tired" to 2, "Okay" to 3, "Good" to 4, "Great" to 5)
                 moods.forEach { (label, value) ->
-                    FilterChip(
-                        selected = selectedMood == value,
-                        onClick = {
-                            selectedMood = value
-                            viewModel.updateMood(session.id, value)
-                        },
-                        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                selectedMood = value
+                                viewModel.updateMood(session.id, value)
+                            }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedMood == value,
+                            onClick = {
+                                selectedMood = value
+                                viewModel.updateMood(session.id, value)
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
             }
         }
@@ -289,23 +292,10 @@ fun MorningReviewScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-            Text("  Done", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Done", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-/** A single Hypnogram legend entry — a color swatch matching [dev.vic41148.somn.core.ui.components.toColor] plus its label. */
-@Composable
-private fun StageLegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(10.dp)
-                .background(color = color, shape = CircleShape)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }

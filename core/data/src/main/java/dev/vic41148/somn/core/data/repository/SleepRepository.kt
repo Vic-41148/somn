@@ -1,5 +1,7 @@
 package dev.vic41148.somn.core.data.repository
 
+import androidx.room.withTransaction
+import dev.vic41148.somn.core.data.database.SleepDatabase
 import dev.vic41148.somn.core.data.database.dao.SleepEpochDao
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
 import dev.vic41148.somn.core.data.database.dao.AudioEventDao
@@ -22,11 +24,30 @@ import javax.inject.Singleton
 
 @Singleton
 class SleepRepository @Inject constructor(
+    private val database: SleepDatabase,
     private val sessionDao: SleepSessionDao,
     private val epochDao: SleepEpochDao,
     private val audioEventDao: AudioEventDao,
     private val externalVitalsDao: ExternalVitalsDao
 ) {
+
+    /**
+     * Runs [block] in a single Room transaction: a mid-import crash rolls everything back
+     * instead of leaving half an import behind.
+     */
+    suspend fun <R> inTransaction(block: suspend () -> R): R = database.withTransaction(block)
+
+    /**
+     * Full wipe: every clip file on disk, then every table. Preferences are cleared
+     * separately by the caller (they live in another repository). The DB key file stays,
+     * a fresh empty database under the same key is exactly a fresh install.
+     */
+    suspend fun deleteAllData() {
+        audioEventDao.getEventsWithClips().forEach { entity ->
+            entity.clipPath?.let { path -> runCatching { java.io.File(path).delete() } }
+        }
+        database.clearAllTables()
+    }
 
     // --- Sessions ---
 
@@ -52,6 +73,10 @@ class SleepRepository @Inject constructor(
         sessionDao.update(session.toEntity())
     }
 
+    suspend fun insertManualSession(session: SleepSession) {
+        sessionDao.insert(session.toEntity())
+    }
+
     suspend fun deleteSession(session: SleepSession) {
         val events = getAudioEvents(session.id)
         events.forEach { event ->
@@ -64,7 +89,7 @@ class SleepRepository @Inject constructor(
         }
         // AudioEventEntity has no FK/cascade to sleep_sessions (unlike SleepEpochEntity, which
         // does), so without this the audio_events rows for a deleted session were orphaned in
-        // the DB forever — clip files got cleaned up above, but the rows themselves never did.
+        // the DB forever, clip files got cleaned up above, but the rows themselves never did.
         audioEventDao.deleteBySession(session.id)
         sessionDao.delete(session.toEntity())
     }
@@ -73,7 +98,20 @@ class SleepRepository @Inject constructor(
         return sessionDao.getById(id)?.toDomain()
     }
 
-    /** Emits the session whenever its row changes — the review screen keys its data on this, never the shared lastSession flow. */
+    /**
+     * R2 per-category purge: deletes completed sessions older than the cutoff via
+     * [deleteSession], so clip files, audio rows go explicitly and epochs/vitals/tags
+     * follow their FK cascades, same path as single-session delete, no orphans.
+     *
+     * @return how many sessions were deleted.
+     */
+    suspend fun deleteSessionsOlderThan(cutoffMillis: Long): Int {
+        val old = sessionDao.getSessionsOlderThan(cutoffMillis)
+        old.forEach { deleteSession(it.toDomain()) }
+        return old.size
+    }
+
+    /** Emits the session whenever its row changes, the review screen keys its data on this, never the shared lastSession flow. */
     fun observeSession(id: Long): Flow<SleepSession?> {
         return sessionDao.observeById(id).map { it?.toDomain() }
     }
@@ -96,7 +134,7 @@ class SleepRepository @Inject constructor(
         return sessionDao.getRecentSessions(limit).map { it.toDomain() }
     }
 
-    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates, excludes naps/commute/shift. */
     suspend fun getRecentMainSleepSessions(limit: Int): List<SleepSession> {
         return sessionDao.getRecentMainSleepSessions(limit).map { it.toDomain() }
     }
@@ -105,12 +143,12 @@ class SleepRepository @Inject constructor(
         return sessionDao.getSessionsSince(fromMillis).map { it.toDomain() }
     }
 
-    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates, excludes naps/commute/shift. */
     suspend fun getMainSleepSessionsSince(fromMillis: Long): List<SleepSession> {
         return sessionDao.getMainSleepSessionsSince(fromMillis).map { it.toDomain() }
     }
 
-    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates — excludes naps/commute/shift. */
+    /** SESS-04: main-sleep-only variant for consistency/streak/circadian aggregates, excludes naps/commute/shift. */
     fun observeMainSleepSessions(): Flow<List<SleepSession>> {
         return sessionDao.observeMainSleepSessions().map { list -> list.map { it.toDomain() } }
     }
@@ -123,7 +161,7 @@ class SleepRepository @Inject constructor(
         return sessionDao.getAverageDurationSince(fromMillis) ?: 0f
     }
 
-    /** HEALTH-04: count of completed sessions Health Connect sync hasn't successfully written yet (unsynced or silently dedup-skipped). */
+    /** HEALTH-04: count of completed sessions Health Connect sync has not successfully written yet (unsynced or silently dedup-skipped). */
     fun observeUnsyncedToHealthConnectCount(): Flow<Int> {
         return sessionDao.observeUnsyncedToHealthConnectCount()
     }
@@ -174,8 +212,8 @@ class SleepRepository @Inject constructor(
 
     /**
      * Deletes every sleep-talk recording on disk and forgets their paths. The audio events stay
-     * in the history — only the audio itself goes. Backs the "delete all recordings" control in
-     * Settings, so a user who wants the recordings gone doesn't have to wait for retention to
+     * in the history, only the audio itself goes. Backs the "delete all recordings" control in
+     * Settings, so a user who wants the recordings gone does not have to wait for retention to
      * catch up or delete whole sessions to get there.
      *
      * @return how many clip files were actually removed.

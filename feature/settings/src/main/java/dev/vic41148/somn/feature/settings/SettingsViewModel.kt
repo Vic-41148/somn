@@ -1,8 +1,6 @@
 package dev.vic41148.somn.feature.settings
 
 import android.content.Context
-import android.content.Intent
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.vic41148.somn.core.data.repository.HealthConnectRepository
@@ -16,18 +14,26 @@ import dev.vic41148.somn.core.domain.usecase.ExportJsonUseCase
 import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
 import dev.vic41148.somn.core.data.repository.BackupRepository
+import dev.vic41148.somn.core.data.backup.MAX_CSV_IMPORT_BYTES
 import dev.vic41148.somn.core.data.backup.NasClient
 import dev.vic41148.somn.core.data.backup.NasSyncWorker
 import dev.vic41148.somn.core.data.backup.PortableCrypto
+import dev.vic41148.somn.core.data.backup.readBoundedText
 import dev.vic41148.somn.core.domain.model.NasConfig
 import dev.vic41148.somn.core.domain.model.NasProtocol
 import androidx.work.OneTimeWorkRequestBuilder
@@ -36,6 +42,7 @@ import androidx.work.WorkManager
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val sleepRepository: SleepRepository,
+    private val habitLogRepository: dev.vic41148.somn.core.data.repository.HabitLogRepository,
     private val preferencesRepository: dev.vic41148.somn.core.data.repository.SomnPreferencesRepository,
     private val backupRepository: BackupRepository,
     private val exportCsv: ExportCsvUseCase,
@@ -45,25 +52,31 @@ class SettingsViewModel @Inject constructor(
     private val importSleepAsAndroid: ImportSleepAsAndroidUseCase,
     private val calculateScore: CalculateSleepScoreUseCase,
     private val portableCrypto: PortableCrypto,
-    private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository
+    private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository,
+    private val yamnetModelRepository: dev.vic41148.somn.core.data.model.YamnetModelRepository
 ) : ViewModel() {
 
     /**
-     * A freshly generated recovery key, held only until the user dismisses it. It is never read back
-     * out of storage for display — this is the one and only time they can write it down.
+     * The ViewModel holds a freshly generated recovery key only until the user dismisses it. It is never read back
+     * out of storage for display, this is the one and only time they can write it down.
      */
     private val _newRecoveryKey = MutableStateFlow<String?>(null)
     val newRecoveryKey: StateFlow<String?> = _newRecoveryKey.asStateFlow()
 
-    /** Set once a restore has replaced the database and the process needs restarting. */
+    /** Set once a restore replaced the database and the process needs restarting. */
     private val _restartRequired = MutableStateFlow(false)
     val restartRequired: StateFlow<Boolean> = _restartRequired.asStateFlow()
 
+    // Declared before the init block on purpose: init launches ~30 collectors that write
+    // this, and on a cold entry (main thread busy verifying classes) a fast resume can
+    // win the race against the rest of construction, a later declaration NPEs under R8.
+    private val _settings = MutableStateFlow(SettingsState())
+
     init {
-        // Target Sleep Hours used to be purely local ViewModel state: the slider updated
+        // Target Sleep Hours used to be purely local ViewModel state. The slider updated
         // _settings.value but never touched the stored UserProfile, so it always displayed the
-        // hardcoded 8.0f default regardless of the user's actual saved target, and any change
-        // the user made was silently discarded — score calculation, oversleep detection, and
+        // hardcoded 8.0f default regardless of the user's actual saved target. The old code
+        // silently discarded any change the user made, score calculation, oversleep detection, and
         // sleep debt targets all read profile.targetSleepHours directly and never saw the edit.
         collectInto(userProfileRepository.observeProfile()) { state, profile ->
             state.copy(targetSleepHours = profile?.targetSleepHours ?: 8.0f)
@@ -76,6 +89,12 @@ class SettingsViewModel @Inject constructor(
         }
         collectInto(preferencesRepository.yamnetClassificationEnabled) { state, enabled ->
             state.copy(yamnetClassificationEnabled = enabled)
+        }
+        collectInto(preferencesRepository.hapticsEnabled) { state, enabled ->
+            state.copy(hapticsEnabled = enabled)
+        }
+        collectInto(preferencesRepository.hapticsIntensity) { state, intensity ->
+            state.copy(hapticsIntensity = intensity)
         }
         collectInto(sleepRepository.observeUnsyncedToHealthConnectCount()) { state, count ->
             state.copy(healthConnectUnsyncedCount = count)
@@ -125,6 +144,15 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.wakeVerificationWindowSeconds) { state, seconds ->
             state.copy(wakeVerificationWindowSeconds = seconds)
         }
+        collectInto(preferencesRepository.useDynamicColor) { state, enabled ->
+            state.copy(useDynamicColor = enabled)
+        }
+        collectInto(preferencesRepository.showReadinessCard) { state, enabled ->
+            state.copy(showReadinessCard = enabled)
+        }
+        collectInto(preferencesRepository.restModeSince) { state, since ->
+            state.copy(restModeSince = since)
+        }
         collectInto(preferencesRepository.hemisphereOverride) { state, override ->
             state.copy(hemisphereOverride = override)
         }
@@ -134,11 +162,17 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.clipRetentionDays) { state, days ->
             state.copy(clipRetentionDays = days)
         }
+        collectInto(preferencesRepository.bystanderNoticeShown) { state, shown ->
+            state.copy(bystanderNoticeShown = shown)
+        }
+        collectInto(preferencesRepository.appLockEnabled) { state, enabled ->
+            state.copy(appLockEnabled = enabled)
+        }
     }
 
     /**
-     * Subscribes a DataStore/Room-backed flow and folds each emission into [SettingsState],
-     * logging and swallowing any stream failure (corrupted DataStore file, unexpected Room error)
+     * Subscribes a DataStore/Room-backed flow and folds each emission into [SettingsState].
+     * It logs and swallows any stream failure (corrupted DataStore file, unexpected Room error)
      * so it can never crash the app the moment Settings opens. Mirrors the exception-proofing of
      * [refreshHealthConnectStatus]: a dead flow leaves the last known value in place rather than
      * killing the process. Every init-block subscription funnels through this.
@@ -165,20 +199,32 @@ class SettingsViewModel @Inject constructor(
         val oversleepThresholdMinutes: Int = 60,
         val wakeVerificationEnabled: Boolean = true,
         val wakeVerificationWindowSeconds: Int = 15,
-        /** Which hemisphere seasonal analysis assumes; AUTO keeps the timezone heuristic. */
+        /** THEME-01: whether Material You tints the app from the wallpaper on Android 12+. */
+        val useDynamicColor: Boolean = true,
+        /** R1: whether the Morning Ready verdict + Today outlook cards show on Home. */
+        val showReadinessCard: Boolean = true,
+        /** R2: Rest Mode start timestamp, null when off. */
+        val restModeSince: Long? = null,
+        /** Which hemisphere seasonal analysis assumes. AUTO keeps the timezone heuristic. */
         val hemisphereOverride: HemisphereOverride = HemisphereOverride.AUTO,
         val snoreNudgeEnabled: Boolean = true,
-        /** Days sleep-talk recordings are kept; 0 means keep forever. */
+        /** Days sleep-talk recordings are kept. 0 means keep forever. */
         val clipRetentionDays: Int =
             dev.vic41148.somn.core.data.repository.SomnPreferencesRepository.DEFAULT_CLIP_RETENTION_DAYS,
         val darkMode: String = "System",
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
+        /** One-time notice shown: the mic hears everyone in the room, not just the owner. */
+        val bystanderNoticeShown: Boolean = false,
+        /** Opt-in cold-start lock (biometric or device credential). Off by default. */
+        val appLockEnabled: Boolean = false,
         val selectedCaptchaTaskId: String = "math",
         val qrCodeValue: String? = null,
         val backupUri: String? = null,
+        /** The screen shows a transient error when the user picks a backup directory that only grants temporary access. */
+        val backupDirectoryError: String? = null,
         /**
          * Whether a recovery passphrase exists. Without one, backups can only be written in the
-         * clear locally and off-device sync is skipped entirely — an upload encrypted with the
+         * clear locally and off-device sync is skipped entirely, an upload encrypted with the
          * device-bound Keystore key would be unreadable exactly when it is needed.
          */
         val backupPassphraseSet: Boolean = false,
@@ -189,20 +235,45 @@ class SettingsViewModel @Inject constructor(
         val nasUsername: String = "",
         val nasProtocol: String = "WEBDAV",
         val nasPort: Int = 443,
-        /** Explicit TLS choice for NAS uploads — on unless the user deliberately turns it off. */
+        /** Explicit TLS choice for NAS uploads, on unless the user deliberately turns it off. */
         val nasUseHttps: Boolean = true,
         val nasTestResult: String? = null,
         // Health Connect
         val healthConnectEnabled: Boolean = false,
         val healthConnectStatus: HealthConnectStatus = HealthConnectStatus.UNAVAILABLE,
-        /** HEALTH-04: completed sessions never written to Health Connect — unsynced or silently dedup-skipped. Only meaningful once healthConnectEnabled is true. */
+        /** HEALTH-04: completed sessions never written to Health Connect, unsynced or silently dedup-skipped. Only meaningful once healthConnectEnabled is true. */
         val healthConnectUnsyncedCount: Int = 0,
-        /** Task 14 (AUDIO-01) — off by default. Experimental YAMNet audio classification, gated so it can be A/B'd against the existing ZCR heuristic. Not accuracy-validated (AUDIO-02) or battery-soak-tested (AUDIO-03). */
-        val yamnetClassificationEnabled: Boolean = false
+        /** Task 14 (AUDIO-01), off by default. Experimental YAMNet audio classification, gated so it can be A/B'd against the existing ZCR heuristic. Not accuracy-validated (AUDIO-02) or battery-soak-tested (AUDIO-03). */
+        val yamnetClassificationEnabled: Boolean = false,
+        /** App-wide haptics master switch + intensity, surfaced into state from DataStore. */
+        val hapticsEnabled: Boolean = true,
+        val hapticsIntensity: dev.vic41148.somn.core.domain.haptic.HapticsIntensity =
+            dev.vic41148.somn.core.domain.haptic.HapticsIntensity.STANDARD
     )
 
-    private val _settings = MutableStateFlow(SettingsState())
-    val settings: StateFlow<SettingsState> = _settings.asStateFlow()
+    // (Declaration lives above the first init block, see there.)
+    // Debounced because the ~30 init-block collectors fire as one burst on entry and every
+    // update used to recompose this 900-line screen mid-animation, steady-state toggles
+    // pick up a 50ms UI lag nobody can feel. Logic needing the freshest value reads
+    // _settings directly.
+    @OptIn(FlowPreview::class)
+    val settings: StateFlow<SettingsState> = _settings
+        .debounce(50)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SettingsState())
+
+    /** R5: profile for gating the menopause check-in entry (peri/meno stages only). */
+    val userProfile = userProfileRepository.observeProfile()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** R5: completed menopause check-in answers, null until first done. */
+    val menoAnswers = preferencesRepository.menoAnswers
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun saveMenoAnswers(answers: List<Int>) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            preferencesRepository.saveMenoAnswers(answers)
+        }
+    }
 
     private val _exportStatus = MutableStateFlow<String?>(null)
     val exportStatus: StateFlow<String?> = _exportStatus.asStateFlow()
@@ -210,11 +281,80 @@ class SettingsViewModel @Inject constructor(
     private val _clipDeletionStatus = MutableStateFlow<String?>(null)
     val clipDeletionStatus: StateFlow<String?> = _clipDeletionStatus.asStateFlow()
 
+    // ---- YAMNet model download state (AUDIO-01) ----
+
+    sealed interface YamnetModelState {
+        data object Idle : YamnetModelState
+        data object ConfirmingDownload : YamnetModelState
+        data class Downloading(val progress: Float?) : YamnetModelState
+        data class Error(val message: String) : YamnetModelState
+        data object Ready : YamnetModelState
+    }
+
+    private val _yamnetModelState = MutableStateFlow<YamnetModelState>(YamnetModelState.Idle)
+    val yamnetModelState: StateFlow<YamnetModelState> = _yamnetModelState.asStateFlow()
+
+    /**
+     * Consent-gated YAMNet toggle: enabling when the model is already on disk is immediate.
+     * Otherwise it raises the download-consent dialog. Disabling always just flips the flag.
+     */
+    fun onYamnetToggle(enabled: Boolean) {
+        if (!enabled) {
+            viewModelScope.launch { preferencesRepository.updateYamnetClassificationEnabled(false) }
+            _yamnetModelState.value = YamnetModelState.Idle
+            return
+        }
+        viewModelScope.launch {
+            preferencesRepository.updateYamnetClassificationEnabled(true)
+            _yamnetModelState.value = if (yamnetModelRepository.isDownloaded()) {
+                YamnetModelState.Ready
+            } else {
+                YamnetModelState.ConfirmingDownload
+            }
+        }
+    }
+
+    fun dismissYamnetModelDialog() {
+        _yamnetModelState.value = if (yamnetModelRepository.isDownloaded()) {
+            YamnetModelState.Ready
+        } else {
+            YamnetModelState.Idle
+        }
+        viewModelScope.launch { preferencesRepository.updateYamnetClassificationEnabled(false) }
+    }
+
+    fun confirmYamnetDownload() {
+        _yamnetModelState.value = YamnetModelState.Downloading(progress = null)
+        viewModelScope.launch {
+            try {
+                yamnetModelRepository.download { downloaded, total ->
+                    _yamnetModelState.value = YamnetModelState.Downloading(
+                        progress = if (total > 0) downloaded.toFloat() / total.toFloat() else null
+                    )
+                }
+                _yamnetModelState.value = YamnetModelState.Ready
+                preferencesRepository.updateYamnetClassificationEnabled(true)
+            } catch (e: Exception) {
+                _yamnetModelState.value = YamnetModelState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    // ---- Haptics (app-wide master switch + intensity) ----
+
+    fun updateHapticsEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateHapticsEnabled(enabled) }
+    }
+
+    fun updateHapticsIntensity(intensity: dev.vic41148.somn.core.domain.haptic.HapticsIntensity) {
+        viewModelScope.launch { preferencesRepository.updateHapticsIntensity(intensity) }
+    }
+
     init {
         // Must run after _settings above is initialized: unlike the DataStore .collect{}
         // launches in the first init block (which always suspend on their first emission
         // before touching _settings.value), getStatus() can return synchronously via its
-        // !isAvailable() early-return — calling this from the top init block would touch
+        // !isAvailable() early-return, calling this from the top init block would touch
         // _settings before its property initializer ran, on any device without Health Connect.
         refreshHealthConnectStatus()
     }
@@ -247,6 +387,23 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateWakeVerificationWindowSeconds(seconds) }
     }
 
+    fun updateUseDynamicColor(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateUseDynamicColor(enabled) }
+    }
+
+    fun updateShowReadinessCard(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.updateShowReadinessCard(enabled) }
+    }
+
+    /** R2: entering Rest Mode stamps now, leaving clears the boundary. */
+    fun setRestMode(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setRestModeSince(
+                if (enabled) System.currentTimeMillis() else null
+            )
+        }
+    }
+
     fun updateHemisphereOverride(override: HemisphereOverride) {
         viewModelScope.launch { preferencesRepository.updateHemisphereOverride(override) }
     }
@@ -275,9 +432,67 @@ class SettingsViewModel @Inject constructor(
         _clipDeletionStatus.value = null
     }
 
+    /** R2 per-category purge: forgets every habit log. Standalone table, no cascades. */
+    fun purgeHabitLogs() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                habitLogRepository.clearAll()
+                "Cleared all habit logs"
+            } catch (e: Exception) {
+                "Failed to clear habit logs: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * R2 per-category purge: deletes completed sessions older than 90 days through the
+     * same [SleepRepository.deleteSession] path as single deletes, so clips, audio rows,
+     * epochs, vitals and tags all follow their normal cleanup, no orphans.
+     */
+    fun purgeOldSessions() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                val cutoff = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000
+                val deleted = sleepRepository.deleteSessionsOlderThan(cutoff)
+                "Deleted $deleted session${if (deleted == 1) "" else "s"} older than 90 days"
+            } catch (e: Exception) {
+                "Failed to delete old sessions: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * Full wipe: all sessions, habits, tags, clips, and preferences. Clearing preferences
+     * last means onboarding shows again on next launch, a wiped app restarts as a fresh
+     * install, which is the honest behavior, not a half-logged-in limbo.
+     */
+    fun wipeEverything() {
+        viewModelScope.launch {
+            _clipDeletionStatus.value = try {
+                sleepRepository.deleteAllData()
+                preferencesRepository.clearAll()
+                "All data deleted"
+            } catch (e: Exception) {
+                "Failed to delete data: ${e.message}"
+            }
+        }
+    }
+
     fun updateTrackingMode(mode: TrackingMode) {
         viewModelScope.launch {
             preferencesRepository.updateTrackingMode(mode)
+        }
+    }
+
+    fun dismissBystanderNotice() {
+        viewModelScope.launch {
+            preferencesRepository.updateBystanderNoticeShown(true)
+        }
+    }
+
+    fun updateAppLockEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.updateAppLockEnabled(enabled)
         }
     }
 
@@ -299,6 +514,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateBackupUriError(message: String) {
+        _settings.value = _settings.value.copy(backupDirectoryError = message)
+    }
+
     /**
      * Generates a recovery key, stores it, and surfaces it once for the user to record. Replacing an
      * existing key leaves older backups readable only by the old key, so the UI must confirm first.
@@ -311,11 +530,22 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Lets the user supply their own passphrase instead of a generated key. */
+    /**
+     * Lets the user supply their own passphrase instead of a generated key. Custom input must
+     * reach zxcvbn score 3 ("safely unguessable"), a backup passphrase guards every night of
+     * sleep data, so "1234" failing loudly here is the feature working.
+     */
     fun setRecoveryPassphrase(passphrase: String) {
         viewModelScope.launch {
             if (passphrase.isBlank()) {
                 _exportStatus.value = "Recovery passphrase cannot be empty"
+                return@launch
+            }
+            val score = withContext(Dispatchers.Default) {
+                runCatching { com.nulabinc.zxcvbn.Zxcvbn().measure(passphrase).score }.getOrDefault(0)
+            }
+            if (score < 3) {
+                _exportStatus.value = "That passphrase is too weak. Use a longer, less predictable one."
                 return@launch
             }
             preferencesRepository.updateBackupPassphrase(passphrase)
@@ -328,15 +558,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Restores the database from [uri]. [passphrase] is required for encrypted backups; leave null
-     * for a plaintext one. On success the caller must restart the app — Room still holds the old file.
+     * Restores the database from [uri]. [passphrase] is required for encrypted backups. Leave null
+     * for a plaintext one. On success the caller must restart the app, Room still holds the old file.
      */
     fun restoreDatabase(uri: android.net.Uri, passphrase: String?) {
         viewModelScope.launch {
             _exportStatus.value = "Restoring..."
             when (val result = backupRepository.restoreDatabase(uri, passphrase)) {
                 is BackupRepository.RestoreResult.SuccessRestartRequired -> {
-                    _exportStatus.value = "Restore complete — restart Somn to load it"
+                    _exportStatus.value = "Restore complete. Restart Somn to load it."
                     _restartRequired.value = true
                 }
                 is BackupRepository.RestoreResult.Failure ->
@@ -357,29 +587,21 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun exportData(context: Context) {
+    /**
+     * CSV export through Storage Access Framework: the user picks the destination, so no
+     * cache copy ever exists to leak or linger. Also deletes the pre-SAF cache exports so
+     * older installs do not keep one lying around.
+     */
+    fun exportCsvTo(context: Context, uri: android.net.Uri) {
         viewModelScope.launch {
             try {
                 val sessions = sleepRepository.getRecentSessions(1000)
                 val csv = exportCsv(sessions)
-
-                val file = File(context.cacheDir, "sleep_data_export.csv")
-                file.writeText(csv)
-
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
-
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/csv"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Export Sleep Data"))
-
-                _exportStatus.value = "Export ready!"
+                context.contentResolver.openOutputStream(uri, "wt")?.use { out ->
+                    out.write(csv.toByteArray(Charsets.UTF_8))
+                } ?: error("Could not open the destination")
+                deleteLegacyCacheExports(context)
+                _exportStatus.value = "Export saved."
             } catch (e: Exception) {
                 _exportStatus.value = "Export failed: ${e.message}"
             }
@@ -391,49 +613,43 @@ class SettingsViewModel @Inject constructor(
     private val _importStatus = MutableStateFlow<String?>(null)
     val importStatus: StateFlow<String?> = _importStatus.asStateFlow()
 
-    /** DATA-01: full-fidelity JSON alongside the existing flat CSV, bundled as one ZIP to share. */
-    fun exportAllDataZip(context: Context) {
+    /** DATA-01: full-fidelity JSON alongside the existing flat CSV, written to a user-picked file. */
+    fun exportAllDataZipTo(context: Context, uri: android.net.Uri) {
         viewModelScope.launch {
             try {
                 val sessions = sleepRepository.getRecentSessions(1000)
                 val csv = exportCsv(sessions)
                 val json = exportJson(sessions)
 
-                val file = File(context.cacheDir, "somn_export.zip")
-                java.util.zip.ZipOutputStream(file.outputStream()).use { zip ->
-                    zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.csv"))
-                    zip.write(csv.toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
+                context.contentResolver.openOutputStream(uri, "wt")?.use { out ->
+                    java.util.zip.ZipOutputStream(out).use { zip ->
+                        zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.csv"))
+                        zip.write(csv.toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
 
-                    zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.json"))
-                    zip.write(json.toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                }
-
-                val uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
-
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/zip"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Export All Sleep Data"))
-
-                _exportStatus.value = "Export ready!"
+                        zip.putNextEntry(java.util.zip.ZipEntry("sleep_data_export.json"))
+                        zip.write(json.toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                    }
+                } ?: error("Could not open the destination")
+                deleteLegacyCacheExports(context)
+                _exportStatus.value = "Export saved."
             } catch (e: Exception) {
                 _exportStatus.value = "Export failed: ${e.message}"
             }
         }
     }
 
+    /** One-way cleanup of the pre-SAF share flow's cache files. */
+    private fun deleteLegacyCacheExports(context: Context) {
+        File(context.cacheDir, "sleep_data_export.csv").delete()
+        File(context.cacheDir, "somn_export.zip").delete()
+    }
+
     /**
      * DATA-02: reads the picked Sleep as Android `sleep-export.csv`, parses it, and persists
      * every row the parser could confidently map as its own completed session. Best-effort and
-     * lossy by design (see [ImportSleepAsAndroidUseCase] doc) — the result summary always
+     * lossy by design (see [ImportSleepAsAndroidUseCase] doc), the result summary always
      * reports what was skipped rather than silently dropping rows.
      */
     fun importSleepAsAndroidFile(context: Context, uri: android.net.Uri) {
@@ -441,8 +657,7 @@ class SettingsViewModel @Inject constructor(
             _importStatus.value = "Importing..."
             try {
                 val csv = context.contentResolver.openInputStream(uri)
-                    ?.bufferedReader()
-                    ?.use { it.readText() }
+                    ?.readBoundedText(MAX_CSV_IMPORT_BYTES, Charsets.UTF_8)
                     ?: run {
                         _importStatus.value = "Import failed: couldn't read the selected file."
                         return@launch
@@ -450,23 +665,26 @@ class SettingsViewModel @Inject constructor(
 
                 val result = importSleepAsAndroid(csv)
 
-                for (session in result.sessions) {
-                    val newId = sleepRepository.createSession(
-                        session.startTimeMillis,
-                        session.timezoneId,
-                        session.sessionType
-                    )
-                    val scored = session.copy(
-                        id = newId,
-                        sleepScore = calculateScore(session).totalScore
-                    )
-                    sleepRepository.completeSession(scored)
+                // Score first (pure CPU), then insert atomically: a crash mid-import rolls
+                // back to zero rows instead of a half-imported history.
+                val scored = result.sessions.map { session ->
+                    session.copy(sleepScore = calculateScore(session).totalScore)
+                }
+                sleepRepository.inTransaction {
+                    for (session in scored) {
+                        val newId = sleepRepository.createSession(
+                            session.startTimeMillis,
+                            session.timezoneId,
+                            session.sessionType
+                        )
+                        sleepRepository.completeSession(session.copy(id = newId))
+                    }
                 }
 
                 _importStatus.value = buildString {
                     append("Imported ${result.importedCount} session(s).")
                     if (result.skippedRowCount > 0) {
-                        append(" ${result.skippedRowCount} row(s) skipped — see below.")
+                        append(" ${result.skippedRowCount} row(s) skipped (see below).")
                     }
                 }
             } catch (e: Exception) {
@@ -497,7 +715,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferencesRepository.updateNasUsername(username) }
     }
 
-    /** REL-06: password is write-only here — never round-tripped back into [settings] state. */
+    /** REL-06: password is write-only here, never round-tripped back into [settings] state. */
     fun updateNasPassword(password: String) {
         viewModelScope.launch { preferencesRepository.updateNasPassword(password) }
     }
@@ -533,7 +751,7 @@ class SettingsViewModel @Inject constructor(
             val failureMessage = if (s.nasUseHttps) {
                 "Connection failed"
             } else {
-                "Connection failed — Android blocks unencrypted HTTP. Turn HTTPS on."
+                "Connection failed. Android blocks unencrypted HTTP. Turn HTTPS on."
             }
             _settings.value = _settings.value.copy(
                 nasTestResult = if (ok) "Connected" else failureMessage
@@ -566,7 +784,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * HEALTH-03: called on screen resume and right after the permission sheet returns — never cached.
+     * HEALTH-03: called on screen resume and right after the permission sheet returns, never cached.
      *
      * Deliberately exception-proof: this runs on Dispatchers.Main.immediate during ViewModel
      * construction (the init block), so an unexpected platform error from the Health Connect SDK
@@ -588,7 +806,7 @@ class SettingsViewModel @Inject constructor(
 
 /**
  * Collects [flow], delivering every value to [onEmit], and swallows any stream failure via
- * [onFailure] instead of letting it escape — a corrupted DataStore file or unexpected Room error
+ * [onFailure] instead of letting it escape, a corrupted DataStore file or unexpected Room error
  * must degrade to "keep the last known value" rather than crash the app the moment Settings
  * opens. Cancellation is always rethrown (never reported as a failure): viewModelScope
  * cancellation on ViewModel clear is normal teardown.
@@ -604,7 +822,7 @@ internal suspend fun <T> guardedCollect(
     try {
         flow.collect(onEmit)
     } catch (e: CancellationException) {
-        // viewModelScope cancellation on ViewModel clear — propagate, never log as a failure.
+        // viewModelScope cancellation on ViewModel clear, propagate, never log as a failure.
         throw e
     } catch (e: Exception) {
         onFailure(e)

@@ -40,6 +40,7 @@ class ClipRetentionDatabaseTest {
             .build()
         audioEventDao = db.audioEventDao()
         repository = SleepRepository(
+            db,
             db.sleepSessionDao(),
             db.sleepEpochDao(),
             audioEventDao,
@@ -126,7 +127,7 @@ class ClipRetentionDatabaseTest {
 
         repository.deleteAllAudioClips()
 
-        // Only the audio goes — the night's history must still show that talking happened.
+        // Only the audio goes, the night's history must still show that talking happened.
         assertThat(audioEventDao.getBySession(1L)).hasSize(1)
     }
 

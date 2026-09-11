@@ -1,0 +1,28 @@
+# Smoke: all five tabs open without crashing. Maestro fails a flow on app
+# crash/ANR, so reaching the end IS the assertion, plus visible-tab checks.
+appId: dev.vic41148.somn
+---
+- launchApp
+# Best-effort onboarding dismissal (fresh installs only, no-ops otherwise).
+- tapOn:
+    text: "Get Started"
+    optional: true
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Next"
+    optional: true
+- tapOn:
+    text: "Done"
+    optional: true
+- tapOn:
+    text: "Skip"
+    optional: true
+- assertVisible: "Alarms"
+- tapOn: "Home"
+- tapOn: "Habits"
+- tapOn: "History"
+- tapOn: "Alarms"
+- tapOn: "Settings"
+- assertVisible: "Settings"

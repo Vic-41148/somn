@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * Locks in the sample-size thresholds behind [CorrelationConfidence.from] — the qualifier that
+ * Locks in the sample-size thresholds behind [CorrelationConfidence.from], the qualifier that
  * tells users a correlation computed from a bare-minimum week of data is still a tentative read
  * rather than a settled finding (small-n Pearson coefficients carry very wide confidence
  * intervals).

@@ -90,7 +90,7 @@ fun DailyLogScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
             text = "Today's Log",
@@ -156,7 +156,10 @@ fun DailyLogScreen(
                 icon = Icons.Default.Medication,
                 iconColor = MaterialTheme.colorScheme.primaryContainer
             ) {
-                TextButton(onClick = onNavigateToMedication) {
+                TextButton(
+                    onClick = onNavigateToMedication,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Open medication log →")
                 }
             }
@@ -164,7 +167,7 @@ fun DailyLogScreen(
 
         // ---- Correlation insights ----
         // CorrelationInsightsScreen was fully built (its own ViewModel data, UI, and nav-graph
-        // route already existed) but nothing anywhere ever navigated to it — this was the only
+        // route already existed) but nothing anywhere ever navigated to it. This was the only
         // missing piece keeping the whole feature unreachable.
         Spacer(modifier = Modifier.height(12.dp))
         Button(
@@ -186,11 +189,14 @@ fun DailyLogScreen(
             Spacer(modifier = Modifier.height(8.dp))
             todayLogs.forEach { log ->
                 LoggedEntryRow(log = log, onDelete = { viewModel.deleteLog(log) })
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+        // The floating dock overlays content (no Scaffold slot), so the column
+        // ends with clearance for it instead of running underneath the pill.
+        Spacer(modifier = Modifier.height(72.dp))
     }
 }
 
@@ -206,9 +212,9 @@ private fun HabitSection(
     var expanded by remember { mutableStateOf(false) }
 
     // One animator owns the height change. This Card used to also carry animateContentSize(),
-    // which ran its own tween over the same expand/collapse that AnimatedVisibility below was
-    // already animating on a different spec — the two chased each other, so the card visibly
-    // rubber-banded and every section under it kept sliding long after the content had settled.
+    // which ran its own tween over the same expand/collapse that AnimatedVisibility below already
+    // animated on a different spec. The two chased each other, so the card rubber-banded and
+    // every section under it kept sliding long after the content had settled.
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -220,8 +226,8 @@ private fun HabitSection(
         Column {
             Row(
                 // Padding goes inside the click target, not around it. It used to sit on the
-                // parent Column, which left a 16dp dead border where a tap on the card's own
-                // edge — visually part of the header — hit nothing at all.
+                // parent Column, which left a 16dp dead border. A tap on the card's own
+                // edge, visually part of the header, hit nothing at all.
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
@@ -263,8 +269,8 @@ private fun HabitSection(
 
             AnimatedVisibility(
                 visible = expanded,
-                // Material's motion split: size is spatial, so it springs; opacity is an effect,
-                // so it uses a short linear-ish fade. The spring is deliberately non-bouncy —
+                // Material's motion split: size is spatial, so it springs. Opacity is an effect,
+                // so it uses a short linear-ish fade. The spring is deliberately non-bouncy,
                 // these sections are stacked, and overshoot on one shoves every section below it
                 // past its resting position and back, which is what made taps land on the wrong
                 // card while the list was still settling.
@@ -349,7 +355,7 @@ private fun AlcoholLogForm(onLog: (HabitEntry.Alcohol) -> Unit) {
 
     Text("Units: ${"%.1f".format(units)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     Text(
-        text = "1 unit = 10 ml pure alcohol (e.g. small wine, single spirit)",
+        text = "1 unit is 10 ml of pure alcohol (a small wine or a single spirit)",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
@@ -464,7 +470,7 @@ private fun StressLogForm(onLog: (HabitEntry.Stress) -> Unit) {
                             androidx.compose.ui.graphics.Color.Transparent
                     )
                     .clickable { stressLevel = index + 1 }
-                    .padding(8.dp)
+                    .padding(horizontal = 8.dp, vertical = 12.dp)
             )
         }
     }
@@ -505,20 +511,44 @@ private fun TimeSliders(
 
 @Composable
 private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
+    // The Card carries the section tint and a leading type icon now. It used to be a bare
+    // `surface` card with text only. On dark theme surface is near-identical to the
+    // background, so entries read as loose floating text with a stray X beside them.
+    val (icon, tint) = when (log.entry) {
+        is HabitEntry.Caffeine -> Icons.Default.Coffee to MaterialTheme.colorScheme.tertiary
+        is HabitEntry.Alcohol -> Icons.Default.LocalBar to MaterialTheme.colorScheme.secondary
+        is HabitEntry.Exercise -> Icons.Default.DirectionsRun to MaterialTheme.colorScheme.primary
+        is HabitEntry.Stress -> Icons.Default.SentimentVeryDissatisfied to MaterialTheme.colorScheme.error
+        is HabitEntry.Medication -> Icons.Default.Medication to MaterialTheme.colorScheme.primary
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.15f))
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = log.entry.summary(),
                 style = MaterialTheme.typography.bodyMedium,
@@ -538,15 +568,18 @@ private fun LoggedEntryRow(log: HabitLog, onDelete: () -> Unit) {
 }
 
 private fun HabitEntry.summary(): String = when (this) {
-    is HabitEntry.Caffeine -> "${source.displayName} — ${mg}mg at ${timeOfDay.format(timeFormatter)}"
+    is HabitEntry.Caffeine -> "${source.displayName}, ${mg}mg at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Alcohol -> "${units} unit${if (units != 1f) "s" else ""} at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Exercise -> "${type.displayName} ${durationMinutes}min (${intensity.displayName}) at ${timeOfDay.format(timeFormatter)}"
     is HabitEntry.Stress -> when (level) {
-        1 -> "Very calm"
-        2 -> "Calm"
-        3 -> "Neutral stress"
-        4 -> "Stressed"
-        5 -> "Very stressed"
+        // Every other entry names its own type ("Coffee", "Run", …). A bare "Calm"
+        // reads as a stray label next to the delete button. Stress has no time (it is
+        // an end-of-day rating), so the type name carries the context instead.
+        1 -> "Stress: Very calm"
+        2 -> "Stress: Calm"
+        3 -> "Stress: Neutral"
+        4 -> "Stress: Stressed"
+        5 -> "Stress: Very stressed"
         else -> "Stress level $level"
     }
     is HabitEntry.Medication -> "$name $dose at ${timeOfDay.format(timeFormatter)}"

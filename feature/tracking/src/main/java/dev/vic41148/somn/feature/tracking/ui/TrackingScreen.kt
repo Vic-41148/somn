@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.FilledTonalButton
@@ -33,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dev.vic41148.somn.core.audio.SonarCollector
 import dev.vic41148.somn.core.domain.model.TrackingMode
-import dev.vic41148.somn.core.ui.components.Hypnogram
+import dev.vic41148.somn.core.ui.components.HypnogramWithTable
 import dev.vic41148.somn.feature.tracking.SleepTrackingViewModel
 import dev.vic41148.somn.feature.tracking.service.TrackingState
 import kotlinx.coroutines.delay
@@ -52,10 +53,10 @@ fun TrackingScreen(
     val isSonar             = activeMode == TrackingMode.SONAR
     val isCalibrating       = isSonar && calibrationState == SonarCollector.SonarCalibrationState.CALIBRATING
 
-    // Back must never strand a live session: popping this screen mid-tracking dumps the user
+    // Back must never strand a live session. Popping this screen mid-tracking dumps the user
     // back on Home with a running foreground service and no in-app way to stop it (the Home
     // moon button only starts sessions). Block system back for as long as the service is
-    // actually tracking — the stop has to go through the explicit Wake Up button, same as the
+    // actually tracking, the stop has to go through the explicit Wake Up button, same as the
     // alarm firing screen's BackHandler {}. Once tracking ends (Wake Up, or the service stops
     // via smart-alarm wake) the back stack unlocks again.
     BackHandler(enabled = trackingState == TrackingState.TRACKING) { }
@@ -80,7 +81,7 @@ fun TrackingScreen(
 
         if (isCalibrating) {
             Text(
-                text = "Establishing acoustic baseline (60s). Keep still…",
+                text = "We set the acoustic baseline (60s). Keep still…",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -89,25 +90,25 @@ fun TrackingScreen(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Sonar mode — high battery usage",
+                text = "Sonar mode: high battery usage",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )
         } else if (isSonar) {
             Text(
-                text = "Sonar active — contactless sensing",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Sonar active: contactless sensing",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Sonar mode — high battery usage",
+                text = "Sonar mode: high battery usage",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error
             )
         } else {
             Text(
-                text = "Place your phone on the bed and relax",
+                text = "Place your phone on the bed. Then relax.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -116,8 +117,8 @@ fun TrackingScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Isolated in its own composable with its own 1Hz-ticking state, so the per-second
-        // recomposition this timer requires doesn't cascade into the rest of the screen
+        // It is isolated in its own composable with its own 1Hz-ticking state. The per-second
+        // recomposition this timer requires does not cascade into the rest of the screen
         // (hypnogram, epoch count) below it.
         ElapsedTimeText(startTimeMillis = activeSession?.startTimeMillis)
 
@@ -140,7 +141,7 @@ fun TrackingScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             val liveStages = remember(epochs) { epochs.takeLast(60).map { it.stage } }
-            Hypnogram(
+            HypnogramWithTable(
                 stages = liveStages,
                 modifier = Modifier.fillMaxWidth(),
                 height = 80.dp
@@ -164,8 +165,9 @@ fun TrackingScreen(
                 contentDescription = "Stop tracking",
                 modifier = Modifier.size(24.dp)
             )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "  Wake Up",
+                text = "Wake Up",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )

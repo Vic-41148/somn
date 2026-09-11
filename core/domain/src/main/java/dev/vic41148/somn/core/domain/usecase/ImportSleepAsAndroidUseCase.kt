@@ -12,19 +12,18 @@ import java.util.TimeZone
 /**
  * DATA-02: parses a Sleep as Android `sleep-export.csv` file into Somn [SleepSession]s.
  *
- * Sleep as Android's export format is **not officially documented by Urbandroid** — this parser
+ * Sleep as Android's export format is **not officially documented by Urbandroid**, this parser
  * targets the column layout used by widely-circulated community reverse-engineering write-ups
  * (`Id`, `Tz`, `From`, `To`, `Sched`, `Hours`, `Rating`, `Comment`, `Framerate`, `Snore`, `Noise`,
  * `Cycles`, `DeepSleep`, `LenAdjust`, `Geo`) and is deliberately defensive: columns are matched
- * by header name (case-insensitive) rather than fixed position, unknown/extra columns are
- * ignored, and any row this parser can't confidently map to a real sleep session is skipped and
- * counted rather than guessed at. Only `From`/`To` are load-bearing — a row without both is
+ * by header name (case-insensitive) rather than fixed position. It ignores unknown/extra columns.
+ * It skips and counts any row it cannot confidently map to a real sleep session rather than guess at it. Only `From`/`To` are load-bearing, a row without both is
  * unimportable and is skipped. Everything else (rating, comment, deep-sleep%, timezone, hours) is
  * a best-effort enrichment. This is explicitly a lossy, best-effort import, not a full-fidelity
- * round-trip — Sleep as Android has no equivalent for cycle-phase/pregnancy/ADHD/ASD context,
- * per-epoch sleep stages, or audio events, so none of that carries over. Imported sessions are
+ * round-trip, Sleep as Android has no equivalent for cycle-phase/pregnancy/ADHD/ASD context,
+ * per-epoch sleep stages, or audio events, so none of that transfers. Imported sessions are
  * marked in [SleepSession.notes] ("Imported from Sleep as Android: ...") rather than via
- * [SleepSession.isPartial] — that flag has a distinct, narrower meaning elsewhere (REL-02: a
+ * [SleepSession.isPartial], that flag has a distinct, narrower meaning elsewhere (REL-02: a
  * tracking session cut short by the service dying mid-night), and reusing it here would make
  * imported nights trigger that "incomplete night" UI/logic for the wrong reason.
  */
@@ -53,7 +52,7 @@ class ImportSleepAsAndroidUseCase {
                 emptyList(),
                 lines.size - 1,
                 listOf(
-                    "Couldn't find 'From'/'To' columns in the header — this doesn't look like a " +
+                    "Couldn't find 'From'/'To' columns in the header. This doesn't look like a " +
                         "Sleep as Android sleep-export.csv, or its format has changed since this " +
                         "importer was written."
                 )
@@ -70,7 +69,7 @@ class ImportSleepAsAndroidUseCase {
 
             // Real Sleep as Android exports interleave a repeated header row before each record
             // block, not just once at the top of the file. Skip those without counting them as
-            // an import failure — they aren't malformed data, they're structural noise.
+            // an import failure. They are not malformed data. They are structural noise.
             val firstCell = cols.firstOrNull()?.trim()?.lowercase(Locale.US)
             if (headerFirstCell != null && firstCell == headerFirstCell) {
                 repeatedHeaderRows++
@@ -78,7 +77,7 @@ class ImportSleepAsAndroidUseCase {
             }
 
             // Resolved before timestamp parsing (not after, as in an earlier version of this
-            // parser) — From/To need the row's own timezone to parse correctly, not just to be
+            // parser), From/To need the row's own timezone to parse correctly, not just to be
             // labelled with one after the fact.
             val timezoneId = resolveTimezoneId(tzIndex, cols)
             val zone = runCatching { TimeZone.getTimeZone(ZoneId.of(timezoneId)) }.getOrDefault(TimeZone.getDefault())
@@ -89,14 +88,14 @@ class ImportSleepAsAndroidUseCase {
             if (from == null || to == null || to <= from) {
                 skipped++
                 if (warnings.size < MAX_WARNINGS) {
-                    warnings.add("Row ${rowNumber + 2}: unparseable or invalid From/To timestamps — skipped.")
+                    warnings.add("Row ${rowNumber + 2}: unparseable or invalid From/To timestamps, skipped.")
                 }
                 continue
             }
 
             val timeInBedMinutes = ((to - from) / 60_000L).toInt()
 
-            // `Hours` is Sleep as Android's actual *time asleep* — From/To only bounds time in
+            // `Hours` is Sleep as Android's actual *time asleep*, From/To only bounds time in
             // bed. Without it, duration/efficiency are unknown rather than assumed-perfect: a
             // prior version of this parser set sleepDurationMinutes = timeInBedMinutes and
             // sleepEfficiency = 100f unconditionally, which fabricated a perfect night for every
@@ -120,7 +119,7 @@ class ImportSleepAsAndroidUseCase {
             }
 
             val rating = ratingIndex.takeIf { it >= 0 }?.let { cols.getOrNull(it)?.toFloatOrNull() }
-            // Sleep as Android's rating is a 0.0-5.0 float; Somn's moodRating is a 1-5 int scale.
+            // Sleep as Android's rating is a 0.0-5.0 float. Somn's moodRating is a 1-5 int scale.
             val moodRating = rating?.let { Math.round(it).coerceIn(0, 5) } ?: 0
             val comment = commentIndex.takeIf { it >= 0 }?.let { cols.getOrNull(it) }?.trim().orEmpty()
             val deepSleepPercent = deepSleepIndex.takeIf { it >= 0 }
@@ -155,7 +154,7 @@ class ImportSleepAsAndroidUseCase {
     }
 
     /**
-     * ZoneId.of (not TimeZone.getTimeZone, which silently falls back to GMT and never fails) —
+     * ZoneId.of (not TimeZone.getTimeZone, which silently falls back to GMT and never fails),
      * every existing consumer of session.timezoneId validates it this same way
      * (ChronotypeAssessmentUseCase, SocialJetLagUseCase, SeasonalAnalysisUseCase), so matching
      * that convention here keeps a garbage timezoneId from ever reaching a consumer in the first
@@ -168,12 +167,12 @@ class ImportSleepAsAndroidUseCase {
             ?: TimeZone.getDefault().id
 
     /**
-     * Minimal RFC4180-style CSV row splitter — quote-aware, so a delimiter character inside a
-     * quoted field doesn't split it. Verified against a real Urbandroid-published sample export
+     * Minimal RFC4180-style CSV row splitter, quote-aware, so a delimiter character inside a
+     * quoted field does not split it. Verified against a real Urbandroid-published sample export
      * (urbandroid-team/sleep-csv-to-json): every field is double-quoted, and long diary-style
      * `Comment` fields routinely contain literal commas ("...v dobe komunismu, jsme s nejakyma
-     * kamaradkama na ostrove, kolem nehoz...") — the earlier naive `line.split(delimiter)` (this
-     * parser's own doc comment claimed "Sleep as Android doesn't quote fields," which was wrong)
+     * kamaradkama na ostrove, kolem nehoz..."), the earlier naive `line.split(delimiter)` (this
+     * parser's own doc comment claimed "Sleep as Android does not quote fields," which was wrong)
      * would have sheared every such row into misaligned columns. Handles doubled `""` inside a
      * quoted field as an escaped literal quote, per RFC4180.
      */
@@ -209,7 +208,7 @@ class ImportSleepAsAndroidUseCase {
         "dd. MM. yyyy HH:mm"
     )
 
-    /** [zone] is the row's own resolved timezone — parsing in the importing device's zone instead would silently shift every imported timestamp whenever the two differ. */
+    /** [zone] is the row's own resolved timezone. Parsing in the importing device's zone instead would silently shift every imported timestamp whenever the two differ. */
     private fun parseTimestamp(raw: String, zone: TimeZone): Long? {
         val trimmed = raw.trim()
         if (trimmed.isEmpty()) return null
@@ -222,7 +221,7 @@ class ImportSleepAsAndroidUseCase {
             } catch (_: ParseException) {
                 // try next pattern
             } catch (_: IllegalArgumentException) {
-                // malformed pattern for this input shape — try next
+                // malformed pattern for this input shape, try next
             }
         }
         return null

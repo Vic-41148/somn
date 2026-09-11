@@ -2,18 +2,22 @@ package dev.vic41148.somn.feature.alarm.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -38,13 +42,21 @@ import dev.vic41148.somn.feature.alarm.AlarmViewModel
 fun AlarmListScreen(
     onAddAlarm: () -> Unit,
     onEditAlarm: (Alarm) -> Unit,
+    onHistory: () -> Unit = {},
     viewModel: AlarmViewModel = hiltViewModel()
 ) {
     val alarms by viewModel.alarms.collectAsState()
 
     Scaffold(
+        // Same deal as SettingsScreen: this sits inside the app-level Scaffold's NavHost,
+        // which already consumed the system-bar insets. Re-applying them here double-pads
+        // the top and pushes the screen down next to the other tabs. The header below is
+        // a plain headline row (no TopAppBar surface band) for the same reason.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
+                // The floating dock overlays content, keep the FAB clear of it.
+                modifier = Modifier.padding(bottom = 88.dp),
                 onClick = onAddAlarm,
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
@@ -58,20 +70,42 @@ fun AlarmListScreen(
                     .fillMaxSize()
                     .padding(padding)
                     .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "No alarms set",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Tap + to create your first smart alarm",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Alarms",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onHistory) {
+                        Icon(Icons.Default.History, contentDescription = "Alarm history")
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "No alarms set",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Tap + to create your first smart alarm",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         } else {
             LazyColumn(
@@ -81,6 +115,23 @@ fun AlarmListScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Alarms",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = onHistory) {
+                            Icon(Icons.Default.History, contentDescription = "Alarm history")
+                        }
+                    }
+                }
                 items(alarms, key = { it.id }) { alarm ->
                     Card(
                         modifier = Modifier
@@ -118,12 +169,13 @@ fun AlarmListScreen(
                                     )
                                 }
                                 Text(
-                                    text = "Smart wake: ${alarm.wakeWindowMinutes}min window",
+                                    text = "Smart wake: ${alarm.wakeWindowMinutes} min window",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
+                            Spacer(modifier = Modifier.width(12.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(onClick = { viewModel.deleteAlarm(alarm) }) {
                                     Icon(
@@ -132,6 +184,7 @@ fun AlarmListScreen(
                                         tint = MaterialTheme.colorScheme.error
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Switch(
                                     checked = alarm.isEnabled,
                                     onCheckedChange = { viewModel.toggleAlarm(alarm) }
@@ -139,6 +192,11 @@ fun AlarmListScreen(
                             }
                         }
                     }
+                }
+                // The floating dock overlays content (no Scaffold slot), trailing
+                // clearance so the last card scrolls clear of the pill.
+                item {
+                    Spacer(modifier = Modifier.height(88.dp))
                 }
             }
         }

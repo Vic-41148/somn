@@ -7,12 +7,12 @@ import org.junit.Test
 /**
  * Locks in the SDK-conditional [android.app.Service.startForeground] overload selection in
  * [SleepTrackingService.startTrackingForeground] (delegated to [startForegroundTypeForApi]):
- *  - below Q (API 26-28) the two-arg overload must be used — the three-arg overload doesn't exist;
- *  - Q..Tiramisu (API 29-33) uses the three-arg overload with type 0 (manifest-declared types);
+ *  - below Q (API 26-28) the two-arg overload must be used, the three-arg overload doesn't exist,
+ *  - Q..Tiramisu (API 29-33) uses the three-arg overload with type 0 (manifest-declared types),
  *  - UpsideDownCake+ (API 34+) uses the three-arg overload with the permission-derived type mask.
  *
  * These constants are compile-time values, so a plain JVM unit test can assert them without a
- * device — same approach as [ForegroundServiceTypeMaskTest]. The test validates the decision
+ * device, same approach as [ForegroundServiceTypeMaskTest]. The test validates the decision
  * seam ([startForegroundTypeForApi]), which encodes the full decision table: the below-Q
  * two-arg selection is dispatched at the call site via an explicit [Build.VERSION.SDK_INT] guard
  * (lint's NewApi check requires an SDK guard on the three-arg call), and the seam supplies the

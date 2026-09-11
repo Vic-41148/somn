@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * DAO for user biological profile.
- * Singleton pattern — only one row (id=1) ever exists.
+ * Singleton pattern, only one row (id=1) ever exists.
  */
 @Dao
 interface UserProfileDao {

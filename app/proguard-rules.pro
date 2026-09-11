@@ -20,6 +20,16 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
+# ── Release log stripping ─────────────────────────────────────────────────────
+# Health data (breathing rates, clip paths, DB paths) must never reach logcat on
+# user devices. R8 removes these call sites entirely in release builds.
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** v(...);
+}
+
 # ── JTransforms (FFT for sonar sleep tracking) ────────────────────────────────
 -keep class org.jtransforms.** { *; }
 -keep class pl.edu.icm.jlargearrays.** { *; }

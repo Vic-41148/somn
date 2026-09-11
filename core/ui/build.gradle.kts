@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.core.ui"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -41,4 +41,6 @@ dependencies {
 
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
+
+    testImplementation(libs.junit)
 }

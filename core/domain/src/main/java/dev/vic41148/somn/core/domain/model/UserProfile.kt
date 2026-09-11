@@ -6,7 +6,7 @@ import java.time.ZoneId
 
 /**
  * Domain model representing the user's biological profile.
- * Singleton — one profile per device installation.
+ * Singleton, one profile per device installation.
  *
  * This is the foundation for age-calibrated scoring, cycle-adjusted scoring,
  * neurodivergent modes, and every personalisation feature in the app.
@@ -33,7 +33,7 @@ data class UserProfile(
             Period.between(it, LocalDate.now()).years
         }
 
-    /** Get age-appropriate target sleep hours if user hasn't customised. */
+    /** Get the age-appropriate target sleep hours if the user has not customised them. */
     val recommendedSleepHours: Float
         get() = when (val currentAge = age) {
             null -> 8.0f
@@ -88,7 +88,7 @@ enum class BiologicalSex(val displayName: String) {
  * them, and their intent is already covered by the age-derived `recommendedSleepHours`,
  * `deepSleepTargetPercent`, and the age-based score adjustments in CalculateSleepScoreUseCase
  * (adolescent duration bonus, 55+ deep-sleep band, wake-expectation by age). Add a consumer
- * before ever re-adding an age stage — a selectable option with no downstream effect is worse
+ * before ever re-adding an age stage, a selectable option with no downstream effect is worse
  * than no option.
  */
 enum class LifeStage(val displayName: String, val description: String) {
@@ -120,9 +120,9 @@ enum class Chronotype(val displayName: String, val meqRange: IntRange?) {
          * Horne & Östberg MEQ's 16-86 range this used to use. The old bands (59-86/42-58/...)
          * were structurally unreachable from a 5-item quiz sum, which silently pushed most
          * users toward evening-type. Rescaled onto the real rMEQ range (4-25), keeping the
-         * existing 5-way typology since it's load-bearing elsewhere (ADHD adjustment, circadian
-         * UI). No published rMEQ study defines 5 bands specifically — the validated cutoffs
-         * are the 3-band 4-11/12-17/18-25 split — so this is an even-width approximation over
+         * existing 5-way typology since it is load-bearing elsewhere (ADHD adjustment, circadian
+         * UI). No published rMEQ study defines 5 bands specifically, the validated cutoffs
+         * are the 3-band 4-11/12-17/18-25 split, so this is an even-width approximation over
          * that range, not a literature value.
          */
         fun fromMeqScore(score: Int): Chronotype = when (score) {

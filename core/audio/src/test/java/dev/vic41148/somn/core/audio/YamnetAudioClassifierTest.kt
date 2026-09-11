@@ -5,7 +5,7 @@ import org.junit.Test
 import kotlin.math.abs
 
 /**
- * Tests [YamnetAudioClassifier.toYamnetInput] only — pure sample-conversion/windowing logic,
+ * Tests [YamnetAudioClassifier.toYamnetInput] only - pure sample-conversion/windowing logic,
  * no TFLite/Interpreter involved, so this runs on plain JVM without a device.
  */
 class YamnetAudioClassifierTest {

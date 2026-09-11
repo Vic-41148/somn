@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
  * Room entity for a single habit log entry.
  *
  * Uses a flat table with a [entryType] discriminator column.
- * Each subtype occupies its own nullable columns; unrelated columns are null.
+ * Each subtype occupies its own nullable columns, unrelated columns are null.
  * This avoids the complexity of polymorphic relationships while keeping a single DAO.
  *
  * [date] is stored as ISO-8601 string (yyyy-MM-dd) for simple range queries.

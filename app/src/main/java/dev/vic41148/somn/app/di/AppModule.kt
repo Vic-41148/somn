@@ -6,6 +6,7 @@ import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportJsonUseCase
 import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
+import dev.vic41148.somn.core.domain.usecase.ManualSessionUseCase
 import dev.vic41148.somn.core.domain.usecase.SleepDebtUseCase
 import dev.vic41148.somn.core.domain.usecase.ChronotypeAssessmentUseCase
 import dev.vic41148.somn.core.domain.usecase.SocialJetLagUseCase
@@ -92,5 +93,11 @@ object AppModule {
     @Singleton
     fun provideImportSleepAsAndroidUseCase(): ImportSleepAsAndroidUseCase {
         return ImportSleepAsAndroidUseCase()
+    }
+
+    @Provides
+    @Singleton
+    fun provideManualSessionUseCase(): ManualSessionUseCase {
+        return ManualSessionUseCase()
     }
 }

@@ -40,6 +40,16 @@ android {
             assets.srcDirs("$projectDir/schemas")
         }
     }
+
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+        }
+        create("store") {
+            dimension = "channel"
+        }
+    }
 }
 
 dependencies {
@@ -56,6 +66,9 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+    // SQLCipher: at-rest encryption for the Room DB (SupportFactory + one-time
+    // plaintext migration in DatabaseKeyManager).
+    implementation(libs.sqlcipher)
 
     // DataStore
     implementation(libs.datastore.preferences)
@@ -74,6 +87,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation(libs.org.json)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.room.testing)
     testImplementation(libs.robolectric)

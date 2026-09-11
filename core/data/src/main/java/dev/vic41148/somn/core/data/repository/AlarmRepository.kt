@@ -48,7 +48,7 @@ class AlarmRepository @Inject constructor(
      * The enabled alarm chronologically closest to firing from now, wrapping past-due
      * hour:minute values to tomorrow. This used to be a SQL `ORDER BY hour ASC, minute ASC
      * LIMIT 1` query, which picked the smallest hour:minute rather than the smallest
-     * time-until-next-fire — e.g. at 22:00 with alarms enabled at 06:00 and 23:00, it always
+     * time-until-next-fire, e.g. at 22:00 with alarms enabled at 06:00 and 23:00, it always
      * returned 06:00 (23h away) over 23:00 (1h away). This feeds SleepTrackingService's smart
      * wake-window, so the wrong alarm here made the app watch for the wrong target time.
      */

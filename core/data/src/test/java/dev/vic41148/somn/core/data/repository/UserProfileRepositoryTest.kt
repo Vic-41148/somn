@@ -16,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 /**
  * Regression tests for the chronotype self-heal in [UserProfileRepository.toDomain]: the
  * persisted `chronotype` string may have been derived with the old broken 16-86 banding (see
- * Chronotype.fromMeqScore), so reads recompute from the raw `chronotypeMeqScore` — while a
+ * Chronotype.fromMeqScore), so reads recompute from the raw `chronotypeMeqScore`, while a
  * null score (quiz skipped) must keep honoring the persisted string.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -56,7 +56,7 @@ class UserProfileRepositoryTest {
 
     @Test
     fun getProfile_withNullMeqScore_honorsPersistedChronotype() = runTest {
-        // Quiz skipped — no raw score to recompute from; the persisted value must win.
+        // Quiz skipped, no raw score to recompute from, the persisted value must win.
         db.userProfileDao().upsert(
             UserProfileEntity(
                 id = 1,

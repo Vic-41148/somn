@@ -7,6 +7,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
+import dev.vic41148.somn.app.integration.UpdateIntegration
+import dev.vic41148.somn.core.data.backup.LocalBackupWorker
 import dev.vic41148.somn.core.data.retention.ClipRetentionWorker
 import dev.vic41148.somn.core.notifications.WeeklyReportGenerator
 import java.time.DayOfWeek
@@ -15,6 +17,9 @@ import java.time.LocalTime
 import java.time.temporal.TemporalAdjusters
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class SomnApp : Application(), Configuration.Provider {
@@ -24,10 +29,47 @@ class SomnApp : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var updateIntegrations: Set<@JvmSuppressWildcards UpdateIntegration>
+
     override fun onCreate() {
         super.onCreate()
+        // Debug-only tripwires: main-thread disk/network IO, leaked closables and
+        // cursors, untagged sockets. penaltyLog, never penaltyDeath — a debug
+        // watchdog must shout in logcat, not crash the session under test.
+        // Release builds never install this: zero behavior or size difference.
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            android.os.StrictMode.setThreadPolicy(
+                android.os.StrictMode.ThreadPolicy.Builder()
+                    .detectDiskReads()
+                    .detectDiskWrites()
+                    .detectNetwork()
+                    .penaltyLog()
+                    .build()
+            )
+            android.os.StrictMode.setVmPolicy(
+                android.os.StrictMode.VmPolicy.Builder()
+                    .detectLeakedSqlLiteObjects()
+                    .detectLeakedClosableObjects()
+                    .detectLeakedRegistrationObjects()
+                    .penaltyLog()
+                    .build()
+            )
+        }
+        // Zero-telemetry crash capture first: nothing leaves the device, the log just waits
+        // in app-private storage until the user copies it out of Settings → About.
+        dev.vic41148.somn.core.data.diagnostics.CrashLogStore.install(this)
         scheduleWeeklyReport()
         scheduleClipRetention()
+        scheduleLocalBackup()
+        // One-time upgrade: seal any still-plaintext sensitive prefs (v0.1.2 installs).
+        // Fire-and-forget on IO, reads tolerate both forms until it lands.
+        CoroutineScope(Dispatchers.IO).launch {
+            runCatching { preferencesRepository.migrateSensitivePrefsToEncrypted() }
+        }
+        // Channel-scoped integrations (in-app updater scheduling on standalone builds, no-op on
+        // store). Called after the base scheduling so we stay independent of app startup order.
+        updateIntegrations.forEach { it.onAppCreated(this) }
     }
 
     override val workManagerConfiguration: Configuration
@@ -57,7 +99,7 @@ class SomnApp : Application(), Configuration.Provider {
 
     /**
      * Prunes expired sleep-talk recordings twice a day. The worker itself re-reads the retention
-     * preference on every run, so changing the setting takes effect without rescheduling — hence
+     * preference on every run, so changing the setting takes effect without rescheduling, hence
      * KEEP rather than UPDATE.
      */
     private fun scheduleClipRetention() {
@@ -67,6 +109,23 @@ class SomnApp : Application(), Configuration.Provider {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             ClipRetentionWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
+
+    /**
+     * Flavor-agnostic daily local backup. The worker itself no-ops until the user grants a backup
+     * folder, so initial scheduling before onboarding is harmless. KEEP (not UPDATE) because a
+     * daily cadence never needs re-derivation.
+     */
+    private fun scheduleLocalBackup() {
+        val request = PeriodicWorkRequestBuilder<LocalBackupWorker>(
+            LocalBackupWorker.INTERVAL_HOURS, TimeUnit.HOURS
+        ).build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            LocalBackupWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             request
         )

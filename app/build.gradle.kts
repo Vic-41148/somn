@@ -7,6 +7,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
+    // CycloneDX SBOM for the release artifact (FOSS, no GMS anywhere near it).
+    alias(libs.plugins.cyclonedx)
+    // Generates R.raw.aboutlibraries from dependency metadata for the license screen.
+    alias(libs.plugins.aboutlibraries.plugin)
 }
 
 // Release signing credentials live in keystore.properties (gitignored) so the keystore password
@@ -19,18 +23,39 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// Version derives from the git tag (v0.1.2 → code 1002, name "0.1.2") so the tag,
+// the built APK, and what the self-updater compares can never disagree. Falls back
+// to the last released values when git is unavailable (source tarball builds).
+val releaseTag: String = runCatching {
+    providers.exec { commandLine("git", "describe", "--tags", "--abbrev=0") }
+        .standardOutput.asText.get().trim()
+}.getOrDefault("v0.1.2")
+val releaseParts: List<Int> = releaseTag.trimStart('v').split(".").map { it.toIntOrNull() ?: 0 }
+val derivedVersionCode: Int =
+    (releaseParts.getOrElse(0) { 0 }) * 1_000_000 +
+        (releaseParts.getOrElse(1) { 0 }) * 1_000 +
+        (releaseParts.getOrElse(2) { 0 })
+val derivedVersionName: String = releaseParts.joinToString(".")
+
 android {
     namespace = "dev.vic41148.somn.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "dev.vic41148.somn"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.2"
+        targetSdk = 36
+        versionCode = derivedVersionCode
+        versionName = derivedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            // Phones only: x86/x86_64 exist for emulators and cost ~14 MB of .so weight
+            // (TF Lite runtime + QR scanner ship per-ABI natives). Physical devices are
+            // arm64 (or armv7), so the store channel drops the emulator ABIs.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -56,6 +81,19 @@ android {
         }
     }
 
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+            // Debug/development builds default to the standalone channel with the full
+            // in-app updater (GitHub Releases + self-hosted repo) wired in.
+        }
+        create("store") {
+            dimension = "channel"
+            // F-Droid / IzzyOnDroid / Accrescent channel with the updater byte excluded.
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -77,6 +115,9 @@ android {
             // the loader extracts them at install time, which defeats the page-aligned mmap the
             // 16KB ABI requires. False keeps them uncompressed and aligned inside the APK.
             useLegacyPackaging = false
+            // YAMNet runs on the CPU Interpreter (YamnetAudioClassifier) — the OpenCL GPU
+            // delegate .so ships inside the LiteRT AAR unused (~6 MB across ABIs).
+            excludes += "**/libLiteRtClGlAccelerator.so"
         }
     }
 }
@@ -102,9 +143,11 @@ dependencies {
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
+    implementation(libs.graphics.shapes)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 
@@ -117,6 +160,15 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // Open-source licenses screen (FOSS AboutLibraries, not GMS oss-licenses-plugin).
+    implementation(libs.aboutlibraries)
+
+    // Opt-in app lock: biometric or device credential at cold start.
+    implementation(libs.biometric)
+
+    // LeakCanary: memory-leak detection, debug builds only. Auto-installs, nothing ships in release.
+    debugImplementation(libs.leakcanary)
 
     testImplementation(libs.junit)
 }

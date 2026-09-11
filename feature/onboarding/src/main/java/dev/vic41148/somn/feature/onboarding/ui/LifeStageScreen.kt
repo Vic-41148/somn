@@ -43,8 +43,8 @@ private val femaleLifeStages = listOf(
 
 /**
  * Everything the screen can select: an explicit "Default" opt-out card first, then the
- * hormone-driven stages. Previously the screen offered no way to unselect a stage once tapped
- * (a mis-tap was sticky until reinstall/restore) — the Default card is the unselect path.
+ * hormone-driven stages. Previously the screen offered no way to unselect a stage once the user tapped
+ * it (a mis-tap was sticky until reinstall/restore). The Default card is the unselect path.
  */
 private val lifeStageOptions = listOf(LifeStage.DEFAULT) + femaleLifeStages
 
@@ -84,8 +84,8 @@ fun LifeStageScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Each stage has unique hormonal effects on sleep. We'll adjust your scores " +
-                "so they reflect what's healthy for your body right now.",
+            text = "Each stage has unique hormonal effects on sleep. We will adjust your scores " +
+                "to show what is healthy for your body right now.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

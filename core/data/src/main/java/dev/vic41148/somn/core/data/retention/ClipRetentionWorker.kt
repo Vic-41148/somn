@@ -19,7 +19,7 @@ import java.io.File
  * the whole session was deleted. NAS sync is off by default, so for the default user every
  * recording of them talking in their sleep accumulated in filesDir indefinitely.
  *
- * The DB row survives — the audio event itself is still part of the night's history. Only the
+ * The DB row survives, the audio event itself is still part of the night's history. Only the
  * recording is destroyed, and the row's clipPath is nulled so playback UI stops offering it.
  */
 @HiltWorker
@@ -40,7 +40,7 @@ class ClipRetentionWorker @AssistedInject constructor(
         val retentionDays = preferencesRepository.clipRetentionDays.first()
         val cutoff = ClipRetentionPolicy.cutoffMillis(System.currentTimeMillis(), retentionDays)
         if (cutoff == null) {
-            Log.d(TAG, "Retention disabled by user — keeping all clips")
+            Log.d(TAG, "Retention disabled by user. Keeping all clips.")
             return Result.success()
         }
 
@@ -50,10 +50,10 @@ class ClipRetentionWorker @AssistedInject constructor(
         var deleted = 0
         for (event in expired) {
             val path = event.clipPath ?: continue
-            // Clear the path even when the file is already gone, so a missing file can't leave a
+            // Clear the path even when the file is already gone, so a missing file cannot leave a
             // dangling clipPath that playback UI keeps trying to open.
             runCatching { File(path).delete() }
-                .onFailure { Log.e(TAG, "Failed to delete clip: $path", it) }
+                .onFailure { Log.e(TAG, "Failed to delete clip (${it.javaClass.simpleName})") }
                 .onSuccess { if (it) deleted++ }
             audioEventDao.clearClipPath(event.id)
         }

@@ -7,8 +7,8 @@ import java.time.LocalTime
  * data-driven detection from alarm-free sleep sessions.
  *
  * Research basis §2.11: Chronotype is neurologically determined and encoded in circadian genes
- * (Washington University / PNAS 2025). Social jet lag — the discrepancy between biological
- * and schedule-forced sleep timing — is an independent cardiovascular risk factor.
+ * (Washington University / PNAS 2025). Social jet lag, the discrepancy between biological
+ * and schedule-forced sleep timing, is an independent cardiovascular risk factor.
  */
 data class ChronotypeAssessment(
     /** Chronotype classified from onboarding rMEQ questionnaire. Always present. */
@@ -42,7 +42,7 @@ data class ChronotypeAssessment(
  * Based on number of qualifying alarm-free sessions.
  */
 enum class AssessmentConfidence(val displayName: String, val minNights: Int) {
-    /** Fewer than 14 alarm-free nights — data-driven result unavailable. */
+    /** Fewer than 14 alarm-free nights, data-driven result unavailable. */
     INSUFFICIENT("Insufficient data", 0),
     /** 14–29 alarm-free nights. */
     LOW("Low", 14),
@@ -69,9 +69,9 @@ enum class AgreementStatus(val displayName: String) {
     /** Both methods classify into the same chronotype category. */
     AGREE("Results agree"),
     /**
-     * Methods disagree. Possible social jet lag — natural timing may differ from lived schedule.
+     * Methods disagree. Possible social jet lag, natural timing may differ from lived schedule.
      */
-    DISAGREE("Results differ — possible social jet lag"),
+    DISAGREE("Results differ: possible social jet lag"),
     /** Not enough data to compute data-driven result. */
     INSUFFICIENT_DATA("Not enough data yet")
 }

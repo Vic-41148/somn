@@ -38,7 +38,7 @@ scripts/run-session-e2e.sh --no-seed --duration 40 --retries 2
 | `verify-wake-window.sh [--minutes N]` | REGRESSION: fires an alarm through the real service with `wake_window_minutes=N` (default 2) + per-alarm MATH captcha, solves the captcha via UI, taps Dismiss, and asserts the WAKE-01 countdown is minutes-scale (~Nm), not the 15s global default. `--minutes 10/30/45` match the edit-screen slider range. Requires `adb root` (emulator). |
 | `verify-trends.sh` | Dumps the Trends screen texts (informational). |
 | `verify-habits-forms.sh` | REGRESSION: taps all four Daily Log habit sections (Caffeine → Alcohol → Exercise → Stress), asserts each form expands and renders its content, and that no FATAL lands in logcat. Guards the compose foundation FlowRow NoSuchMethodError crash. |
-| `verify-release-pipeline.sh` | Pre-release check: `assembleRelease` → compose-foundation alignment guardrail → resolved foundation on the release runtime classpath → R8 clean (no missing-member warnings). |
+| `verify-release-pipeline.sh` | Pre-release check: `assembleStandaloneRelease` → compose-foundation alignment guardrail → resolved foundation on the standalone release runtime classpath → R8 clean (no missing-member warnings). |
 | `smoke-fgs.sh [--duration N] [--no-cleanup]` | Quick FGS smoke: start → confirm service up + no crash → stop → clean the junk session. |
 | `cleanup-junk-sessions.sh [--keep N] [--yes]` | Deletes sessions created after the seeded nights (default keeps the first 7) children-first, pushes the DB back. Always lists what it deletes first. |
 

@@ -44,6 +44,9 @@ import dev.vic41148.somn.core.domain.usecase.CorrelationConfidence
 import dev.vic41148.somn.core.domain.usecase.CorrelationResult
 import dev.vic41148.somn.core.domain.usecase.CorrelationStrength
 import dev.vic41148.somn.core.domain.usecase.CorrelationUseCase
+import dev.vic41148.somn.core.domain.usecase.ShiftFlag
+import dev.vic41148.somn.core.domain.usecase.TagImpact
+import dev.vic41148.somn.core.domain.usecase.maturityLabel
 import dev.vic41148.somn.feature.habits.HabitViewModel
 import kotlin.math.abs
 
@@ -54,11 +57,13 @@ fun CorrelationInsightsScreen(
     viewModel: HabitViewModel = hiltViewModel()
 ) {
     val report by viewModel.correlationReport.collectAsState()
+    val shiftFlags by viewModel.shiftFlags.collectAsState()
+    val tagImpacts by viewModel.tagImpacts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // This screen had no TopAppBar/back button and wasn't reachable from anywhere in the app —
-    // the route existed in the nav graph but nothing ever called navigate() to it, so this
-    // finished feature (habit-to-sleep correlation insights) was entirely dead to users.
+    // This screen had no TopAppBar/back button and was not reachable from anywhere in the app.
+    // The route existed in the nav graph but nothing ever called navigate() to it. As a result
+    // this finished feature (habit-to-sleep correlation insights) was entirely dead to users.
     Scaffold(
         topBar = {
             TopAppBar(
@@ -76,7 +81,7 @@ fun CorrelationInsightsScreen(
             .padding(padding)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -96,9 +101,9 @@ fun CorrelationInsightsScreen(
             elevation = CardDefaults.cardElevation(0.dp)
         ) {
             Text(
-                text = "These patterns are personal to you — not population averages. " +
+                text = "These patterns are personal to you, not population averages. " +
                     "Minimum ${CorrelationUseCase.MIN_DATA_POINTS} sleep sessions needed per correlation. " +
-                    "Findings from fewer nights are a tentative early read — they firm up as you log more.",
+                    "Findings from fewer nights are a tentative early read. They firm up as you log more.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.padding(16.dp)
@@ -107,7 +112,7 @@ fun CorrelationInsightsScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Was `if (isLoading) { ...; return }` followed by `!report?.hasAnyData!!` — if
+        // Was `if (isLoading) { ..., return }` followed by `!report?.hasAnyData!!`, if
         // loadDebtAndCorrelations() ever hit its catch block before report was first assigned
         // (isLoading still gets set back to false there), report stays null forever and
         // `null!!` crashed this screen with an NPE. Guard on report == null directly instead.
@@ -124,8 +129,18 @@ fun CorrelationInsightsScreen(
         if (!safeReport.hasAnyData) {
             EmptyCorrelationsState()
         } else {
+            // R4: material moves first. The code flags it without being asked.
+            shiftFlags.forEach { flag ->
+                ShiftFlagCard(flag = flag)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             correlations.forEach { result ->
                 CorrelationCard(result = result)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            // R4: tag presence as binary predictors next to the big-four habits.
+            tagImpacts.forEach { impact ->
+                TagImpactCard(impact = impact)
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -142,7 +157,7 @@ fun CorrelationInsightsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
     }
     }
 }
@@ -150,14 +165,7 @@ fun CorrelationInsightsScreen(
 @Composable
 private fun CorrelationCard(result: CorrelationResult) {
     val barColor by animateColorAsState(
-        targetValue = when (result.strength) {
-            CorrelationStrength.NONE -> MaterialTheme.colorScheme.surfaceVariant
-            CorrelationStrength.MILD -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-            CorrelationStrength.MODERATE -> MaterialTheme.colorScheme.tertiary
-            CorrelationStrength.STRONG ->
-                if (result.isPositive) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.error
-        },
+        targetValue = barColorFor(result.strength, result.isPositive),
         label = "barColor"
     )
 
@@ -213,10 +221,10 @@ private fun CorrelationCard(result: CorrelationResult) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("r = ${"%.2f".format(result.correlation)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                // Sample size + confidence qualifier, distinct from the strength badge above:
-                // a strong r from 7 nights is still an early read (CorrelationConfidence).
+                // Sample size + maturity: a strong r from 7 nights is still an early
+                // read, the same r from 90 nights is settled (CorrelationConfidence).
                 Text(
-                    text = "n = ${result.dataPoints} · ${result.confidence.displayName}",
+                    text = "n = ${result.dataPoints} · ${result.confidence.maturityLabel}",
                     style = MaterialTheme.typography.bodySmall,
                     color = when (result.confidence) {
                         CorrelationConfidence.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -238,30 +246,57 @@ private fun CorrelationCard(result: CorrelationResult) {
     }
 }
 
+/**
+ * Diverging scale, direction-aware at every strength: positive correlations read as
+ * "helpful" (primary), negative as "undesirable" (error), with an alpha ramp so MILD
+ * reads clearly under MODERATE and STRONG. It matches the score-ring colour language.
+ */
+@Composable
+private fun barColorFor(strength: CorrelationStrength, isPositive: Boolean): Color = when (strength) {
+    CorrelationStrength.NONE -> MaterialTheme.colorScheme.surfaceVariant
+    CorrelationStrength.MILD -> directionColor(isPositive).copy(alpha = 0.4f)
+    CorrelationStrength.MODERATE -> directionColor(isPositive).copy(alpha = 0.7f)
+    CorrelationStrength.STRONG -> directionColor(isPositive)
+}
+
+@Composable
+private fun containerFor(isPositive: Boolean): Color =
+    if (isPositive) MaterialTheme.colorScheme.primaryContainer
+    else MaterialTheme.colorScheme.errorContainer
+
+@Composable
+private fun onContainerFor(isPositive: Boolean): Color =
+    if (isPositive) MaterialTheme.colorScheme.onPrimaryContainer
+    else MaterialTheme.colorScheme.onErrorContainer
+
+@Composable
+private fun directionColor(isPositive: Boolean): Color =
+    if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+
 @Composable
 private fun StrengthBadge(strength: CorrelationStrength, isPositive: Boolean) {
     val bgColor = when (strength) {
         CorrelationStrength.NONE -> MaterialTheme.colorScheme.surfaceVariant
-        CorrelationStrength.MILD -> MaterialTheme.colorScheme.secondaryContainer
-        CorrelationStrength.MODERATE -> MaterialTheme.colorScheme.tertiaryContainer
-        CorrelationStrength.STRONG ->
-            if (isPositive) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.errorContainer
+        CorrelationStrength.MILD ->
+            containerFor(isPositive).copy(alpha = 0.45f)
+        CorrelationStrength.MODERATE ->
+            containerFor(isPositive).copy(alpha = 0.7f)
+        CorrelationStrength.STRONG -> containerFor(isPositive)
     }
     val textColor = when (strength) {
         CorrelationStrength.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
-        CorrelationStrength.MILD -> MaterialTheme.colorScheme.onSecondaryContainer
-        CorrelationStrength.MODERATE -> MaterialTheme.colorScheme.onTertiaryContainer
-        CorrelationStrength.STRONG ->
-            if (isPositive) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onErrorContainer
+        CorrelationStrength.MILD ->
+            onContainerFor(isPositive).copy(alpha = 0.6f)
+        CorrelationStrength.MODERATE ->
+            onContainerFor(isPositive).copy(alpha = 0.8f)
+        CorrelationStrength.STRONG -> onContainerFor(isPositive)
     }
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(bgColor)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Text(
             text = strength.displayName,
@@ -272,9 +307,84 @@ private fun StrengthBadge(strength: CorrelationStrength, isPositive: Boolean) {
     }
 }
 
+/** R4 shift flag: a material move. The code surfaces it without being asked. */
 @Composable
-private fun InsufficientDataCard(label: String) {
+private fun ShiftFlagCard(flag: ShiftFlag) {
     Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Heads up",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = flag.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = flag.detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
+/** R4 tag read: binary predictor with its sample on both sides. */
+@Composable
+private fun TagImpactCard(impact: TagImpact) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Tag · ${impact.tagName}",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = impact.insight,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${impact.taggedAvgScore} tagged scores vs ${impact.untaggedAvgScore} untagged scores",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun InsufficientDataCard(label: String) {    Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -296,7 +406,7 @@ private fun InsufficientDataCard(label: String) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Need ${CorrelationUseCase.MIN_DATA_POINTS}+ nights with logged data",
+                    text = "Log data for ${CorrelationUseCase.MIN_DATA_POINTS}+ nights",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -344,7 +454,7 @@ private fun EmptyCorrelationsState() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Log your habits for ${CorrelationUseCase.MIN_DATA_POINTS}+ nights and Somn will reveal your personal sleep patterns.",
+                text = "Log your habits for ${CorrelationUseCase.MIN_DATA_POINTS}+ nights to reveal your personal sleep patterns.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

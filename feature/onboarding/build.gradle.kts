@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.feature.onboarding"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -26,6 +26,15 @@ android {
 
     buildFeatures {
         compose = true
+    }
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standalone") {
+            dimension = "channel"
+        }
+        create("store") {
+            dimension = "channel"
+        }
     }
 }
 

@@ -4,8 +4,8 @@ import dev.vic41148.somn.core.domain.model.SleepStage
 
 /**
  * Smart Alarm logic. Determines if an alarm should trigger early
- * based on the user's current sleep stage, trying to avoid waking
- * them up from deep sleep (to minimize sleep inertia).
+ * based on the user's current sleep stage, to avoid waking
+ * them from deep sleep (to minimize sleep inertia).
  */
 class SmartAlarmUseCase {
 

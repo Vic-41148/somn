@@ -18,25 +18,37 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
 
       # gradle.properties pins org.gradle.java.home to a local Arch path so the maintainer's
       # machine picks the right JDK. That path does not exist on a runner, so every Gradle
       # invocation here overrides it with the JDK actions/setup-java just installed.
-      - name: Assemble debug APK
-        run: ./gradlew assembleDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+      - name: Assemble debug APK (standalone channel)
+        run: ./gradlew assembleStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
+      # The core:notifications-vs-core:ui compileSdk split (35 vs 36) compiled fine in
+      # debug and only exploded on a release assemble. Nothing else in CI builds the
+      # minified standalone artifact, so that whole class of break hid until tag day.
+      # Unsigned fallback is fine here — this proves compilation + R8, not signatures.
+      - name: Assemble release APK (standalone channel, catches release-only breaks)
+        run: ./gradlew :app:assembleStandaloneRelease -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      # Runs BOTH the flavored-module suite (testStandaloneDebugUnitTest) and the non-flavored
+      # modules' suite (testDebugUnitTest). core:domain/core:ui/core:health are deliberately kept
+      # on compileSdk 35 without the channel dimension, so their unit tests only exist under
+      # testDebugUnitTest — running just testStandaloneDebugUnitTest would silently skip the whole
+      # domain layer and over-report coverage.
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+        run: ./gradlew testStandaloneDebugUnitTest testDebugUnitTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
       # A transitive constraint (androidx.emoji2 -> foundation 1.9.0) once forced the app runtime
       # to a newer compose foundation than modules compiled against; FlowRow's changed signature
@@ -49,19 +61,38 @@ jobs:
       # README.md (and CONTRIBUTING.md) advertise a unit-test count that drifts the moment
       # anyone adds or removes a test, and nothing complains until a user notices the number is
       # wrong — the same doc-accuracy problem the emoji guardrail solves. Sum the tests="..."
-      # attributes from the testDebugUnitTest results this job just produced (a fresh checkout,
-      # so no stale XMLs) and fail if either doc's number no longer matches the suite — or if
-      # the count was removed from a doc altogether.
+      # attributes from the results this job just produced (a fresh checkout, so no stale XMLs)
+      # and fail if either doc's number no longer matches the suite — or if the count was removed
+      # from a doc altogether.
+      #
+      # The suite spans two task result trees because the module set is split by the channel
+      # flavor dimension: flavored modules report under testStandaloneDebugUnitTest, while the
+      # non-flavored core modules (domain/ui/health) report under testDebugUnitTest. To avoid
+      # double-counting a flavored module's src/test (present in BOTH trees), each module's
+      # testDebugUnitTest results are only counted when that module produces no standalone tree.
       - name: README test count matches the suite
         run: |
           set -euo pipefail
-          # || true: with no XMLs on disk the grep chain exits 1 and, under the default
-          # -o pipefail, the assignment would abort the step before any ::error:: is printed.
-          # The substitution still captures awk's "0", so TOTAL degrades to a clear mismatch.
-          TOTAL=$(find . -path '*/build/test-results/testDebugUnitTest/TEST-*.xml' -print0 \
+          # || true keeps the assignment from aborting under -o pipefail when no XMLs exist.
+          STANDALONE=$(find . -path '*/build/test-results/testStandaloneDebugUnitTest/TEST-*.xml' -print0 \
             | xargs -0 grep -ho 'tests="[0-9]*"' 2>/dev/null \
             | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}') || true
-          TOTAL=${TOTAL:-0}
+          STANDALONE=${STANDALONE:-0}
+          NONFLAVORED=0
+          # core:domain / core:ui / core:health are deliberately kept on compileSdk 35 with no
+          # channel flavor, so their unit tests only exist under testDebugUnitTest. They are listed
+          # explicitly here rather than auto-detected: Gradle creates a (usually empty)
+          # testStandaloneDebugUnitTest results dir for EVERY module, so any dir-based heuristic
+          # for "has a flavor" is unreliable. Keep this list in sync with those build files.
+          for module in core/domain core/ui core/health; do
+            for f in "$module"/build/test-results/testDebugUnitTest/TEST-*.xml; do
+              [ -f "$f" ] || continue
+              t=$(grep -o 'tests="[0-9]*"' "$f" | head -1 | grep -o '[0-9]*')
+              NONFLAVORED=$((NONFLAVORED + t))
+            done
+          done
+          TOTAL=$((STANDALONE + NONFLAVORED))
+          echo "Test suite: standalone=$STANDALONE non-flavored=$NONFLAVORED total=$TOTAL"
           # Anchored to the claim lines so prose that repeats "N unit tests" can't double-match;
           # tail -1 keeps the last (real) claim if the docs are ever edited to repeat it.
           README_CLAIMED=$(grep -oE '# [0-9]+ unit tests' README.md | grep -oE '[0-9]+' | tail -1 || true)
@@ -80,11 +111,41 @@ jobs:
           exit "$FAIL"
 
       - name: Android Lint
-        run: ./gradlew lintDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+        run: ./gradlew lintStandaloneDebug -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      # Debug lint and release lint are different configs (minify/shrink flags change
+      # what lint can see); release-only findings hid until now. Runs after the release
+      # assemble above so the intermediates it inspects exist.
+      - name: Android Lint (release)
+        run: ./gradlew lintStandaloneRelease -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+
+      # The CycloneDX BOM lists every resolvable artifact including Gradle-plugin
+      # internals (Netty, Bouncy Castle) that never enter the APK, so gating on the
+      # raw scanner output would fail on every AGP bump. scripts/verify-shipped-cve.sh
+      # intersects the findings with the DEX content and fails only on CVEs in
+      # shipped code. Pinned scanner version, same as the local pre-tag run.
+      - name: CVE scan (fails only on CVEs in shipped DEX)
+        run: |
+          set -euo pipefail
+          curl -sL --max-time 120 -o osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.2.3/osv-scanner_linux_amd64
+          chmod +x osv-scanner
+          ./gradlew :app:cyclonedxBom -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+          ./osv-scanner scan --sbom=app/build/reports/cyclonedx/bom.json \
+            --format=json --output=osv.json || true
+          bash scripts/verify-shipped-cve.sh \
+            "$(ls app/build/outputs/apk/standalone/release/*.apk | head -1)" osv.json
+
+      # androidTest sources are invisible to every task above: unit-test compilation never
+      # touches them and assemble skips them, so a backup-integrity change once broke them
+      # for weeks unnoticed. Compiling the test APK needs no emulator — running it still
+      # does, on a maintainer device before release.
+      - name: Compile instrumented tests
+        run: ./gradlew :core:data:assembleStandaloneDebugAndroidTest :core:audio:assembleStandaloneDebugAndroidTest -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: test-results
           path: '**/build/reports/tests/**'
@@ -92,7 +153,7 @@ jobs:
 
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: lint-report
           path: '**/build/reports/lint-results-*.html'
@@ -101,26 +162,26 @@ jobs:
   privacy-guardrails:
     name: Privacy guardrails
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
 
       # These are the claims PRIVACY.md and the README make to users. They are cheap to assert
       # and expensive to notice breaking, because a transitive dependency can reintroduce any of
       # them without a single line of our own code changing.
       - name: No Google Play Services on the release classpath
         run: |
-          ./gradlew :app:dependencies --configuration releaseRuntimeClasspath \
+          ./gradlew :app:dependencies --configuration standaloneReleaseRuntimeClasspath \
             -Dorg.gradle.java.home="$JAVA_HOME" -q > deps.txt
           if grep -qE 'play-services|com\.google\.android\.play|com\.google\.mlkit' deps.txt; then
             echo "::error::Google Play Services artifacts are back on the release classpath:"
@@ -134,10 +195,10 @@ jobs:
           # --rerun-tasks because the merger report is only rewritten when the task actually
           # runs. An UP-TO-DATE or cache-restored manifest task leaves a stale report on disk,
           # and a stale report would let this check pass against yesterday's dependency graph.
-          ./gradlew :app:processReleaseMainManifest --rerun-tasks \
+          ./gradlew :app:processStandaloneReleaseMainManifest --rerun-tasks \
             -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
-          MANIFEST=app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
-          REPORT=app/build/outputs/logs/manifest-merger-release-report.txt
+          MANIFEST=app/build/intermediates/merged_manifest/standaloneRelease/processStandaloneReleaseMainManifest/AndroidManifest.xml
+          REPORT=app/build/outputs/logs/manifest-merger-standalone-release-report.txt
 
           grep -q 'android.permission.INTERNET' core/data/src/main/AndroidManifest.xml \
             || { echo "::error::core/data no longer declares INTERNET — NAS sync would fail"; exit 1; }
@@ -157,14 +218,85 @@ jobs:
           fi
           echo "OK: backup opt-out intact, INTERNET scoped to :core:data."
 
+      # The self-updater (and its REQUEST_INSTALL_PACKAGES permission) is a standalone-channel
+      # exclusive. F-Droid treats a bundled updater as a trust violation, not just a wrong build,
+      # so the store flavor must provably contain neither — checked on the built artifact, not
+      # on source layout, because manifest merging is exactly what could leak them across flavors.
+      - name: Store flavor carries no self-updater
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleStoreRelease -Dorg.gradle.java.home="$JAVA_HOME" --stacktrace
+          APK=$(ls app/build/outputs/apk/store/release/*.apk | head -1)
+          echo "Inspecting $APK"
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          if "$BT/aapt2" dump badging "$APK" | grep -q 'REQUEST_INSTALL_PACKAGES'; then
+            echo "::error::REQUEST_INSTALL_PACKAGES leaked into the store APK"
+            exit 1
+          fi
+          if unzip -p "$APK" 'classes*.dex' | grep -qa 'core/data/update/'; then
+            echo "::error::updater classes (core/data/update) present in the store dex"
+            exit 1
+          fi
+          echo "OK: store APK has no updater permission or classes."
+
+      # Play blocks updates with unaligned natives, and real 16KB-page hardware crashes
+      # on them — re-checked every push because any native-dependency bump can regress it.
+      # Reuses the store release APK assembled above; alignment is a property of the .so,
+      # so one channel's artifact proves the dependency set.
+      - name: 16KB page alignment of bundled natives
+        run: |
+          set -euo pipefail
+          APK=$(ls app/build/outputs/apk/store/release/*.apk | head -1)
+          bash scripts/check-16kb-alignment.sh "$APK"
+
+  changelog-guardrail:
+    name: Changelog kept in sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 2
+
+      # Refactors, features and fixes are tracked in CHANGELOG.md by hand; nobody re-remembers to
+      # open it, so a source-touching commit silently ships without a changelog entry until a
+      # release note is missing. Guard now: the latest commit may only touch app/feature/core code
+      # when CHANGELOG.md changed with it (docs-only pushes sail through — that is the point).
+      - name: Source changes must carry a CHANGELOG entry
+        run: |
+          set -euo pipefail
+          CHANGED=$(git diff --name-only HEAD~1 HEAD || true)
+          CODE=$(printf '%s\n' "$CHANGED" | grep -E '^(app|feature|core|build-logic)/' || true)
+          if [ -n "$CODE" ] && ! printf '%s\n' "$CHANGED" | grep -q '^CHANGELOG.md$'; then
+            echo "::error::Source changed without a CHANGELOG.md entry:"
+            echo "$CODE"
+            exit 1
+          fi
+          echo "OK: changelog discipline holds."
+
+  secrets-scan:
+    name: Secrets scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      # Open-source by definition means the source is public: a committed key, token or
+      # password is compromised the moment it lands. Fails the build on anything
+      # key/token-shaped anywhere in history reachable from this ref.
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+
   style-guardrails:
     name: Style guardrails
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v7
-
       # CONTRIBUTING.md's "no emoji in source or user-facing text" is a promise to users exactly
       # like the privacy claims above: cheap to assert, expensive to notice breaking, because a
       # doc rewrite or a copy-paste can reintroduce emoji in a heading or a string with no

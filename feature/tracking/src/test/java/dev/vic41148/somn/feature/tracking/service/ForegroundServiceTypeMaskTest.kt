@@ -6,7 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
- * Verifies [foregroundServiceTypeMask] — the Android 14+ foreground-service type mask built from
+ * Verifies [foregroundServiceTypeMask], the Android 14+ foreground-service type mask built from
  * the runtime permissions actually held. These constants are compile-time values, so a plain JVM
  * unit test can assert them without a device.
  */

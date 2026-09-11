@@ -1,0 +1,13 @@
+# Alarm path: list -> new alarm screen -> repeat toggles -> back, no crash.
+appId: dev.vic41148.somn
+---
+- launchApp
+- tapOn: "Alarms"
+- tapOn: "Add alarm"
+- assertVisible: "Repeat on"
+- tapOn: "M"
+- back
+- tapOn:
+    text: "Alarm history"
+    optional: true
+- back

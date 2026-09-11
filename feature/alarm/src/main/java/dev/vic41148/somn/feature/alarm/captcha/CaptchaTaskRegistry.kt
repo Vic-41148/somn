@@ -13,10 +13,10 @@ object CaptchaTaskRegistry {
         register(ShakeCaptchaTask())
         register(SequenceCaptchaTask())
         register(QRCodeCaptchaTask())
-        // NFC captchas only make sense on devices that can read tags. The task is
-        // registered unconditionally, but getAvailableTasks() filters it by
+        // NFC captchas only make sense on devices that can read tags. The code
+        // registers the task unconditionally. getAvailableTasks() filters it by
         // PackageManager.FEATURE_NFC and resolveTask() falls back to the global
-        // preference (or math) when NFC is unavailable — a captcha the user can
+        // preference (or math) when NFC is unavailable. A captcha the user can
         // never solve must not lock them out of dismissing their own alarm.
         register(NFCCaptchaTask())
     }
@@ -31,18 +31,18 @@ object CaptchaTaskRegistry {
      * Resolves the captcha task that gates a firing alarm's dismissal.
      *
      * The per-alarm [CaptchaType] (received via [AlarmService.currentCaptchaType], from
-     * `Alarm.captchaType`) wins when it names a real task; `NONE` (or an unmappable value) falls
+     * `Alarm.captchaType`) wins when it names a real task. `NONE` (or an unmappable value) falls
      * back to the global Settings preference so both layers keep working together. A QR task is
-     * swapped for math when no QR value has been configured — an unsettable captcha must never
+     * swapped for math when no QR value has been configured, an unsettable captcha must never
      * lock the user out of dismissing their own alarm.
      *
      * Shared by [dev.vic41148.somn.feature.alarm.ui.AlarmActivity] and the in-app firing screen so
      * the two surfaces can never drift apart on which captcha applies.
      *
      * [nfcAvailable] is the device's NFC capability ([PackageManager.FEATURE_NFC]). An NFC
-     * captcha on a device that can't read tags can never be solved, so it falls back to the
+     * captcha on a device that cannot read tags can never be solved, so it falls back to the
      * global preference (and to math if that is itself the NFC task). Both fallbacks are
-     * checked on the *final* task — the NFC fallback can land on a QR task, and a QR captcha
+     * checked on the *final* task, the NFC fallback can land on a QR task, and a QR captcha
      * with no configured value must never lock the user out either.
      */
     fun resolveTask(

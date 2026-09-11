@@ -48,11 +48,11 @@ Sessions (night → duration → efficiency → score): 6h40m/85%/62 · 5h20m/76
 
 ## The procedure
 
-1. **Build** — `./gradlew assembleDebug` → `app/build/outputs/apk/debug/app-debug.apk`
+1. **Build** — `./gradlew assembleStandaloneDebug` → `app/build/outputs/apk/standalone/debug/app-standalone-debug.apk`
 2. **Wipe** — `adb uninstall dev.vic41148.somn` (data intentionally destroyed; the
    debug and release builds share the `dev.vic41148.somn` applicationId, so a debug
    install can't coexist with a signed install)
-3. **Install** — `adb install -r app-debug.apk`
+3. **Install** — `adb install -r app-standalone-debug.apk`
 4. **Grant** — `pm grant` for `RECORD_AUDIO`, `BODY_SENSORS`, `POST_NOTIFICATIONS`
 5. **First launch** — app creates the empty Room DB; do **not** touch the onboarding
    UI; `am force-stop` after ~8s

@@ -16,7 +16,7 @@ import javax.inject.Singleton
 /**
  * Passphrase-derived AES-256-GCM for backup payloads that must survive the device.
  *
- * [EncryptionUtils] uses an Android Keystore key, which by design cannot leave the TEE — a backup
+ * [EncryptionUtils] uses an Android Keystore key, which by design cannot leave the TEE, a backup
  * encrypted with it is unreadable the moment the phone is lost, wiped, or the app's data cleared,
  * which is exactly when a backup matters. This class derives its key from a user-held recovery
  * passphrase instead, so a restore only needs the backup file plus the phrase.
@@ -43,7 +43,7 @@ import javax.inject.Singleton
 class PortableCrypto @Inject constructor() {
 
     companion object {
-        /** Identifies a portable envelope; lets restore tell these apart from legacy Keystore blobs. */
+        /** Identifies a portable envelope, lets restore tell these apart from legacy Keystore blobs. */
         val MAGIC: ByteArray = "SOMNBAK1".toByteArray(Charsets.US_ASCII)
 
         const val FORMAT_VERSION = 1
@@ -51,6 +51,9 @@ class PortableCrypto @Inject constructor() {
 
         /** OWASP guidance for PBKDF2-HMAC-SHA512. */
         const val DEFAULT_ITERATIONS = 210_000
+
+        /** Upper bound accepted from untrusted backup headers (see decrypt clamp). */
+        const val MAX_ITERATIONS = 2_000_000
 
         private const val SALT_LEN = 16
         private const val GCM_IV_LEN = 12
@@ -60,7 +63,7 @@ class PortableCrypto @Inject constructor() {
         private const val KDF_ALGORITHM = "PBKDF2WithHmacSHA512"
         private const val STREAM_BUFFER = 8192
 
-        /** Crockford Base32 — no I/L/O/U, so recovery keys survive being read aloud or hand-copied. */
+        /** Crockford Base32, no I/L/O/U, so recovery keys survive being read aloud or hand-copied. */
         private const val CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
         private const val RECOVERY_KEY_BYTES = 20
     }
@@ -78,7 +81,7 @@ class PortableCrypto @Inject constructor() {
 
     /**
      * Derives a KEK from [passphrase]. Pass an existing [salt]/[iterations] to reproduce a prior
-     * key; omit them for a fresh one.
+     * key. Omit them for a fresh one.
      */
     fun deriveKek(
         passphrase: CharArray,
@@ -175,7 +178,7 @@ class PortableCrypto @Inject constructor() {
 
     /**
      * Generates a 160-bit recovery key as Crockford Base32 in dash-separated groups of four,
-     * e.g. `K3M9-7QRT-...`. Shown to the user once; it is the only thing that can open their backups.
+     * e.g. `K3M9-7QRT-...`. Shown to the user once. It is the only thing that can open their backups.
      */
     fun generateRecoveryKey(): String {
         val bytes = randomBytes(RECOVERY_KEY_BYTES)
@@ -221,7 +224,7 @@ class PortableCrypto @Inject constructor() {
     ): ByteArray {
         val magic = readFully(input, MAGIC.size)
         require(isPortableEnvelope(magic)) {
-            "Not a portable Somn backup — this file was encrypted with a device-bound key and " +
+            "Not a portable Somn backup. This file was encrypted with a device-bound key and " +
                 "cannot be restored on another device or install."
         }
 
@@ -233,6 +236,11 @@ class PortableCrypto @Inject constructor() {
         require(kdfId == KDF_PBKDF2_HMAC_SHA512) { "Unsupported KDF id $kdfId" }
 
         val iterations = readInt(input)
+        // Attacker-controlled header field: clamp before it reaches PBKDF2, or a malicious
+        // backup burns CPU unbounded. Legit backups use DEFAULT_ITERATIONS.
+        require(iterations in 1..MAX_ITERATIONS) {
+            "Refusing backup with iteration count $iterations (max $MAX_ITERATIONS)"
+        }
         val salt = readFully(input, readByte(input))
         val wrapIv = readFully(input, GCM_IV_LEN)
         val wrappedDek = readFully(input, readShort(input))

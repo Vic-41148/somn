@@ -6,7 +6,7 @@ import dev.vic41148.somn.core.domain.model.SleepSession
  * Use case for creating and editing sleep sessions manually.
  *
  * Research doc competitor gap: "Cannot manually edit a session retroactively"
- * — cited as a key failure for Sleep Cycle, and nobody does it well.
+ *, cited as a key failure for Sleep Cycle, and nobody does it well.
  */
 class ManualSessionUseCase {
 

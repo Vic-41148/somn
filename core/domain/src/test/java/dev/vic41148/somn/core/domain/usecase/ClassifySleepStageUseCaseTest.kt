@@ -8,7 +8,7 @@ class ClassifySleepStageUseCaseTest {
 
     private val useCase = ClassifySleepStageUseCase()
 
-    // ---- invoke() — single-epoch classification ----
+    // ---- invoke(), single-epoch classification ----
 
     @Test
     fun invoke_highMovement_classifiesAwake() {
@@ -45,7 +45,7 @@ class ClassifySleepStageUseCaseTest {
 
     @Test
     fun invoke_deepTakesPriorityOverRemWhenBothConditionsMatch() {
-        // magnitude 0.04 / variability 0.03 satisfies both the DEEP and REM predicates —
+        // magnitude 0.04 / variability 0.03 satisfies both the DEEP and REM predicates,
         // DEEP is checked first in the `when`, so it must win.
         assertThat(useCase(movementMagnitude = 0.04f, movementVariability = 0.03f))
             .isEqualTo(SleepStage.DEEP)
@@ -60,12 +60,12 @@ class ClassifySleepStageUseCaseTest {
 
     @Test
     fun invoke_midRangeMagnitude_classifiesLight() {
-        // Between REM_MAGNITUDE_MAX (0.10) and AWAKE_THRESHOLD (0.15) — neither deep nor REM nor awake.
+        // Between REM_MAGNITUDE_MAX (0.10) and AWAKE_THRESHOLD (0.15), neither deep nor REM nor awake.
         assertThat(useCase(movementMagnitude = 0.12f, movementVariability = 0.05f))
             .isEqualTo(SleepStage.LIGHT)
     }
 
-    // ---- smoothStages() — 3-epoch median filter ----
+    // ---- smoothStages(), 3-epoch median filter ----
 
     @Test
     fun smoothStages_fewerThanThreeEpochs_returnsUnchanged() {
@@ -96,7 +96,7 @@ class ClassifySleepStageUseCaseTest {
 
     @Test
     fun smoothStages_clearMajorityInWindow_winsOverMinority() {
-        // Window [LIGHT, LIGHT, DEEP] at index 2 — LIGHT is the majority (2 of 3).
+        // Window [LIGHT, LIGHT, DEEP] at index 2, LIGHT is the majority (2 of 3).
         val stages = listOf(SleepStage.AWAKE, SleepStage.LIGHT, SleepStage.LIGHT, SleepStage.DEEP, SleepStage.REM)
         val smoothed = useCase.smoothStages(stages)
         assertThat(smoothed[2]).isEqualTo(SleepStage.LIGHT)

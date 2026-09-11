@@ -25,7 +25,7 @@ import java.time.LocalDate
  * Unit tests for the onboarding data-quality gate (deep-dive finding #5): the rMEQ scoring
  * math, the LIFE_STAGE skip logic, the DOB → recommended-hours auto-set, the setLifeStage
  * opt-out clearing, and the completeOnboarding state→profile mapping. The repository is driven
- * through a hand-rolled in-memory [FakeUserProfileDao] — no Robolectric or mocking library.
+ * through a hand-rolled in-memory [FakeUserProfileDao], no Robolectric or mocking library.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest {
@@ -110,7 +110,7 @@ class OnboardingViewModelTest {
     fun `re-answering a meq question overwrites instead of double counting`() {
         val vm = viewModel()
         vm.setMeqAnswer(0, 5)
-        vm.setMeqAnswer(0, 1) // Q0 re-answered; must overwrite, not add a 6th answer.
+        vm.setMeqAnswer(0, 1) // Q0 re-answered, must overwrite, not add a 6th answer.
         vm.setMeqAnswer(1, 5)
         vm.setMeqAnswer(2, 4)
         vm.setMeqAnswer(3, 5)
@@ -248,7 +248,7 @@ class OnboardingViewModelTest {
         vm.setLifeStage(LifeStage.CYCLING)
         vm.setCycleLength(25)
         vm.setLastPeriodStart(LocalDate.of(2026, 7, 20))
-        vm.setLifeStage(LifeStage.POSTPARTUM) // not an opt-out — must not wipe the data
+        vm.setLifeStage(LifeStage.POSTPARTUM) // not an opt-out, must not wipe the data
         assertThat(vm.state.value.cycleLength).isEqualTo(25)
         assertThat(vm.state.value.lastPeriodStart).isEqualTo(LocalDate.of(2026, 7, 20))
     }
@@ -313,7 +313,7 @@ class OnboardingViewModelTest {
         }
 }
 
-/** In-memory [UserProfileDao] — captures the last upsert so tests can assert the mapping. */
+/** In-memory [UserProfileDao], captures the last upsert so tests can assert the mapping. */
 private class FakeUserProfileDao : UserProfileDao {
     var savedProfile: UserProfileEntity? = null
 

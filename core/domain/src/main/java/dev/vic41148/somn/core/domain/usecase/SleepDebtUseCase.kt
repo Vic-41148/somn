@@ -65,7 +65,7 @@ class SleepDebtUseCase {
             )
         }
 
-        // Calculate effective total debt — surpluses can offset deficits, capped per night
+        // Calculate effective total debt, surpluses can offset deficits, capped per night
         val totalDebtMinutes = dailyBreakdown.sumOf { day ->
             if (!day.hasData) 0
             else day.debtMinutes.coerceAtLeast(-MAX_SURPLUS_MINUTES) // cap surplus recovery

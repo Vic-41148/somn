@@ -54,6 +54,9 @@ class HabitLogRepository @Inject constructor(
     suspend fun delete(log: HabitLog) =
         dao.deleteById(log.id)
 
+    /** R2 per-category purge: forgets every habit log. Standalone table, no cascades. */
+    suspend fun clearAll() = dao.deleteAll()
+
     // ---- Mappers ----
 
     private fun HabitEntry.toEntity(date: LocalDate, notes: String): HabitLogEntity {

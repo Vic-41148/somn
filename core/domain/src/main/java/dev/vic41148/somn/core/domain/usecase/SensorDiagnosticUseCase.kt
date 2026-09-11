@@ -7,7 +7,7 @@ import android.hardware.SensorManager
 /**
  * Verifies device sensor capabilities before first use.
  *
- * Research doc §3.1: "Sensor diagnostic test — verify hardware capabilities before first use"
+ * Research doc §3.1: "Sensor diagnostic test, verify hardware capabilities before first use"
  */
 class SensorDiagnosticUseCase {
 

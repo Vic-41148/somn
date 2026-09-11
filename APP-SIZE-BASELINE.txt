@@ -1,0 +1,19 @@
+# APK size baseline — standalone release, unsigned local build
+
+Captured 2026-09-11 off `app-standalone-release.apk` (v0.1.2, pre-tag working tree).
+Next release: rebuild, re-run the one-liner below, diff before tagging. If dex
+jumps, suspect R8/shrink config; if native jumps, suspect a dependency's .so.
+
+- APK total: 25,001,654 bytes (~23.8 MiB)
+- DEX (`classes*.dex`): 6,406,980
+- Native `.so`: 20,648,052 (dominant: TF Lite/LiteRT runtime + SQLCipher + QR)
+- `res/`: 434,971
+- `assets/`: 103,667
+
+Re-capture:
+  unzip -l <apk> | awk '{s=$1; n=$4;
+    if (n ~ /^classes.*dex$/) dex+=s;
+    else if (n ~ /\.so$/) so+=s;
+    else if (n ~ /^res\//) res+=s;
+    else if (n ~ /^assets\//) as+=s}
+    END {print "dex:",dex; print "native .so:",so; print "res/:",res; print "assets/:",as}'
