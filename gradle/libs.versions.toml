@@ -47,7 +47,7 @@ graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", versi
 
 # Activity & Core
 activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.9.3" }
-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.15.0" }
+core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.19.0" }
 
 # Lifecycle
 lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
