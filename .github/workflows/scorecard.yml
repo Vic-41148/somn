@@ -4,12 +4,15 @@
 # Runs weekly plus on main-branch pushes; results upload as SARIF code scanning.
 name: Scorecard
 
+# Scorecard only supports the default branch: pushes anywhere else fail with
+# "Only the default branch is supported", so this deliberately runs on main
+# (reached via release merges) plus the weekly schedule — never on dev.
 on:
   branch_protection_rule:
   schedule:
     - cron: "0 3 * * 1"
   push:
-    branches: [main, dev]
+    branches: [main]
 
 permissions: read-all
 
