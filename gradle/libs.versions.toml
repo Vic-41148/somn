@@ -70,9 +70,9 @@ sqlcipher = { group = "net.zetetic", name = "sqlcipher-android", version = "4.10
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.2.0" }
-hilt-work = { group = "androidx.hilt", name = "hilt-work", version = "1.2.0" }
-hilt-ext-compiler = { group = "androidx.hilt", name = "hilt-compiler", version = "1.2.0" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version = "1.4.0" }
+hilt-work = { group = "androidx.hilt", name = "hilt-work", version = "1.4.0" }
+hilt-ext-compiler = { group = "androidx.hilt", name = "hilt-compiler", version = "1.4.0" }
 
 # DataStore
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
