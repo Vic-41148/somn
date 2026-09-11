@@ -119,7 +119,7 @@ junit = { group = "junit", name = "junit", version = "4.13.2" }
 compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidx-test-core" }
-androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.6.2" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version = "1.7.0" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version = "1.3.0" }
 truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines-test" }
