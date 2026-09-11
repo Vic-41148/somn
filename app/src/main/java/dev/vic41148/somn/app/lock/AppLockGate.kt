@@ -34,6 +34,11 @@ import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
  * rotation, not process death), so background tracking, alarms, and workers are never
  * gated, only what is on screen. If the OS cannot authenticate (no screen lock
  * enrolled), the gate opens rather than bricking the app.
+ *
+ * Accepted-risk note (CodeQL insecure-local-authentication): DEVICE_CREDENTIAL is
+ * deliberate — the copy promises "biometrics or your device PIN", and the threat
+ * model is casual snooping, not a rooted device (against which no UI gate helps;
+ * the database itself is SQLCipher-encrypted at rest regardless).
  */
 @Composable
 fun AppLockGate(

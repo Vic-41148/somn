@@ -11,11 +11,18 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege: every job below declares exactly what it needs. The default
+# GITHUB_TOKEN would otherwise be permissive everywhere.
+permissions: {}
+
 jobs:
   build:
     name: Build, test & lint
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read # checkout
+      actions: write # upload test/lint report artifacts
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -163,6 +170,8 @@ jobs:
     name: Privacy guardrails
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -253,6 +262,8 @@ jobs:
     name: Changelog kept in sync
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -279,6 +290,8 @@ jobs:
     name: Secrets scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -299,6 +312,8 @@ jobs:
     name: Style guardrails
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
 
     steps:
       # CONTRIBUTING.md's "no emoji in source or user-facing text" is a promise to users exactly

@@ -13,20 +13,23 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write # softprops/action-gh-release needs this to create the release + upload assets
-  id-token: write # cosign keyless signing needs an OIDC identity, no long-lived key
-  attestations: write # attest-build-provenance fails without this ("Resource not accessible")
-
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
+
+# Least privilege, declared on the job (not the workflow) so the scope visibly
+# travels with the only job that holds it.
+permissions: {}
 
 jobs:
   release:
     name: Build, sign & publish
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write # creating the release + uploading assets
+      id-token: write # cosign keyless signing, no long-lived key
+      attestations: write # attest-build-provenance ("Resource not accessible" without it)
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

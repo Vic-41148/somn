@@ -52,6 +52,10 @@ class AlarmReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+            // Explicit component (AlarmReceiver::class.java) + FLAG_IMMUTABLE: no
+            // third party can intercept or mutate this. (CodeQL implicit-pendingintents
+            // flags the setAlarmClock showIntent position; it is the same explicit
+            // intent, dismissed as false positive with this note.)
             alarmManager.setAlarmClock(
                 AlarmManager.AlarmClockInfo(timeInMillis, pendingIntent),
                 pendingIntent

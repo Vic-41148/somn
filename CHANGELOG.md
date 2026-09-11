@@ -7,6 +7,8 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Somn v0.1.3 — brand refresh, crash export, pipeline hardening
 
+- **Code-scanning triage.** Least-privilege tokens on all workflows, AppLockGate accepted-risk note, AlarmReceiver explicit-intent note; false-positive/accepted alerts dismissed with reasons. Scorecard meta-alerts clear on its next run.
+
 - **STE-copy fallout fixed.** The copy pass capitalized two cycle-coaching notes; the case-sensitive test assertions still expected lowercase. Tests now match the shipped copy.
 
 - **CI fixes.** JDK pin moved out of the repo `gradle.properties` into per-machine `~/.gradle` (the repo pin broke every GitHub-managed workflow), release attestations got their missing permission, Gitleaks got its token, and SDK-37-only deps are ignored by Dependabot until the bump. Scorecard runs on `main` only (it refuses other branches).
