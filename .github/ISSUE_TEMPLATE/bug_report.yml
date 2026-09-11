@@ -64,6 +64,19 @@ body:
       required: false
 
   - type: textarea
+    id: crash-log
+    attributes:
+      label: Crash log (only if the app actually crashed)
+      description: |
+        Somn keeps the last few crash reports on this device only — nothing is sent
+        anywhere automatically. If the app crashed: Settings -> About -> Copy latest
+        crash report, then paste it here. Skip this for anything that isn't a crash.
+      placeholder: "Paste the crash report here, or delete this section"
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
     id: logs
     attributes:
       label: Logs, screenshots, or screen recordings (optional)

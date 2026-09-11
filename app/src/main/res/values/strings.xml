@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Somn</string>
+    <!-- Morning briefing widget defaults (RemoteViews placeholders before data loads). -->
+    <string name="widget_score_placeholder">--</string>
+    <string name="widget_no_data">No sleep data yet</string>
 </resources>

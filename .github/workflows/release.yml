@@ -28,10 +28,10 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '17'
@@ -104,13 +104,25 @@ jobs:
       # tied to this workflow's identity, logged publicly to Rekor. No key to generate,
       # store, or lose — verify with the command in the README.
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
       - name: Sign checksums with Sigstore
         shell: bash
         run: |
           cd app/build/outputs/apk/standalone/release
           cosign sign-blob --bundle SHA256SUMS.txt.cosign.bundle --yes SHA256SUMS.txt
+
+      # GitHub artifact attestation alongside cosign, deliberately both: cosign
+      # verifies with `cosign verify` against Rekor, attestation verifies with
+      # `gh attestation verify` against the repo+commit that built it. Different
+      # trust UX for different consumers; neither needs a managed key. Needs the
+      # id-token:write already granted above.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            app/build/outputs/apk/standalone/release/app-release-signed.apk
+            app/build/outputs/apk/standalone/release/somn-bom.json
 
       # The GitHub Release title and body come from CHANGELOG.md (tracked, one
       # section per release) instead of a hardcoded notes file: the section whose
@@ -143,7 +155,7 @@ jobs:
           cat "$RUNNER_TEMP/release-body.md"
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           name: ${{ steps.notes.outputs.title }}
           body_path: ${{ runner.temp }}/release-body.md
