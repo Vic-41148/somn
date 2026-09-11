@@ -7,6 +7,8 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Somn v0.1.3 — brand refresh, crash export, pipeline hardening
 
+- **STE-copy fallout fixed.** The copy pass capitalized two cycle-coaching notes; the case-sensitive test assertions still expected lowercase. Tests now match the shipped copy.
+
 - **CI fixes.** JDK pin moved out of the repo `gradle.properties` into per-machine `~/.gradle` (the repo pin broke every GitHub-managed workflow), release attestations got their missing permission, Gitleaks got its token, and SDK-37-only deps are ignored by Dependabot until the bump. Scorecard runs on `main` only (it refuses other branches).
 
 - **Batch 4: a11y, Maestro, MobSF, lint-zero.** Static a11y audit clean (all IconButtons labeled, dock carries Role.Tab semantics); alarm repeat days and pill selectors now expose full 48dp touch targets. Three Maestro smoke flows green on-device (`maestro/flows/`: tabs, alarm-create, settings-export). Full MobSF static scan triaged: score 51, one HIGH (CBC in third-party defpackage code — ours is AES/GCM throughout), exported-component warnings all required-by-platform, zero trackers, zero shipped CVEs. Release lint has zero findings left (dead resources/strings removed, stale-DB and phones-only findings suppressed with reasons, duplicate org.json alias merged).
