@@ -3,12 +3,15 @@ package dev.vic41148.somn.feature.settings.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +30,25 @@ import dev.vic41148.somn.core.data.diagnostics.CrashLogStore
 @Composable
 fun CrashLogRow(context: Context) {
     var status by remember { mutableStateOf<String?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) {
+            val log = CrashLogStore.readLatest(context)
+            if (log == null) {
+                status = "No crash reports stored."
+            } else {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(log.toByteArray())
+                    } ?: throw IllegalStateException("Cannot open file")
+                    status = "Latest crash report exported."
+                }.onFailure {
+                    status = "Export failed: ${it.message}"
+                }
+            }
+        }
+    }
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Crash log",
@@ -39,18 +61,34 @@ fun CrashLogRow(context: Context) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = {
-            val log = CrashLogStore.readLatest(context)
-            if (log == null) {
-                status = "No crash reports stored."
-            } else {
-                val clipboard =
-                    context.getSystemService(ClipboardManager::class.java)
-                clipboard?.setPrimaryClip(ClipData.newPlainText("Somn crash log", log))
-                status = "Latest crash report copied."
-            }
-        }) {
+        Button(
+            onClick = {
+                val log = CrashLogStore.readLatest(context)
+                if (log == null) {
+                    status = "No crash reports stored."
+                } else {
+                    val clipboard =
+                        context.getSystemService(ClipboardManager::class.java)
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("Somn crash log", log))
+                    status = "Latest crash report copied."
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("Copy latest crash report")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                if (CrashLogStore.latest(context) == null) {
+                    status = "No crash reports stored."
+                } else {
+                    exportLauncher.launch("somn-crash-report.txt")
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Export latest crash report")
         }
         status?.let {
             Spacer(modifier = Modifier.height(4.dp))

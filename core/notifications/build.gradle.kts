@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "dev.vic41148.somn.core.notifications"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -36,6 +36,7 @@ android {
 dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:data"))
+    implementation(project(":core:ui"))
     
     implementation(libs.core.ktx)
     implementation(libs.work.runtime)

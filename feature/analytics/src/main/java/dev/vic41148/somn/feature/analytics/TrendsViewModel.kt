@@ -112,14 +112,16 @@ class TrendsViewModel @Inject constructor(
         filtered.sortedBy { it.startTimeMillis }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /** Headline numbers for the selected metric + range. A null value means fewer than 2 sessions. */
+    /** Headline numbers for the selected metric + range. Change is latest vs the
+     * period average (the card reads "Now against the average"), null when fewer
+     * than 2 sessions. */
     val trendStats: StateFlow<TrendStats?> = combine(rangedSessions, _selectedMetric) { list, metric ->
         if (list.size < 2) return@combine null
         val values = list.map { valueFor(it, metric) }
         val current = values.last()
         val avg = values.average().toFloat()
         val best = values.max()
-        val delta = current - values.first()
+        val delta = current - avg
         TrendStats(
             current = formatTrendValue(current, metric),
             average = formatTrendValue(avg, metric),

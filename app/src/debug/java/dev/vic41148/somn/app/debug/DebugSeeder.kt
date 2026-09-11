@@ -41,8 +41,9 @@ object DebugSeeder {
         // Weekend / commute tag for a bit of cross-referencing colour.
         val weekendTag = tagRepo.createTag("Weekend", "Lifestyle", 0xFF6200EE, "weekend")
 
-        // One night per morning for the last 7 days (day 0 = today's wake-up, newest first).
-        for (dayAgo in 6 downTo 0) {
+        // One night per morning for the last 30 days (day 0 = today's wake-up,
+        // newest first), scores riding a slow wave so ranges and trends read.
+        for (dayAgo in 29 downTo 0) {
             val wakeDate = today.minusDays(dayAgo.toLong())
             val hour = 7 - (dayAgo % 3)          // later/earlier variation across the week
             val start = wakeDate.minusDays(1).atTime(22 + rnd.nextInt(2), rnd.nextInt(50))
@@ -61,9 +62,11 @@ object DebugSeeder {
             val lightPct = (100f - deepPct - remPct).coerceIn(40f, 65f)
             val efficiency = (sleepDuration.toFloat() / timeInBedMinutes * 100f)
 
-            // Score reflects a good-but-varied week (GREAT/GOOD, occasionally FAIR).
+            // Score reflects a varied month: slow wave plus noise, one dip.
             val durationScore = ((sleepDuration - 300) / 2f).coerceIn(40f, 100f).toInt()
-            val score = (70 + rnd.nextInt(20) - (if (dayAgo == 3) 15 else 0)).coerceIn(52, 92)
+            val wave = (8 * kotlin.math.sin(dayAgo / 4.0)).toInt()
+            val score = (72 + wave + rnd.nextInt(13) - 6 - (if (dayAgo == 10) 12 else 0))
+                .coerceIn(50, 94)
 
             val session = SleepSession(
                 startTimeMillis = startMillis,
@@ -94,11 +97,13 @@ object DebugSeeder {
             sleepRepo.insertEpochs(epochsFor(sessionId, startMillis, sleepDuration, deepPct, remPct, rnd))
             sleepRepo.upsertExternalVitals(vitalsFor(sessionId, rnd))
 
-            // A few audio events on some nights, tag the weekend sessions.
+            // Audio events on odd nights, playable clips only for the recent
+            // week, older nights keep bare events the way retention leaves them.
             if (dayAgo % 2 == 1) {
-                audioEventOf(sleepRepo, clipStore, filesDir, sessionId, startMillis, sleepDuration, AudioEventType.SNORE, rnd)
+                val writeClips = dayAgo < 7
+                audioEventOf(sleepRepo, clipStore, filesDir, sessionId, startMillis, sleepDuration, AudioEventType.SNORE, rnd, writeClips)
                 if (rnd.nextBoolean()) {
-                    audioEventOf(sleepRepo, clipStore, filesDir, sessionId, startMillis, sleepDuration, AudioEventType.TALK, rnd)
+                    audioEventOf(sleepRepo, clipStore, filesDir, sessionId, startMillis, sleepDuration, AudioEventType.TALK, rnd, writeClips)
                 }
             }
             if (wakeDate.dayOfWeek.value >= 6) {
@@ -186,7 +191,8 @@ object DebugSeeder {
         startMillis: Long,
         sleepDuration: Int,
         type: AudioEventType,
-        rnd: Random
+        rnd: Random,
+        writeClips: Boolean
     ) {
         var ts = startMillis + rnd.nextInt(sleepDuration) * 60_000L
         val dirName = when (type) {
@@ -201,11 +207,13 @@ object DebugSeeder {
             // Real playable clip through the production path (sealed .enc on
             // disk, decrypted at play time): loud synthesized stand-ins, one
             // voice per event type, so playback is verifiable by ear.
-            val wavFile = clipStore.writeClip(
-                dir,
-                "${type.name.lowercase()}_${sessionId}_${ts}.wav",
-                encodeWav(synthClip(type, durationSeconds, rnd))
-            )
+            val clipPath = if (writeClips) {
+                clipStore.writeClip(
+                    dir,
+                    "${type.name.lowercase()}_${sessionId}_${ts}.wav",
+                    encodeWav(synthClip(type, durationSeconds, rnd))
+                ).absolutePath
+            } else null
             sleepRepo.insertAudioEvent(
                 AudioEvent(
                     sessionId = sessionId,
@@ -213,7 +221,7 @@ object DebugSeeder {
                     durationSeconds = durationSeconds,
                     type = type,
                     intensityDecibels = 40 + rnd.nextInt(25),
-                    clipPath = wavFile.absolutePath
+                    clipPath = clipPath
                 )
             )
             ts += 60_000L * (25 + rnd.nextInt(45))

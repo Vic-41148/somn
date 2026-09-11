@@ -5,14 +5,19 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -169,14 +174,12 @@ fun AlarmEditScreen(
                 modifier = Modifier.align(Alignment.Start)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            // FlowRow, not a squeezed SpaceEvenly row, seven chips at minimum touch width
-            // overflow a 360dp screen once padding and font scale are accounted for.
-            @OptIn(ExperimentalLayoutApi::class)
-            FlowRow(
+            // Single-row round day toggles in the pill language: selected days ride
+            // primary/onPrimary, the rest sit on surfaceContainerHigh. One Row, equal
+            // weights, so all seven always fit instead of wrapping 5+2 like the old chips.
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                maxItemsInEachRow = 7
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val days = listOf(
                     java.util.Calendar.MONDAY to "M",
@@ -189,17 +192,45 @@ fun AlarmEditScreen(
                 )
                 days.forEach { (calendarDay, initial) ->
                     val isSelected = repeatDays.contains(calendarDay)
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            repeatDays = if (isSelected) {
-                                repeatDays - calendarDay
-                            } else {
-                                repeatDays + calendarDay
-                            }
-                        },
-                        label = { Text(initial) }
+                    val container by animateColorAsState(
+                        targetValue = if (isSelected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                        label = "dayToggle"
                     )
+                    val content by animateColorAsState(
+                        targetValue = if (isSelected)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "dayToggleContent"
+                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .clip(CircleShape)
+                            .background(container)
+                            .clickable(
+                                onClickLabel = if (isSelected) "Remove $initial" else "Repeat on $initial",
+                                role = androidx.compose.ui.semantics.Role.Checkbox
+                            ) {
+                                repeatDays = if (isSelected) {
+                                    repeatDays - calendarDay
+                                } else {
+                                    repeatDays + calendarDay
+                                }
+                            }
+                    ) {
+                        Text(
+                            text = initial,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = content
+                        )
+                    }
                 }
             }
 

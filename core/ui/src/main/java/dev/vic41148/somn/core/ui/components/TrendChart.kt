@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -34,8 +36,12 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.log10
 import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /** One data point in a [TrendLineChart] series, X is a wall-clock timestamp, not an index. */
 data class TrendPoint(val timestampMillis: Long, val value: Float)
@@ -79,7 +85,14 @@ fun TrendLineChart(
      * toggle, the chart is then the only representation, which is only acceptable when
      * the caller already shows the same numbers as text nearby.
      */
-    tableEntries: List<Pair<String, String>> = emptyList()
+    tableEntries: List<Pair<String, String>> = emptyList(),
+    /** Dashed horizontal line at this plot value (e.g. the period average). */
+    averageLine: Float? = null,
+    /**
+     * Formats the vs-previous-night delta shown beside each table row (after
+     * the first). Null hides the delta column.
+     */
+    tableDeltaLabel: ((Float) -> String)? = null
 ) {
     val allPoints = series.flatten()
     if (allPoints.isEmpty()) return
@@ -89,7 +102,11 @@ fun TrendLineChart(
     if (showTable && tableEntries.isNotEmpty()) {
         Column(modifier = modifier.fillMaxWidth()) {
             TableToggleRow(showTable = true, onToggle = { showTable = false })
-            tableEntries.forEach { (date, value) ->
+            // Deltas run against the time-sorted series, same order as the rows.
+            val orderedValues = remember(series) {
+                series.flatten().sortedBy { it.timestampMillis }.map { it.value }
+            }
+            tableEntries.forEachIndexed { index, (date, value) ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -99,6 +116,16 @@ fun TrendLineChart(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
+                    if (tableDeltaLabel != null && index > 0 && index < orderedValues.size) {
+                        val delta = orderedValues[index] - orderedValues[index - 1]
+                        Text(
+                            text = tableDeltaLabel(delta),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (delta >= 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
+                    }
                     Text(
                         text = value,
                         style = MaterialTheme.typography.bodyMedium,
@@ -118,6 +145,22 @@ fun TrendLineChart(
     val span = (maxVal - minVal).coerceAtLeast(1f)
     val minY = if (minVal >= 0f) max(0f, minVal - span * 0.15f) else minVal - span * 0.15f
     val maxY = maxVal + span * 0.15f
+
+    // Nice-number the axis so gridlines land on round values (90/80/70, not
+    // 90/81/71): snap the padded range out to 1/2/5/10 steps.
+    val rawStep = ((maxY - minY) / 3f).coerceAtLeast(0.0001f)
+    val magnitude = 10.0.pow(floor(log10(rawStep.toDouble()))).toFloat()
+    val norm = rawStep / magnitude
+    val step = when {
+        norm < 1.5f -> 1f
+        norm < 3.5f -> 2f
+        norm < 7.5f -> 5f
+        else -> 10f
+    } * magnitude
+    val niceMin = floor((minY / step).toDouble()).toFloat() * step
+    val niceMax = ceil((maxY / step).toDouble()).toFloat() * step
+    val lineCount = ((niceMax - niceMin) / step).roundToInt().coerceIn(1, 12)
+    val gridValues = List(lineCount + 1) { niceMin + it * step }
 
     // DATA-03: entrance animation, the chart used to draw fully formed in a single Canvas pass
     // with no motion at all. Bands (context) reach full opacity quickly, the line then draws in
@@ -157,7 +200,7 @@ fun TrendLineChart(
         val plotWidth = (size.width - yGutter).coerceAtLeast(1f)
         val plotHeight = (size.height - xGutter).coerceAtLeast(1f)
         val xSpan = (maxX - minX).coerceAtLeast(1L).toFloat()
-        val ySpan = (maxY - minY).coerceAtLeast(0.0001f)
+        val ySpan = (niceMax - niceMin).coerceAtLeast(0.0001f)
         val animatedProgress = progress.value
         // Bands fade in over the first third of the animation, ahead of the line, since they're
         // background context rather than the focal point.
@@ -169,12 +212,11 @@ fun TrendLineChart(
         }
 
         fun yFor(value: Float): Float =
-            plotHeight - ((value - minY) / ySpan) * plotHeight
+            plotHeight - ((value - niceMin) / ySpan) * plotHeight
 
-        // Horizontal gridlines + Y labels at min/mid/max so the line's scale reads at a glance.
-        // Previously the chart drew a bare line with no scale at all, a 47-to-36 drop looked
-        // identical to a 90-to-85 one.
-        val gridValues = listOf(minY, (minY + maxY) / 2f, maxY)
+        // Horizontal gridlines + Y labels on round steps so the line's scale
+        // reads at a glance. Previously min/mid/max of the padded range drew
+        // values like 90/81/71.
         for (gridValue in gridValues) {
             val y = yFor(gridValue)
             drawLine(
@@ -187,6 +229,26 @@ fun TrendLineChart(
             drawText(
                 textLayoutResult = measured,
                 topLeft = Offset(x = 0f, y = (y - measured.size.height / 2f).coerceIn(0f, plotHeight))
+            )
+        }
+
+        // Dashed period-average line tying the chart to the stats card above.
+        averageLine?.let { avg ->
+            val y = yFor(avg.coerceIn(niceMin, niceMax))
+            drawLine(
+                color = axisColor.copy(alpha = 0.7f),
+                start = Offset(x = yGutter, y = y),
+                end = Offset(x = size.width, y = y),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx()))
+            )
+            val tag = textMeasurer.measure(text = "avg", style = labelStyle)
+            drawText(
+                textLayoutResult = tag,
+                topLeft = Offset(
+                    x = (size.width - tag.size.width).coerceAtLeast(yGutter),
+                    y = (y - tag.size.height - 2.dp.toPx()).coerceAtLeast(0f)
+                )
             )
         }
 

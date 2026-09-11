@@ -56,6 +56,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
@@ -97,6 +99,7 @@ fun HistoryScreen(
     val summary by viewModel.summary.collectAsState()
     val rangeDays by viewModel.rangeDays.collectAsState()
     var selectedTypeFilter by remember { mutableStateOf<SessionType?>(null) }
+    var historyExpanded by remember { mutableStateOf(true) }
     val sessions = remember(rangedSessions, selectedTypeFilter) {
         if (selectedTypeFilter == null) rangedSessions
         else rangedSessions.filter { it.sessionType == selectedTypeFilter }
@@ -270,20 +273,51 @@ fun HistoryScreen(
                         }
                     }
                 }
-                items(sessions, key = { it.id }) { session ->
-                    val isSelected = selectedIds.contains(session.id)
-                    SessionRow(
-                        session = session,
-                        isSelected = isSelected,
-                        onLongClick = { viewModel.toggleSelection(session.id) },
-                        onClick = {
-                            if (selectedIds.isNotEmpty()) {
-                                viewModel.toggleSelection(session.id)
-                            } else {
-                                onSessionClick(session.id)
+                item {
+                    // The night list collapses like every other section, it just
+                    // rests open since it is the tab's primary content.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CircleShape)
+                            .clickable(
+                                onClickLabel = if (historyExpanded) "Collapse sessions" else "Expand sessions",
+                                role = Role.Tab
+                            ) { historyExpanded = !historyExpanded }
+                            .padding(horizontal = 4.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Sessions (${sessions.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = if (historyExpanded) Icons.Default.ExpandLess
+                            else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (historyExpanded) {
+                    items(sessions, key = { it.id }) { session ->
+                        val isSelected = selectedIds.contains(session.id)
+                        SessionRow(
+                            session = session,
+                            isSelected = isSelected,
+                            onLongClick = { viewModel.toggleSelection(session.id) },
+                            onClick = {
+                                if (selectedIds.isNotEmpty()) {
+                                    viewModel.toggleSelection(session.id)
+                                } else {
+                                    onSessionClick(session.id)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
                 item {
                     androidx.compose.material3.Button(
@@ -342,117 +376,12 @@ private fun ReportRangeRow(
 ) {
     val options = listOf(7 to "Week", 30 to "Month", 90 to "3 mo", null to "All")
     val selectedIndex = options.indexOfFirst { it.first == selectedDays }.coerceAtLeast(0)
-    // One big pill with a sliding thumb, same motion language as the dock bubble:
-    // spatial glide on a non-bouncy spring, so the thumb never overshoots past rest.
-    // Taps select directly, horizontal drags slide the thumb under the finger and
-    // snap to the nearest segment on release.
-    val density = LocalDensity.current
-    // NaN = not dragging, a pixel offset into the content while a drag is live.
-    var dragOffsetPx by remember { mutableFloatStateOf(Float.NaN) }
-    // Row height in px: the overlay thumb copies it explicitly, fillMaxHeight
-    // collapses to zero inside this unbounded-height list item.
-    var rowHeightPx by remember { mutableIntStateOf(0) }
-    BoxWithConstraints(
+    dev.vic41148.somn.core.ui.components.SlidingPillSelector(
+        options = options.map { it.second },
+        selectedIndex = selectedIndex,
+        onSelect = { onSelect(options[it].first) },
         modifier = modifier
-            .fillMaxWidth()
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(4.dp)
-    ) {
-        // Segments split the padded content width: maxWidth still spans the 4.dp
-        // padding on both sides, so dividing it raw made the thumb a touch too
-        // wide per segment and drift right, clipping flat against the pill edge
-        // on the last option.
-        val segmentWidth = (maxWidth - 8.dp) / options.size
-        val segmentWidthPx = with(density) { segmentWidth.toPx() }
-        val thumbX by animateDpAsState(
-            targetValue = segmentWidth * selectedIndex,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMedium
-            ),
-            label = "rangeThumbX"
-        )
-        // Finger owns the thumb mid-drag, the spring owns it otherwise. Labels
-        // preview the nearest segment under the finger and commit on release.
-        val thumbOffset = if (dragOffsetPx.isNaN()) thumbX
-        else with(density) { dragOffsetPx.toDp() }
-        val previewIndex = if (dragOffsetPx.isNaN()) null
-        else (dragOffsetPx / segmentWidthPx).roundToInt().coerceIn(0, options.size - 1)
-        val effectiveIndex = previewIndex ?: selectedIndex
-        // Drag lives on the content box (segment pixels are known here), taps
-        // still land on the per-segment click targets below.
-        Box(
-            modifier = Modifier.pointerInput(segmentWidthPx) {
-                detectHorizontalDragGestures(
-                    onDragStart = { dragOffsetPx = segmentWidthPx * selectedIndex },
-                    onHorizontalDrag = { _, dragAmount ->
-                        dragOffsetPx = (dragOffsetPx + dragAmount)
-                            .coerceIn(0f, segmentWidthPx * (options.size - 1))
-                    },
-                    onDragEnd = {
-                        val index = (dragOffsetPx / segmentWidthPx).roundToInt()
-                            .coerceIn(0, options.size - 1)
-                        dragOffsetPx = Float.NaN
-                        onSelect(options[index].first)
-                    },
-                    onDragCancel = { dragOffsetPx = Float.NaN }
-                )
-            }
-        ) {
-            // True segment-wide thumb: matchParentSize() sizes to the whole row
-            // (Box forces it), so offset() merely slid a full-width slab whose
-            // visible slice depended on the selection, correct-looking only on
-            // the last option and flooding the bar everywhere else.
-            Box(
-                modifier = Modifier
-                    .width(segmentWidth)
-                    .height(with(density) { rowHeightPx.toDp() })
-                    .offset(x = thumbOffset)
-                    .clip(CircleShape)
-                    // Selected-pill language matches the dock bubble and the filled
-                    // buttons below (primary/onPrimary): primaryContainer sits too
-                    // close to the track in dark dynamic themes and reads muddy.
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onSizeChanged { rowHeightPx = it.height }
-            ) {
-                options.forEachIndexed { index, (days, label) ->
-                    val selected = index == effectiveIndex
-                    // Crossfade with the thumb glide instead of snapping, so the
-                    // label never sits bright-on-grey (or grey-on-bright) mid-slide.
-                    val labelColor by animateColorAsState(
-                        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        animationSpec = tween(180),
-                        label = "rangeLabelColor"
-                    )
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(CircleShape)
-                            .clickable(
-                                onClickLabel = "Show $label",
-                                role = Role.Tab
-                            ) { onSelect(days) }
-                            .semantics { this.selected = selected }
-                            .padding(vertical = 10.dp)
-                    ) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                            color = labelColor
-                        )
-                    }
-                }
-            }
-        }
-    }
+    )
 }
 
 /** Header "report": average rings plus streak/best/total so the screen answers the question. */

@@ -167,5 +167,8 @@ dependencies {
     // Opt-in app lock: biometric or device credential at cold start.
     implementation(libs.biometric)
 
+    // LeakCanary: memory-leak detection, debug builds only. Auto-installs, nothing ships in release.
+    debugImplementation(libs.leakcanary)
+
     testImplementation(libs.junit)
 }

@@ -444,9 +444,9 @@ class AlarmService : Service() {
 
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("⏰ Alarm")
+            .setContentTitle("Alarm")
             .setContentText("Time to wake!")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setSmallIcon(dev.vic41148.somn.core.ui.R.drawable.ic_somn_notification)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)

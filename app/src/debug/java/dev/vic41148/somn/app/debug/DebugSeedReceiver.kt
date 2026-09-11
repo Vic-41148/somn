@@ -26,7 +26,9 @@ class DebugSeedReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_SEED) return
-        goAsync()
+        // goAsync keeps the broadcast alive past onReceive's return; without the matching
+        // finish() the sender (am broadcast) hangs until ANR/timeout. Finish once seeding lands.
+        val pending = goAsync()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         scope.launch {
             try {
@@ -44,6 +46,8 @@ class DebugSeedReceiver : BroadcastReceiver() {
                 Log.i(TAG, "Seeded a week of debug data")
             } catch (t: Throwable) {
                 Log.e(TAG, "Seed failed", t)
+            } finally {
+                pending.finish()
             }
         }
     }

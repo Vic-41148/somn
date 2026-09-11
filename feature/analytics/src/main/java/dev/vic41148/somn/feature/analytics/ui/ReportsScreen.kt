@@ -40,6 +40,7 @@ import dev.vic41148.somn.core.domain.usecase.toReportPdfModel
 import dev.vic41148.somn.core.ui.components.MetricChip
 import dev.vic41148.somn.core.ui.components.PillRow
 import dev.vic41148.somn.core.ui.components.SleepCard
+import dev.vic41148.somn.core.ui.components.SlidingPillSelector
 import dev.vic41148.somn.feature.analytics.AnalyticsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -87,24 +88,11 @@ fun ReportsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            PillRow {
-                ReportWindow.entries.forEach { w ->
-                    FilterChip(
-                        selected = window == w,
-                        onClick = { window = w },
-                        label = {
-                            Text(
-                                when (w) {
-                                    ReportWindow.WEEK -> "Week"
-                                    ReportWindow.MONTH -> "Month"
-                                    ReportWindow.YEAR -> "Year"
-                                }
-                            )
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
+            SlidingPillSelector(
+                options = listOf("Week", "Month", "Year"),
+                selectedIndex = ReportWindow.entries.indexOf(window).coerceAtLeast(0),
+                onSelect = { window = ReportWindow.entries[it] }
+            )
 
             val summary = report.summary
             if (summary == null) {

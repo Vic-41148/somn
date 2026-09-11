@@ -1,9 +1,8 @@
 package dev.vic41148.somn.feature.tracking.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -15,15 +14,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -235,24 +236,32 @@ fun MorningReviewScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Mood rating, FlowRow so five labels ("Exhausted"…) wrap instead of squeezing.
+        // Mood rating, one full-width radio row per mood so labels never wrap.
         SleepCard(title = "How do you feel?") {
-            @OptIn(ExperimentalLayoutApi::class)
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 val moods = listOf("Exhausted" to 1, "Tired" to 2, "Okay" to 3, "Good" to 4, "Great" to 5)
                 moods.forEach { (label, value) ->
-                    FilterChip(
-                        selected = selectedMood == value,
-                        onClick = {
-                            selectedMood = value
-                            viewModel.updateMood(session.id, value)
-                        },
-                        label = { Text(label, style = MaterialTheme.typography.labelMedium) }
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                selectedMood = value
+                                viewModel.updateMood(session.id, value)
+                            }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedMood == value,
+                            onClick = {
+                                selectedMood = value
+                                viewModel.updateMood(session.id, value)
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
             }
         }
