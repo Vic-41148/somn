@@ -84,7 +84,7 @@ work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
 # Health Connect
-health-connect = { group = "androidx.health.connect", name = "connect-client", version = "1.1.0-alpha10" }
+health-connect = { group = "androidx.health.connect", name = "connect-client", version = "1.2.0-alpha06" }
 
 # CameraX
 camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
