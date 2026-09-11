@@ -15,3 +15,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          # Runtime scope only: the submitted snapshot includes build-time plugin
+          # internals (Bouncy Castle, Netty via the SBOM/cosign plugin chain) with
+          # known advisories that never ship. Gating on those fails every PR for
+          # nothing — shipped-code CVEs are covered by verify-shipped-cve.sh.
+          fail_on_scopes: runtime
