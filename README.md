@@ -98,7 +98,7 @@ feature/
 
 The easiest way to try Somn is the latest release:
 
-- **v0.1.3** — download `app-release-signed.apk` from the
+- **v0.1.3** — download `Somn-v0.1.3.apk` from the
   [releases page](https://github.com/Vic-41148/somn/releases) and open it on your device
   (Android 8.0 / API 26+). Allow "install unknown apps" when asked.
 

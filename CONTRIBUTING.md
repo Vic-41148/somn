@@ -152,7 +152,7 @@ Example scopes: `tracking`, `alarm`, `analytics`, `habits`, `settings`,
 ## Cutting a release
 
 Releases are driven by tags, not by hand. The `Release` workflow builds and signs
-`app-release-signed.apk` on every `v*` tag push and publishes the GitHub Release
+`Somn-<tag>.apk` on every `v*` tag push and publishes the GitHub Release
 automatically; the release title and body are read from `CHANGELOG.md` (the
 section whose header contains the tag name), so there is no separate notes file
 to maintain.
@@ -165,7 +165,7 @@ to maintain.
    store changelog under `fastlane/metadata/android/en-US/changelogs/`.
 3. Run the release preflight: `scripts/run-release-preflight.sh`.
 4. Push `dev`, then push the tag (`git push origin v0.1.2`). The workflow builds,
-   signs, attaches `app-release-signed.apk` + `SHA256SUMS.txt`, and fills the
+    signs, attaches `Somn-<tag>.apk` + `SHA256SUMS.txt`, and fills the
    release body from the matching `CHANGELOG.md` section. If no section matches
    the tag, the workflow fails instead of publishing an empty release.
 
