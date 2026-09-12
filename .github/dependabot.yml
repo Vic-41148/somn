@@ -10,6 +10,10 @@ updates:
     # These majors need compileSdk 37 (project is on 36): offered PRs fail AAR
     # metadata checks by design until the SDK bump. Revisit, don't delete.
     ignore:
+      - dependency-name: "agp"
+        versions: [">= 9.4.0"]
+      - dependency-name: "org.jetbrains.kotlin.plugin.compose"
+        versions: [">= 2.4.0"]
       - dependency-name: "androidx.hilt:hilt-navigation-compose"
         versions: [">= 1.4.0"]
       - dependency-name: "androidx.hilt:hilt-work"
