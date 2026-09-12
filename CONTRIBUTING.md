@@ -95,6 +95,28 @@ cd somn
 
 Open the project in Android Studio, sync Gradle, and run on your device.
 
+Two `channel` flavors ship: `standalone` (default — self-updater reads GitHub Releases)
+and `store` (F-Droid/Izzy — no updater code). The tasks above use the `standalone`
+channel. To target the store channel, replace `standalone` with `store` throughout
+(e.g. `assembleStoreDebug`, `testStoreDebugUnitTest`).
+
+### Seeding demo data (development)
+
+`scripts/seed-somn-demo.sh` installs the debug build on a connected device. It seeds
+**fabricated** state: a demo profile, 7 nights of sleep sessions with sleep epochs, audio
+events, habit logs, external vitals (HR/HRV/SpO2 as if written by a paired wearable via
+Health Connect), tags and a couple of smart alarms. The script writes the Room DB directly
+via `run-as`. **It uninstalls any existing Somn install on the device first.** It refuses to
+run in CI. It requires exactly one connected device:
+
+```bash
+bash scripts/seed-somn-demo.sh --yes                  # baseline MALE profile
+bash scripts/seed-somn-demo.sh --yes --profile cycling  # FEMALE + CYCLING (cycle UI)
+```
+
+Re-runs produce the same state every time. See
+`scripts/seed-somn-demo-checklist.md` for the full procedure and verification steps.
+
 ## Finding something to work on
 
 - Check the **open issues** — anything labeled `good first issue` is a great
