@@ -68,6 +68,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           # Runner images preinstall several build-tools; use the newest installed apksigner.
@@ -77,15 +78,16 @@ jobs:
           cd app/build/outputs/apk/standalone/release
           # No keystore.properties on CI, so AGP names the output app-standalone-release-unsigned.apk.
           UNSIGNED="$(ls app-standalone-release-unsigned.apk 2>/dev/null || ls app-standalone-release.apk)"
+          SIGNED="Somn-${TAG}.apk"
           "$APKSIGNER" sign \
             --ks "$RUNNER_TEMP/release.jks" \
             --ks-key-alias "$KEY_ALIAS" \
             --ks-pass "env:KEYSTORE_PASSWORD" \
             --key-pass "env:KEY_PASSWORD" \
             --v1-signing-enabled false \
-            --out app-release-signed.apk \
+            --out "$SIGNED" \
             "$UNSIGNED"
-          "$APKSIGNER" verify --print-certs app-release-signed.apk
+          "$APKSIGNER" verify --print-certs "$SIGNED"
           ls -la
 
       # CycloneDX SBOM of everything shipped in the APK (transitive deps included).
@@ -99,9 +101,11 @@ jobs:
       # printed to the run log and uploaded alongside the APK as SHA256SUMS.txt.
       - name: Compute checksums
         shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           cd app/build/outputs/apk/standalone/release
-          sha256sum app-release-signed.apk somn-bom.json > SHA256SUMS.txt
+          sha256sum "Somn-${TAG}.apk" somn-bom.json > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       # Keyless Sigstore signing of the checksums file: short-lived Fulcio certificate
@@ -125,7 +129,7 @@ jobs:
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
-            app/build/outputs/apk/standalone/release/app-release-signed.apk
+            app/build/outputs/apk/standalone/release/Somn-${{ github.ref_name }}.apk
             app/build/outputs/apk/standalone/release/somn-bom.json
 
       # The GitHub Release title and body come from CHANGELOG.md (tracked, one
@@ -164,7 +168,7 @@ jobs:
           name: ${{ steps.notes.outputs.title }}
           body_path: ${{ runner.temp }}/release-body.md
           files: |
-            app/build/outputs/apk/standalone/release/app-release-signed.apk
+            app/build/outputs/apk/standalone/release/Somn-${{ github.ref_name }}.apk
             app/build/outputs/apk/standalone/release/SHA256SUMS.txt
             app/build/outputs/apk/standalone/release/SHA256SUMS.txt.cosign.bundle
             app/build/outputs/apk/standalone/release/somn-bom.json
