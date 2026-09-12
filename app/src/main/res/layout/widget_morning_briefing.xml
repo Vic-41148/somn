@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="16dp"
     tools:ignore="Overdraw"
-    android:background="@android:color/background_dark">
+    android:background="@color/widget_background">
     <!-- tools:ignore above: RemoteViews get no activity theme, so the widget
         must paint its own background or be transparent. -->
 
@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:text="@string/app_name"
         android:textSize="14sp"
-        android:textColor="@android:color/white"
+        android:textColor="@color/widget_title"
         android:textStyle="bold" />
 
     <TextView
@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:text="@string/widget_score_placeholder"
         android:textSize="28sp"
-        android:textColor="@android:color/white"
+        android:textColor="@color/widget_score"
         android:textStyle="bold" />
 
     <TextView
@@ -35,6 +35,6 @@
         android:layout_height="wrap_content"
         android:text="@string/widget_no_data"
         android:textSize="12sp"
-        android:textColor="@android:color/darker_gray" />
+        android:textColor="@color/widget_insight" />
 
 </LinearLayout>

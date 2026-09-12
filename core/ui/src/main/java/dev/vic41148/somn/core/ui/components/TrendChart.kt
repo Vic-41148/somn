@@ -179,6 +179,7 @@ fun TrendLineChart(
 
     val textMeasurer = rememberTextMeasurer()
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val fallbackLineColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
     // Time-series Canvas drawing never inherits RTL mirroring, mirror the X mapping and
     // the edge captions explicitly. The Y gutter stays left, only the time axis flips.
@@ -301,7 +302,7 @@ fun TrendLineChart(
 
         sortedSeries.forEachIndexed { seriesIndex, sorted ->
             if (sorted.size < 2) return@forEachIndexed
-            val color = lineColors.getOrElse(seriesIndex) { Color.Gray }
+            val color = lineColors.getOrElse(seriesIndex) { fallbackLineColor }
             val segmentCount = sorted.size - 1
 
             // Position along the whole polyline, in "segments", e.g. 2.4 means segments 0 and 1

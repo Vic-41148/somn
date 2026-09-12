@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -20,6 +21,7 @@ import dev.vic41148.somn.app.navigation.SleepNavGraph
 import dev.vic41148.somn.core.data.repository.SomnPreferencesRepository
 import dev.vic41148.somn.core.data.repository.UserProfileRepository
 import dev.vic41148.somn.core.domain.haptic.HapticsManager
+import dev.vic41148.somn.core.domain.model.ThemeMode
 import dev.vic41148.somn.core.ui.battery.BatteryExemptionState
 import dev.vic41148.somn.core.ui.haptic.ProvideHaptics
 import dev.vic41148.somn.core.ui.theme.SomnTheme
@@ -56,7 +58,14 @@ class MainActivity : FragmentActivity() {
         setContent {
             val useDynamicColor by preferencesRepository.useDynamicColor
                 .collectAsState(initial = true)
-            SomnTheme(dynamicColor = useDynamicColor) {
+            val themeMode by preferencesRepository.themeMode
+                .collectAsState(initial = ThemeMode.SYSTEM)
+            val darkTheme = when (themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            SomnTheme(darkTheme = darkTheme, dynamicColor = useDynamicColor) {
                 val isOnboardingCompleted by profileRepository
                     .observeOnboardingCompleted()
                     .collectAsState(initial = null)

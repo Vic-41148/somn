@@ -106,6 +106,8 @@ class SomnPreferencesRepository @Inject constructor(
         val WAKE_VERIFICATION_WINDOW_SECONDS = intPreferencesKey("wake_verification_window_seconds")
         /** Material You dynamic color on Android 12+, on by default so the theme stays as it was. */
         val USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
+        /** Pinned color scheme override. Absent = SYSTEM, follows the OS dark mode. */
+        val THEME_MODE = stringPreferencesKey("theme_mode")
         /** R1: Morning Ready verdict + Today outlook cards on Home, on by default. */
         val SHOW_READINESS_CARD = booleanPreferencesKey("show_readiness_card")
         /** R2 Rest Mode start timestamp. Absent = off, sick nights on/after this leave baselines. */
@@ -280,6 +282,23 @@ class SomnPreferencesRepository @Inject constructor(
 
     suspend fun updateUseDynamicColor(enabled: Boolean) {
         context.dataStore.edit { it[PreferencesKeys.USE_DYNAMIC_COLOR] = enabled }
+    }
+
+    /** Pinned theme mode. Unknown stored values fall back to SYSTEM, never crash. */
+    val themeMode: Flow<dev.vic41148.somn.core.domain.model.ThemeMode> = context.dataStore.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map {
+            try {
+                dev.vic41148.somn.core.domain.model.ThemeMode.valueOf(
+                    it[PreferencesKeys.THEME_MODE] ?: "SYSTEM"
+                )
+            } catch (e: IllegalArgumentException) {
+                dev.vic41148.somn.core.domain.model.ThemeMode.SYSTEM
+            }
+        }
+
+    suspend fun updateThemeMode(mode: dev.vic41148.somn.core.domain.model.ThemeMode) {
+        context.dataStore.edit { it[PreferencesKeys.THEME_MODE] = mode.name }
     }
 
     /** R1: whether the Morning Ready verdict + Today outlook cards show on Home. */

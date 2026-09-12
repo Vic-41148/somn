@@ -67,6 +67,7 @@ import zxingcpp.BarcodeReader
 import dev.vic41148.somn.core.domain.haptic.HapticsIntensity
 import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.HemisphereOverride
+import dev.vic41148.somn.core.domain.model.ThemeMode
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.ui.haptic.LocalHaptics
 import dev.vic41148.somn.feature.settings.SettingsViewModel
@@ -661,6 +662,33 @@ fun SettingsScreen(
 
             // Appearance (THEME-01)
             if (showAppearance) SettingSection(title = "Appearance") {
+                    Text(
+                        text = "Theme",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    val themeOptions = ThemeMode.entries
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        themeOptions.forEachIndexed { index, mode ->
+                            SegmentedButton(
+                                selected = settings.themeMode == mode,
+                                onClick = {
+                                    haptics.tick()
+                                    viewModel.updateThemeMode(mode)
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = themeOptions.size
+                                ),
+                                label = { Text(mode.displayName) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     SettingToggle(
                         title = "Match My Wallpaper",
                         checked = settings.useDynamicColor,

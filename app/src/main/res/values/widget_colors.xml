@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Day variants so the home-screen widget follows the system theme.
+        RemoteViews get no activity theme, so these are qualified colors. -->
+    <color name="widget_background">#FFFFFFFF</color>
+    <color name="widget_title">#FF1A1C1E</color>
+    <color name="widget_score">#FF1A1C1E</color>
+    <color name="widget_insight">#FF5A5A5A</color>
+</resources>

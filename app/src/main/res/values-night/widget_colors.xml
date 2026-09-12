@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Night variants, same look as the previous fixed-dark widget. -->
+    <color name="widget_background">#FF000000</color>
+    <color name="widget_title">#FFFFFFFF</color>
+    <color name="widget_score">#FFFFFFFF</color>
+    <color name="widget_insight">#FFBEBEBE</color>
+</resources>

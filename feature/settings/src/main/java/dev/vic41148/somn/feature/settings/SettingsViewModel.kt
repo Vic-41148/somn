@@ -7,6 +7,7 @@ import dev.vic41148.somn.core.data.repository.HealthConnectRepository
 import dev.vic41148.somn.core.data.repository.SleepRepository
 import dev.vic41148.somn.core.domain.model.HealthConnectStatus
 import dev.vic41148.somn.core.domain.model.HemisphereOverride
+import dev.vic41148.somn.core.domain.model.ThemeMode
 import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
@@ -147,6 +148,9 @@ class SettingsViewModel @Inject constructor(
         collectInto(preferencesRepository.useDynamicColor) { state, enabled ->
             state.copy(useDynamicColor = enabled)
         }
+        collectInto(preferencesRepository.themeMode) { state, mode ->
+            state.copy(themeMode = mode)
+        }
         collectInto(preferencesRepository.showReadinessCard) { state, enabled ->
             state.copy(showReadinessCard = enabled)
         }
@@ -211,7 +215,8 @@ class SettingsViewModel @Inject constructor(
         /** Days sleep-talk recordings are kept. 0 means keep forever. */
         val clipRetentionDays: Int =
             dev.vic41148.somn.core.data.repository.SomnPreferencesRepository.DEFAULT_CLIP_RETENTION_DAYS,
-        val darkMode: String = "System",
+        /** Pinned color scheme. SYSTEM follows the OS, LIGHT/DARK pin it. */
+        val themeMode: ThemeMode = ThemeMode.SYSTEM,
         val trackingMode: TrackingMode = TrackingMode.ACCELEROMETER,
         /** One-time notice shown: the mic hears everyone in the room, not just the owner. */
         val bystanderNoticeShown: Boolean = false,
@@ -389,6 +394,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateUseDynamicColor(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.updateUseDynamicColor(enabled) }
+    }
+
+    fun updateThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { preferencesRepository.updateThemeMode(mode) }
     }
 
     fun updateShowReadinessCard(enabled: Boolean) {
