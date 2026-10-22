@@ -2,8 +2,9 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_morning_briefing_root"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
     tools:ignore="Overdraw"
@@ -22,6 +23,7 @@
             android:layout_height="14dp"
             android:src="@drawable/ic_somn_notification"
             android:tint="@color/widget_insight"
+            tools:ignore="UseAppTint"
             android:contentDescription="@string/app_name" />
 
         <TextView

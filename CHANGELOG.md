@@ -5,6 +5,10 @@ Release for every `v*` tag using the section of this file whose header contains
 the tag — keep section headers unique and tag-containing (for example
 `## Somn v0.1.2 — ...`).
 
+## Somn v0.1.4 — widget polish
+
+- **Morning Briefing widget opens Somn on tap.** The whole widget is clickable now, including the no-data and error states.
+
 ## Somn v0.1.3 — brand refresh, crash export, pipeline hardening
 
 - **Code-scanning triage.** Least-privilege tokens on all workflows, AppLockGate accepted-risk note, AlarmReceiver explicit-intent note; false-positive/accepted alerts dismissed with reasons. Scorecard meta-alerts clear on its next run.

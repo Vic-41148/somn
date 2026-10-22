@@ -163,7 +163,7 @@ cd somn
 
 The APK lands at `app/build/outputs/apk/standalone/debug/app-standalone-debug.apk`.
 Build flavors, the JDK-path override, tests, lint and demo-data seeding are all covered
-in [CONTRIBUTING.md](CONTRIBUTING.md). The full suite (# 310 unit tests) must stay green —
+in [CONTRIBUTING.md](CONTRIBUTING.md). The full suite (# 334 unit tests) must stay green —
 CI enforces the count quoted here and there.
 
 ---

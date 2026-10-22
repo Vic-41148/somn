@@ -3,6 +3,7 @@
     inflated on the home screen (initialLayout stays the live layout). -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -21,6 +22,7 @@
             android:layout_height="14dp"
             android:src="@drawable/ic_somn_notification"
             android:tint="@color/widget_insight"
+            tools:ignore="UseAppTint"
             android:contentDescription="@string/widget_daily_title" />
 
         <TextView

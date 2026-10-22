@@ -25,6 +25,7 @@
             android:layout_height="14dp"
             android:src="@drawable/ic_somn_notification"
             android:tint="@color/widget_insight"
+            tools:ignore="UseAppTint"
             android:contentDescription="@string/widget_weekly_title" />
 
         <TextView

@@ -1,13 +1,16 @@
 package dev.vic41148.somn.app.widget
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import android.content.Intent
 import android.widget.RemoteViews
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import dev.vic41148.somn.app.MainActivity
 import dev.vic41148.somn.app.R
 import dev.vic41148.somn.core.data.database.dao.SleepSessionDao
 import dev.vic41148.somn.core.domain.model.SleepSession
@@ -49,6 +52,14 @@ class MorningBriefingWidget : AppWidgetProvider() {
         appWidgetId: Int
     ) {
         widgetScope.launch {
+            val views = RemoteViews(context.packageName, R.layout.widget_morning_briefing)
+            val launch = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            val pending = PendingIntent.getActivity(context, appWidgetId, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            views.setOnClickPendingIntent(R.id.widget_morning_briefing_root, pending)
+
             try {
                 val entryPoint = EntryPointAccessors.fromApplication(
                     context.applicationContext,
@@ -62,8 +73,6 @@ class MorningBriefingWidget : AppWidgetProvider() {
                 // to sleep signals, which is all a 30-minute widget refresh needs.
                 val recentEntities = sleepSessionDao.getRecentMainSleepSessions(14)
                 val session = recentEntities.firstOrNull()
-
-                val views = RemoteViews(context.packageName, R.layout.widget_morning_briefing)
 
                 if (session != null && session.isCompleted) {
                     val score = session.sleepScore
@@ -91,7 +100,6 @@ class MorningBriefingWidget : AppWidgetProvider() {
                 appWidgetManager.updateAppWidget(appWidgetId, views)
             } catch (e: Exception) {
                 // Fallback if DB not available
-                val views = RemoteViews(context.packageName, R.layout.widget_morning_briefing)
                 views.setTextViewText(R.id.widget_score, "--")
                 views.setTextViewText(R.id.widget_insight, "Open Somn to start tracking")
                 appWidgetManager.updateAppWidget(appWidgetId, views)
