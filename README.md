@@ -50,7 +50,7 @@ Get the latest APK from the
 (Android 8.0 / API 26+). Allow "install unknown apps" when asked.
 
 > **Do not install v0.1.0.** It is deprecated and its release was removed. Tapping the
-> Sleep button (and in some cases Settings) can close the app on Android 14+. Use v0.1.3
+> Sleep button (and in some cases Settings) can close the app on Android 14+. Use v0.2.0
 > or newer instead.
 
 <details>
@@ -81,11 +81,13 @@ cosign verify-blob --bundle SHA256SUMS.txt.cosign.bundle \
 - **History & hypnogram** — session list, detailed breakdowns, retroactive creation and editing
 - **Morning review** — score ring plus stage breakdown after every night
 - **Habits, debt & rhythm** — caffeine/alcohol/exercise/stress correlations, running sleep debt with recovery guidance, chronotype and social-jet-lag analysis
+- **Consistency streaks** — grace nights and step-down, surfaced in a streak ledger
+- **Home widgets** — Morning Briefing, Last Night, Weekly, Sleep Debt, Alarm, and Weekly Rhythm, plus a one-tap tracking widget
 
 **Wake up & wind down**
 
 - **Smart alarm** — gradual volume increase inside a configurable wake window
-- **Wind-down exercises** — breathing routines, cognitive shuffle, ADHD cooldown — plus a gentle anti-snore vibration nudge
+- **Wind-down exercises** — breathing routines, cognitive shuffle, ADHD cooldown — plus a gentle anti-snore vibration nudge and an adaptive bedtime reminder
 
 **Open & private**
 
@@ -101,7 +103,7 @@ The complete inventory lives in [FEATURES.md](FEATURES.md).
 
 - **No analytics, no crash reporting, no ads, no account** — Somn uploads nothing unless you explicitly set up NAS backup
 - **Everything stays on-device** — Room database, excluded from Google Auto Backup; recordings auto-expire after 7 days
-- **Zero Google Play Services** in the release build; a single module declares `INTERNET`, for NAS backup only
+- **Zero Google Play Services** in the release build; a single module declares `INTERNET`, used only for NAS backup, opt-in model download, and (standalone builds) update checks
 
 Full details — every stored field, every permission, how to delete anything — are in
 [PRIVACY.md](PRIVACY.md).
@@ -143,10 +145,11 @@ feature/
 | DI | Hilt |
 | Database | Room |
 | Async | Kotlin Coroutines + Flow |
-| Build | Gradle (Kotlin DSL) + Version Catalog |
+| Build | Gradle 9.8.2 (Kotlin DSL) + Version Catalog |
+| Kotlin | 2.3.21 |
 | Min SDK | 26 (Android 8.0) |
-| Target SDK | 35 |
-| AGP | 9.1.0 |
+| Target SDK | 36 |
+| AGP | 9.3.2 |
 
 ---
 
