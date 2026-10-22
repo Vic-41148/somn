@@ -9,7 +9,8 @@
 
 ## Reporting a vulnerability
 
-**Do not open a public issue.** Use GitHub's
+Use GitHub Issues for normal bugs and feature requests. For security
+vulnerabilities, **do not open a public issue** — use GitHub's
 [private vulnerability reporting](https://github.com/Vic-41148/somn/security/advisories/new)
 (Settings → Security covers the maintainer side) so details stay private
 until a fix ships.
