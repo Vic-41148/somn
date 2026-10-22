@@ -8,6 +8,7 @@ the tag — keep section headers unique and tag-containing (for example
 ## Somn v0.1.4 — widget polish
 
 - **Morning Briefing widget opens Somn on tap.** The whole widget is clickable now, including the no-data and error states.
+- **Battery warning dismissal no longer snaps the Home layout.** The banner collapses with the same spring/fade motion as the other expandable cards, so the Session Type card slides up instead of jumping.
 
 ## Somn v0.1.3 — brand refresh, crash export, pipeline hardening
 
