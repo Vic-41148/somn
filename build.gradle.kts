@@ -1,4 +1,16 @@
 // Top-level build file
+buildscript {
+    configurations.classpath {
+        resolutionStrategy {
+            force(
+                "org.bouncycastle:bcprov-jdk18on:1.85",
+                "org.bouncycastle:bcpkix-jdk18on:1.85",
+                "org.bouncycastle:bcutil-jdk18on:1.85",
+            )
+        }
+    }
+}
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
