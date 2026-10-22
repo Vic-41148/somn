@@ -5,10 +5,19 @@ Release for every `v*` tag using the section of this file whose header contains
 the tag — keep section headers unique and tag-containing (for example
 `## Somn v0.1.2 — ...`).
 
-## Somn v0.1.4 — widget polish
+## Somn v0.2.0 — widgets & consistency
 
+- **Widget suite.** Morning Briefing, Last Night, Weekly, Sleep Debt, Alarm, and Weekly Rhythm widgets, with score rings and picker previews.
 - **Morning Briefing widget opens Somn on tap.** The whole widget is clickable now, including the no-data and error states.
+- **One-tap tracking widget.** Start or stop tracking and refresh the glance without opening the app.
+- **Consistency engine.** Streak tracking with grace nights and step-down, surfaced in a new streak ledger.
+- **Gamification toggle.** Scores can be hidden, including in Analytics.
+- **Home cards.** Rhythm, debt tip, wind-down, and alarm cards now show on Home.
+- **Adaptive wind-down reminder.** The nudge follows the bedtime you actually revealed.
+- **System / Light / Dark theme.** Persisted and applied app-wide.
 - **Battery warning dismissal no longer snaps the Home layout.** The banner collapses with the same spring/fade motion as the other expandable cards, so the Session Type card slides up instead of jumping.
+- **Sliding pill fix.** The thumb snaps to the nearest segment on release.
+- **Release and toolchain hardening.** Jackson 2.22.4, Bouncy Castle 1.86, SQLCipher 4.17.0, Gradle 9.8.2, Kotlin 2.3.21, KSP 2.3.12, WorkManager 2.12.0, and refreshed Actions; all dependency and code-scanning alerts are clear.
 
 ## Somn v0.1.3 — brand refresh, crash export, pipeline hardening
 
