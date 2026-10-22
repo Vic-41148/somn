@@ -4,7 +4,7 @@ kotlin = "2.2.10"
 ksp = "2.3.6"
 compose-bom = "2026.03.00"
 hilt = "2.60.1"
-room = "2.8.4"
+room = "2.8.5"
 navigation = "2.8.5"
 lifecycle = "2.8.7"
 coroutines = "1.9.0"
@@ -13,10 +13,10 @@ work = "2.10.0"
 camerax = "1.4.0"
 zxingcpp = "3.1.1"
 documentfile = "1.1.0"
-robolectric = "4.16.1"
-androidx-test-core = "1.6.1"
-truth = "1.4.4"
-coroutines-test = "1.9.0"
+robolectric = "4.17"
+androidx-test-core = "1.7.0"
+truth = "1.4.5"
+coroutines-test = "1.11.0"
 
 [libraries]
 # Compose BOM
@@ -126,10 +126,10 @@ coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-
 # Real org.json reference implementation for plain-JVM unit tests — the Android SDK's org.json
 # stub classes throw "not mocked" at unit-test runtime without Robolectric; this shadows them
 # with the actual implementation on the test classpath instead of pulling in Robolectric.
-org-json = { group = "org.json", name = "json", version = "20240303" }
+org-json = { group = "org.json", name = "json", version = "20260814" }
 
 # FFT / Signal Processing
-jtransforms = { group = "com.github.wendykierp", name = "JTransforms", version = "3.1" }
+jtransforms = { group = "com.github.wendykierp", name = "JTransforms", version = "3.2" }
 
 # LiteRT — the TFLite runtime's current name (Task 14 — AUDIO-01 YAMNet audio classification).
 # org.tensorflow:tensorflow-lite is stuck at 2.16.1 on Maven Central and ships a
