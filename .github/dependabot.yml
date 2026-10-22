@@ -33,6 +33,8 @@ updates:
         versions: [">= 15.0.0"]
       - dependency-name: "com.mikepenz.aboutlibraries.plugin"
         versions: [">= 15.0.0"]
+      - dependency-name: "net.zetetic:sqlcipher-android"
+        versions: [">= 4.18.0"]
       # 2.1.5 pin is load-bearing (2.1.6+ splits litert-api namespace, AGP merger
       # rejects the duplicate). See the tensorflow-lite comment in libs.versions.toml.
       - dependency-name: "com.google.ai.edge.litert:litert"
