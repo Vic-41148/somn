@@ -1,7 +1,7 @@
 [versions]
 agp = "9.3.2"
-kotlin = "2.2.10"
-ksp = "2.3.6"
+kotlin = "2.3.21"
+ksp = "2.3.12"
 compose-bom = "2026.03.00"
 hilt = "2.60.1"
 room = "2.8.5"
@@ -9,7 +9,7 @@ navigation = "2.8.5"
 lifecycle = "2.8.7"
 coroutines = "1.9.0"
 datastore = "1.1.1"
-work = "2.10.0"
+work = "2.12.0"
 camerax = "1.4.0"
 zxingcpp = "3.1.1"
 documentfile = "1.1.0"
@@ -64,9 +64,9 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 # SQLCipher (at-rest encryption for the Room DB). `sqlcipher-android` (not the EOL
 # `android-database-sqlcipher` 4.5.x, whose natives are 4KB-aligned): 16KB-aligned
-# since 4.6.1, maintainer-verified for 4.10.0; 4.18.0 needs compileSdk 37 which this
-# project does not target yet. See https://www.zetetic.net/sqlcipher/sqlcipher-for-android-migration/
-sqlcipher = { group = "net.zetetic", name = "sqlcipher-android", version = "4.10.0" }
+# since 4.6.1, maintainer-verified for 4.19.1 (4.18.0 needed compileSdk 37; 4.19.1
+# is back on 36). See https://www.zetetic.net/sqlcipher/sqlcipher-for-android-migration/
+sqlcipher = { group = "net.zetetic", name = "sqlcipher-android", version = "4.19.1" }
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }

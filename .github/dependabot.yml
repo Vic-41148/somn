@@ -11,7 +11,7 @@ updates:
     # These majors need compileSdk 37 (project is on 36): offered PRs fail AAR
     # metadata checks by design until the SDK bump. Revisit, don't delete.
     ignore:
-      - dependency-name: "agp"
+      - dependency-name: "com.android.tools.build:gradle"
         versions: [">= 9.4.0"]
       - dependency-name: "org.jetbrains.kotlin.plugin.compose"
         versions: [">= 2.4.0"]
@@ -30,7 +30,9 @@ updates:
       - dependency-name: "androidx.navigation:navigation-compose"
         versions: [">= 2.10.1"]
       - dependency-name: "com.mikepenz:aboutlibraries-compose-m3"
-        versions: [">= 15.2.0"]
+        versions: [">= 15.0.0"]
+      - dependency-name: "com.mikepenz.aboutlibraries.plugin"
+        versions: [">= 15.0.0"]
       # 2.1.5 pin is load-bearing (2.1.6+ splits litert-api namespace, AGP merger
       # rejects the duplicate). See the tensorflow-lite comment in libs.versions.toml.
       - dependency-name: "com.google.ai.edge.litert:litert"
