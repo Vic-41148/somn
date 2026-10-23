@@ -1,0 +1,11 @@
+What's new in v0.2.0:
+
+- New home-screen widgets: Morning Briefing, Last Night, Weekly, Sleep Debt, Alarm, and Weekly Rhythm, with score rings and picker previews
+- Morning Briefing widget opens Somn on tap
+- One-tap tracking widget with live refresh
+- Consistency streaks with grace nights and step-down, plus a streak ledger
+- Gamification toggle, including score visibility in Analytics
+- New Home cards: rhythm, debt tip, wind-down, and alarm
+- Adaptive wind-down reminder based on your revealed bedtime
+- System / Light / Dark theme
+- Smoother battery-warning dismissal animation and a sliding-pill snap fix

@@ -180,16 +180,18 @@ section whose header contains the tag name), so there is no separate notes file
 to maintain.
 
 1. Add a section to the top of `CHANGELOG.md` whose header contains the tag, for
-   example `## Somn v0.1.2 — ...`. The release body will be exactly that section;
+   example `## Somn v0.2.0 — ...`. The release body will be exactly that section;
    use `### ` (or deeper) for subheadings inside it, since the next `## `-level
    header is what terminates the section.
-2. Bump `versionCode` / `versionName` in `app/build.gradle.kts` and add the Play
-   store changelog under `fastlane/metadata/android/en-US/changelogs/`.
+2. Add the store changelog under `fastlane/metadata/android/en-US/changelogs/`
+   as `<versionCode>.txt` (for example `2000.txt`). `versionName` and `versionCode`
+   are derived from the tag in `app/build.gradle.kts`; do not edit them by hand.
 3. Run the release preflight: `scripts/run-release-preflight.sh`.
-4. Push `dev`, then push the tag (`git push origin v0.1.2`). The workflow builds,
-    signs, attaches `Somn-<tag>.apk` + `SHA256SUMS.txt`, and fills the
-   release body from the matching `CHANGELOG.md` section. If no section matches
-   the tag, the workflow fails instead of publishing an empty release.
+4. Merge `dev` into `main`, then push the tag from `main` (for example
+   `git push origin v0.2.0`). The workflow builds, signs, attaches
+   `Somn-<tag>.apk` + `SHA256SUMS.txt`, and fills the release body from the
+   matching `CHANGELOG.md` section. If no section matches the tag, the workflow
+   fails instead of publishing an empty release.
 
 ## Branch protection & CI
 
