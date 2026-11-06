@@ -34,7 +34,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
 
       # gradle.properties pins org.gradle.java.home to a local Arch path so the maintainer's
       # machine picks the right JDK. That path does not exist on a runner, so every Gradle
@@ -183,7 +183,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
 
       # These are the claims PRIVACY.md and the README make to users. They are cheap to assert
       # and expensive to notice breaking, because a transitive dependency can reintroduce any of
