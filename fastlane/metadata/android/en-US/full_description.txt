@@ -10,6 +10,8 @@ Somn is a privacy-first sleep tracker for Android. It uses your phone's accelero
 <b>Smart features</b>
 - Smart alarms with gradual volume and a configurable wake window
 - Sleep analytics: history, hypnograms, circadian insights, social jet lag, seasonal analysis, sleep-debt tracking
+- Consistency streaks with grace nights and step-down
+- Home-screen widgets: Morning Briefing, Last Night, Weekly, Sleep Debt, Alarm, Weekly Rhythm, plus one-tap tracking
 - Habit tracking: caffeine, alcohol, exercise and stress vs. sleep outcomes
 - Audio monitoring: snoring, coughing and sleep-talk detection with optional on-device classification, plus an anti-snore nudge
 - Wind-down routines: breathing exercises, cognitive shuffle, ADHD cooldown
@@ -21,6 +23,8 @@ Somn is a privacy-first sleep tracker for Android. It uses your phone's accelero
 - Opts out of Google Auto Backup
 - Optional encrypted NAS backup (AES-256-GCM), off by default
 - Optional Health Connect integration, off by default
-- INTERNET permission used for exactly one feature: NAS backup
+- INTERNET is used only by the optional features that need it: encrypted NAS backup, the
+  opt-in YAMNet model download, and update checks in the GitHub build. Nothing is uploaded
+  unless you enable one of them.
 
 Open source under GPL-3.0. Every privacy claim is documented in PRIVACY.md and enforced by CI.
