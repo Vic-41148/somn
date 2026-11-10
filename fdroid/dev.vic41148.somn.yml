@@ -1,0 +1,71 @@
+# Draft fdroiddata metadata for Somn, kept here so the submission recipe is
+# reviewable in-tree. Copy this file to metadata/dev.vic41148.somn.yml in a
+# fork of https://gitlab.com/fdroid/fdroiddata (see README.md beside this file).
+#
+# Built from source by F-Droid; the signed GitHub APK is never uploaded here.
+
+Categories:
+  - Sports & Health
+License: GPL-3.0-only
+AuthorName: Vic-41148
+WebSite: https://github.com/Vic-41148/somn
+SourceCode: https://github.com/Vic-41148/somn
+IssueTracker: https://github.com/Vic-41148/somn/issues
+Changelog: https://github.com/Vic-41148/somn/blob/main/CHANGELOG.md
+
+AutoName: Somn
+
+Summary: No wearable, no cloud, on-device - privacy-first sleep tracker
+
+Description: |
+  Somn is a privacy-first sleep tracker for Android. It uses the phone's
+  accelerometer while the phone rests on the bed, tracks sleep stages, and keeps
+  everything on the device. No account, no subscription, no vendor cloud.
+
+  Sleep tracking
+  - Wake / Light / Deep / REM classification in 30-second epochs
+  - Age-calibrated sleep scoring, with biological profile support (cycle,
+    pregnancy, ADHD)
+
+  Features
+  - Smart alarms with gradual volume and a configurable wake window
+  - History, hypnograms, circadian insights, social jet lag and sleep-debt tracking
+  - Consistency streaks with grace nights
+  - Home-screen widgets, including one-tap tracking
+  - Habit tracking (caffeine, alcohol, exercise, stress) vs. sleep outcomes
+  - Optional on-device audio classification: snoring, coughing, sleep-talk
+  - Wind-down routines and an adaptive bedtime reminder
+  - CSV / JSON export and Sleep as Android import
+
+  Privacy
+  - No analytics, no ads, no crash reporting, no Google Play Services
+  - Opts out of Google Auto Backup
+  - Optional encrypted NAS backup and Health Connect, both off by default
+  - INTERNET is used only for optional features: encrypted NAS backup, the opt-in
+    YAMNet model download, and update checks in the GitHub build. Nothing is
+    uploaded unless one of them is enabled.
+
+  Open source under GPL-3.0. Every privacy claim is documented in PRIVACY.md and
+  enforced by CI.
+
+RepoType: git
+Repo: https://github.com/Vic-41148/somn.git
+
+Builds:
+  - versionName: 0.2.0
+    versionCode: 2000
+    commit: e81e29c1293bd560f175e04ea4bacc042c5fe973  # v0.2.0
+    # Flavor, not a full task name: fdroidserver runs assembleStoreRelease.
+    # The store flavor omits the self-updater and REQUEST_INSTALL_PACKAGES.
+    gradle:
+      - store
+    output: app/build/outputs/apk/store/release/app-store-release-unsigned.apk
+    # v0.2.0 predates version.properties: the buildserver clone still has the
+    # v0.2.0 tag, so `git describe` derives 2000/0.2.0 there. From v0.2.1 on,
+    # versionName comes from the checked-in file and versionCode is derived
+    # from it, which also makes tarball/reproducible builds match.
+
+AutoUpdateMode: None
+UpdateCheckMode: None
+CurrentVersion: 0.2.0
+CurrentVersionCode: 2000
