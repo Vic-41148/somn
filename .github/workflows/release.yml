@@ -34,6 +34,26 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # F-Droid builds from a source tarball with no .git, so the version cannot come
+      # from `git describe` any more. version.properties is the single source of truth;
+      # fail loudly here rather than publishing an APK whose version disagrees with its tag.
+      - name: Verify tag matches version.properties
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          FILE_VERSION="$(sed -n 's/^versionName=//p' version.properties | tr -d '[:space:]')"
+          if [ -z "$FILE_VERSION" ]; then
+            echo "::error::version.properties has no versionName"
+            exit 1
+          fi
+          if [ "${TAG#v}" != "$FILE_VERSION" ]; then
+            echo "::error::Tag $TAG does not match version.properties ($FILE_VERSION). Bump the file and re-tag."
+            exit 1
+          fi
+          echo "OK: $TAG matches version.properties ($FILE_VERSION)."
+
       - name: Set up JDK 17
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
