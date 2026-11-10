@@ -183,9 +183,12 @@ to maintain.
    example `## Somn v0.2.0 — ...`. The release body will be exactly that section;
    use `### ` (or deeper) for subheadings inside it, since the next `## `-level
    header is what terminates the section.
-2. Add the store changelog under `fastlane/metadata/android/en-US/changelogs/`
-   as `<versionCode>.txt` (for example `2000.txt`). `versionName` and `versionCode`
-   are derived from the tag in `app/build.gradle.kts`; do not edit them by hand.
+2. Set `versionName` in `version.properties` (for example `0.2.0`). `versionCode`
+   is derived from it (`0.2.0` → `2000`), so do not edit a code anywhere. The
+   `Release` workflow refuses to publish when the pushed tag and this file
+   disagree. Add the store changelog under
+   `fastlane/metadata/android/en-US/changelogs/` as `<versionCode>.txt` (for
+   example `2000.txt`).
 3. Run the release preflight: `scripts/run-release-preflight.sh`.
 4. Merge `dev` into `main`, then push the tag from `main` (for example
    `git push origin v0.2.0`). The workflow builds, signs, attaches

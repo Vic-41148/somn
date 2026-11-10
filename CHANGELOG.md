@@ -5,6 +5,10 @@ Release for every `v*` tag using the section of this file whose header contains
 the tag — keep section headers unique and tag-containing (for example
 `## Somn v0.1.2 — ...`).
 
+## Unreleased
+
+- **Reproducible versioning.** `versionName` now lives in `version.properties` (with `versionCode` derived from it) instead of `git describe`, so source-tarball builds such as F-Droid's get the real version. The release workflow rejects a tag that disagrees with the file.
+
 ## Somn v0.2.0 — widgets & consistency
 
 - **Widget suite.** Morning Briefing, Last Night, Weekly, Sleep Debt, Alarm, and Weekly Rhythm widgets, with score rings and picker previews.

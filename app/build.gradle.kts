@@ -23,19 +23,29 @@ val keystoreProperties = Properties().apply {
     }
 }
 
-// Version derives from the git tag (v0.1.2 → code 1002, name "0.1.2") so the tag,
-// the built APK, and what the self-updater compares can never disagree. Falls back
-// to the last released values when git is unavailable (source tarball builds).
-val releaseTag: String = runCatching {
-    providers.exec { commandLine("git", "describe", "--tags", "--abbrev=0") }
-        .standardOutput.asText.get().trim()
-}.getOrDefault("v0.1.2")
-val releaseParts: List<Int> = releaseTag.trimStart('v').split(".").map { it.toIntOrNull() ?: 0 }
+// Version lives in version.properties, not `git describe`: F-Droid's buildserver and its
+// reproducible-build pipeline build from a source tarball with no .git, where a git-derived
+// version silently falls back to a stale value. The Release workflow fails if the pushed tag
+// disagrees with this file, so the tag, the APK and the self-updater still cannot diverge.
+// versionCode is derived from versionName (0.2.0 -> 2000) so the two cannot drift.
+val versionPropertiesFile = rootProject.file("version.properties")
+require(versionPropertiesFile.exists()) {
+    "version.properties is missing; it is the single source of truth for versionName"
+}
+val derivedVersionName: String = Properties().apply {
+    versionPropertiesFile.inputStream().use { load(it) }
+}.getProperty("versionName")?.trim()
+    ?: error("version.properties must define versionName")
+val releaseParts: List<Int> = derivedVersionName.split(".").map { part ->
+    part.toIntOrNull() ?: error("versionName '$derivedVersionName' must be numeric major.minor.patch")
+}
+require(releaseParts.size == 3) {
+    "versionName '$derivedVersionName' must be major.minor.patch"
+}
 val derivedVersionCode: Int =
-    (releaseParts.getOrElse(0) { 0 }) * 1_000_000 +
-        (releaseParts.getOrElse(1) { 0 }) * 1_000 +
-        (releaseParts.getOrElse(2) { 0 })
-val derivedVersionName: String = releaseParts.joinToString(".")
+    releaseParts[0] * 1_000_000 +
+        releaseParts[1] * 1_000 +
+        releaseParts[2]
 
 android {
     namespace = "dev.vic41148.somn.app"
