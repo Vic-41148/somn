@@ -12,8 +12,21 @@ buildscript {
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.23.0",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.23.0",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.23.0",
+                // Build/plugin classpath variant of the guava pin below; it resolves the -jre
+                // artifact, so it needs its own entry.
+                "com.google.guava:guava:33.8.0-jre",
             )
         }
+    }
+}
+
+// LiteRT (com.google.ai.edge.litert) drags guava 33.5.0-android onto the shipped runtime
+// classpath. GHSA-xxph-c9ww-hj94 (CVE-2026-102554) covers everything <= 33.7.1 and is fixed in
+// 33.7.2, so pin the first patched 33.8.0 release. Forced rather than declared: no module of ours
+// asks for guava directly, and a force keeps the whole graph on one version.
+subprojects {
+    configurations.configureEach {
+        resolutionStrategy.force("com.google.guava:guava:33.8.0-android")
     }
 }
 
