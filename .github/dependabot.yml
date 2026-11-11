@@ -10,18 +10,12 @@ updates:
     open-pull-requests-limit: 10
     # These majors need compileSdk 37 (project is on 36): offered PRs fail AAR
     # metadata checks by design until the SDK bump. Revisit, don't delete.
-    #
-    # AGP 9.5.x additionally breaks Hilt's transform on debug and release
-    # ("Cannot load class ...Hilt_BootReceiver") with Hilt 2.60.1, the latest
-    # release. The catalog references the plugin ids, not the Maven artifact, so
-    # both coordinates are listed: ignoring only the artifact let #89 through.
     ignore:
-      - dependency-name: "com.android.application"
-        versions: [">= 9.4.0"]
-      - dependency-name: "com.android.library"
-        versions: [">= 9.4.0"]
-      - dependency-name: "com.android.tools.build:gradle"
-        versions: [">= 9.4.0"]
+      # KSP 2.3.13 drops library symbols during concurrent in-process runs
+      # (https://github.com/google/ksp/issues/3286): intermittent missing
+      # Hilt_* classes and unresolved project types. Pin 2.3.12 until 2.3.14.
+      - dependency-name: "com.google.devtools.ksp"
+        versions: ["2.3.13"]
       - dependency-name: "org.jetbrains.kotlin.plugin.compose"
         versions: [">= 2.4.0"]
       - dependency-name: "androidx.hilt:hilt-navigation-compose"
