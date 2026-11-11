@@ -6,12 +6,12 @@ buildscript {
                 "org.bouncycastle:bcprov-jdk18on:1.86",
                 "org.bouncycastle:bcpkix-jdk18on:1.86",
                 "org.bouncycastle:bcutil-jdk18on:1.86",
-                "com.fasterxml.jackson.core:jackson-core:2.22.4",
+                "com.fasterxml.jackson.core:jackson-core:2.23.0",
                 "com.fasterxml.jackson.core:jackson-databind:2.23.0",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.23.0",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.4",
+                "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.23.0",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.23.0",
-                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.22.4",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.23.0",
             )
         }
     }

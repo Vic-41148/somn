@@ -11,42 +11,39 @@ AuthorName: Vic-41148
 WebSite: https://github.com/Vic-41148/somn
 SourceCode: https://github.com/Vic-41148/somn
 IssueTracker: https://github.com/Vic-41148/somn/issues
-Changelog: https://github.com/Vic-41148/somn/blob/main/CHANGELOG.md
+Changelog: https://github.com/Vic-41148/somn/blob/HEAD/CHANGELOG.md
 
 AutoName: Somn
 
 Summary: No wearable, no cloud, on-device - privacy-first sleep tracker
 
 Description: |
-  Somn is a privacy-first sleep tracker for Android. It uses the phone's
-  accelerometer while the phone rests on the bed, tracks sleep stages, and keeps
-  everything on the device. No account, no subscription, no vendor cloud.
+  Somn is a privacy-first sleep tracker for Android. It uses the phone's accelerometer while the phone rests on the bed, tracks sleep stages, and keeps everything on the device. No account, no subscription, no vendor cloud.
 
   Sleep tracking
-  - Wake / Light / Deep / REM classification in 30-second epochs
-  - Age-calibrated sleep scoring, with biological profile support (cycle,
-    pregnancy, ADHD)
+
+  * Wake / Light / Deep / REM classification in 30-second epochs
+  * Age-calibrated sleep scoring, with biological profile support (cycle, pregnancy, ADHD)
 
   Features
-  - Smart alarms with gradual volume and a configurable wake window
-  - History, hypnograms, circadian insights, social jet lag and sleep-debt tracking
-  - Consistency streaks with grace nights
-  - Home-screen widgets, including one-tap tracking
-  - Habit tracking (caffeine, alcohol, exercise, stress) vs. sleep outcomes
-  - Optional on-device audio classification: snoring, coughing, sleep-talk
-  - Wind-down routines and an adaptive bedtime reminder
-  - CSV / JSON export and Sleep as Android import
+
+  * Smart alarms with gradual volume and a configurable wake window
+  * History, hypnograms, circadian insights, social jet lag and sleep-debt tracking
+  * Consistency streaks with grace nights
+  * Home-screen widgets, including one-tap tracking
+  * Habit tracking (caffeine, alcohol, exercise, stress) vs. sleep outcomes
+  * Optional on-device audio classification: snoring, coughing, sleep-talk
+  * Wind-down routines and an adaptive bedtime reminder
+  * CSV / JSON export and Sleep as Android import
 
   Privacy
-  - No analytics, no ads, no crash reporting, no Google Play Services
-  - Opts out of Google Auto Backup
-  - Optional encrypted NAS backup and Health Connect, both off by default
-  - INTERNET is used only for optional features: encrypted NAS backup, the opt-in
-    YAMNet model download, and update checks in the GitHub build. Nothing is
-    uploaded unless one of them is enabled.
 
-  Open source under GPL-3.0. Every privacy claim is documented in PRIVACY.md and
-  enforced by CI.
+  * No analytics, no ads, no crash reporting, no Google Play Services
+  * Opts out of Google Auto Backup
+  * Optional encrypted NAS backup and Health Connect, both off by default
+  * INTERNET is used only for optional features: encrypted NAS backup, the opt-in YAMNet model download, and update checks in the GitHub build. Nothing is uploaded unless one of them is enabled.
+
+  Open source under GPL-3.0. Every privacy claim is documented in PRIVACY.md and enforced by CI.
 
 RepoType: git
 Repo: https://github.com/Vic-41148/somn.git

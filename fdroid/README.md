@@ -20,7 +20,8 @@ GitHub-release install (and vice versa). That is expected and worth stating in t
 1. Fork `fdroiddata` and copy `fdroid/dev.vic41148.somn.yml` to
    `metadata/dev.vic41148.somn.yml`.
 2. Run `fdroid readmeta`, `fdroid rewritemeta dev.vic41148.somn`, and
-   `fdroid lint dev.vic41148.somn`.
+   `fdroid lint dev.vic41148.somn`. (Checked locally with fdroidserver 2.4.5:
+   lint reports nothing, and `rewritemeta` only strips these comments.)
 3. Build and test it in the buildserver: `fdroid build dev.vic41148.somn --server`.
    The first build verifies Gradle 9.8.2 resolution and AGP's SDK download for
    `compileSdk 36`; both are known-good on the current buildserver.
