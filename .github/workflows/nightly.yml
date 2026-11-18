@@ -1,0 +1,158 @@
+name: Nightly preview
+
+# Builds an unsigned debug APK from main every night and on manual trigger.
+# No signing secrets needed — this is a preview build for issue reporters to
+# sideload and test fixes before the next store release.
+#
+# The build is attached to a rolling "nightly" GitHub Release (pre-release,
+# tag: nightly) that is updated in-place each run. Only the latest build is
+# kept — older assets are replaced automatically.
+#
+# Testers: download Somn-nightly-<date>.apk from the Releases page, enable
+# "Install from unknown sources", and sideload. This build is NOT signed with
+# the release key — it cannot update an existing release install. Fresh install
+# or use a second device.
+
+on:
+  schedule:
+    # 02:00 UTC daily (~7:30 AM IST). Skipped automatically by GitHub if the
+    # repo has had no commits in the past 60 days.
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger (shown in release body)'
+        required: false
+        default: 'Manual trigger'
+
+concurrency:
+  group: nightly
+  cancel-in-progress: true   # if two triggers overlap, keep only the newest
+
+permissions: {}
+
+jobs:
+  nightly:
+    name: Build nightly preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write   # update the rolling release + upload assets
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+
+      - name: Build debug APK (standalone channel)
+        run: |
+          ./gradlew assembleStandaloneDebug \
+            -Dorg.gradle.java.home="$JAVA_HOME" \
+            --no-daemon \
+            --stacktrace
+
+      - name: Rename APK with date + short SHA
+        id: apk
+        shell: bash
+        run: |
+          DATE=$(date -u +%Y%m%d)
+          SHA="${GITHUB_SHA::7}"
+          SRC="app/build/outputs/apk/standalone/debug/app-standalone-debug.apk"
+          DEST="Somn-nightly-${DATE}-${SHA}.apk"
+          mv "$SRC" "$DEST"
+          echo "path=$DEST" >> "$GITHUB_OUTPUT"
+          echo "name=$DEST" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Compute checksum
+        id: checksum
+        shell: bash
+        run: |
+          SHA256=$(sha256sum "${{ steps.apk.outputs.path }}" | awk '{print $1}')
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
+      - name: Build release body
+        id: body
+        shell: bash
+        env:
+          DATE: ${{ steps.apk.outputs.date }}
+          SHA: ${{ steps.apk.outputs.sha }}
+          SHA256: ${{ steps.checksum.outputs.sha256 }}
+          REASON: ${{ inputs.reason || 'Scheduled nightly build' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          cat > /tmp/nightly-body.md << EOF
+          ## Somn nightly preview
+
+          > **⚠️ Not a stable release.** This is an unsigned debug build from \`main\` for
+          > early testers and issue reporters. It cannot update an existing Play/F-Droid install —
+          > use a second device or a fresh install with sideloading enabled.
+
+          **Built:** ${DATE} · commit [\`${SHA}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          **Triggered by:** ${REASON}
+          **CI run:** [#${{ github.run_number }}](${RUN_URL})
+
+          ### SHA-256
+          \`\`\`
+          ${SHA256}  Somn-nightly-${DATE}-${SHA}.apk
+          \`\`\`
+
+          ### How to install
+          1. Download \`Somn-nightly-${DATE}-${SHA}.apk\` below
+          2. On your Android device: **Settings → Apps → Special app access → Install unknown apps**
+          3. Grant permission to your file manager / browser
+          4. Open the APK and install
+
+          _This release is updated in-place. Only the latest nightly is kept._
+          EOF
+          echo "Built nightly body"
+
+      - name: Delete previous nightly assets (rolling release)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Delete all existing assets on the nightly tag so the new APK is the only one.
+          # Errors are non-fatal — the release may not exist yet on first run.
+          gh release view nightly --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[].name' 2>/dev/null \
+          | while read -r asset; do
+              echo "Deleting old asset: $asset"
+              gh release delete-asset nightly "$asset" --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null || true
+            done
+
+      - name: Create or update rolling nightly release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.apk.outputs.path }}
+          APK_NAME: ${{ steps.apk.outputs.name }}
+          DATE: ${{ steps.apk.outputs.date }}
+        run: |
+          # Update release body + re-upload APK. --clobber replaces if the tag exists.
+          gh release create nightly \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Nightly preview (${DATE})" \
+            --notes-file /tmp/nightly-body.md \
+            --prerelease \
+            --latest=false \
+            "$APK#$APK_NAME" \
+            2>/dev/null \
+          || gh release edit nightly \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Nightly preview (${DATE})" \
+            --notes-file /tmp/nightly-body.md \
+            --prerelease \
+            && gh release upload nightly "$APK#$APK_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
