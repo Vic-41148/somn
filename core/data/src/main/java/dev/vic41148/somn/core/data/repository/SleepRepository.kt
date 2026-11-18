@@ -12,6 +12,7 @@ import dev.vic41148.somn.core.data.database.entity.AudioEventEntity
 import dev.vic41148.somn.core.data.database.entity.ExternalVitalsEntity
 import dev.vic41148.somn.core.domain.model.SleepEpoch
 import dev.vic41148.somn.core.domain.model.SleepSession
+import dev.vic41148.somn.core.domain.model.SessionRange
 import dev.vic41148.somn.core.domain.model.SleepStage
 import dev.vic41148.somn.core.domain.model.SessionType
 import dev.vic41148.somn.core.domain.model.AudioEvent
@@ -68,6 +69,10 @@ class SleepRepository @Inject constructor(
     suspend fun completeSession(session: SleepSession) {
         sessionDao.update(session.toEntity())
     }
+
+    /** Bounds of every completed session, used to keep CSV import idempotent (issue #113). */
+    suspend fun getCompletedSessionRanges(): List<SessionRange> =
+        sessionDao.getCompletedSessionRanges()
 
     suspend fun updateSession(session: SleepSession) {
         sessionDao.update(session.toEntity())
