@@ -12,6 +12,7 @@ import dev.vic41148.somn.core.domain.model.TrackingMode
 import dev.vic41148.somn.core.domain.usecase.CalculateSleepScoreUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportCsvUseCase
 import dev.vic41148.somn.core.domain.usecase.ExportJsonUseCase
+import dev.vic41148.somn.core.domain.usecase.FilterDuplicateSessionsUseCase
 import dev.vic41148.somn.core.domain.usecase.ImportSleepAsAndroidUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -51,6 +52,7 @@ class SettingsViewModel @Inject constructor(
     private val healthConnectRepository: HealthConnectRepository,
     private val exportJson: ExportJsonUseCase,
     private val importSleepAsAndroid: ImportSleepAsAndroidUseCase,
+    private val filterDuplicateSessions: FilterDuplicateSessionsUseCase,
     private val calculateScore: CalculateSleepScoreUseCase,
     private val portableCrypto: PortableCrypto,
     private val userProfileRepository: dev.vic41148.somn.core.data.repository.UserProfileRepository,
@@ -704,19 +706,28 @@ class SettingsViewModel @Inject constructor(
                 val scored = result.sessions.map { session ->
                     session.copy(sleepScore = calculateScore(session).totalScore)
                 }
+                var importedCount = 0
+                var duplicateCount = 0
                 sleepRepository.inTransaction {
-                    for (session in scored) {
+                    val existing = sleepRepository.getCompletedSessionRanges()
+                    val filtered = filterDuplicateSessions(scored, existing)
+                    duplicateCount = filtered.duplicateCount
+                    for (session in filtered.sessions) {
                         val newId = sleepRepository.createSession(
                             session.startTimeMillis,
                             session.timezoneId,
                             session.sessionType
                         )
                         sleepRepository.completeSession(session.copy(id = newId))
+                        importedCount++
                     }
                 }
 
                 _importStatus.value = buildString {
-                    append("Imported ${result.importedCount} session(s).")
+                    append("Imported $importedCount session(s).")
+                    if (duplicateCount > 0) {
+                        append(" $duplicateCount duplicate session(s) skipped.")
+                    }
                     if (result.skippedRowCount > 0) {
                         append(" ${result.skippedRowCount} row(s) skipped (see below).")
                     }

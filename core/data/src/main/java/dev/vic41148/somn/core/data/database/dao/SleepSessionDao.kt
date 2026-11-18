@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import dev.vic41148.somn.core.data.database.entity.SleepSessionEntity
+import dev.vic41148.somn.core.domain.model.SessionRange
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -29,6 +30,9 @@ interface SleepSessionDao {
 
     @Query("SELECT * FROM sleep_sessions WHERE isCompleted = 1 ORDER BY startTimeMillis DESC")
     fun observeAllCompleted(): Flow<List<SleepSessionEntity>>
+
+    @Query("SELECT startTimeMillis, endTimeMillis FROM sleep_sessions WHERE isCompleted = 1")
+    suspend fun getCompletedSessionRanges(): List<SessionRange>
 
     @Query("SELECT * FROM sleep_sessions WHERE isCompleted = 0 LIMIT 1")
     suspend fun getActiveSession(): SleepSessionEntity?
