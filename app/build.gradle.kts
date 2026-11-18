@@ -79,6 +79,14 @@ android {
         }
     }
 
+    // AGP encrypts the app's dependency tree into an extra APK signing block for Play Console
+    // SDK alerts. F-Droid's scanner rejects any signing block it cannot verify, so the release
+    // APK must not carry it. Google Play accepts APKs/AABs without it.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
