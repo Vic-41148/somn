@@ -123,13 +123,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Delete all existing assets on the nightly tag so the new APK is the only one.
-          # Errors are non-fatal — the release may not exist yet on first run.
-          gh release view nightly --repo "$GITHUB_REPOSITORY" --json assets \
-            --jq '.assets[].name' 2>/dev/null \
-          | while read -r asset; do
-              echo "Deleting old asset: $asset"
-              gh release delete-asset nightly "$asset" --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null || true
-            done
+          # The release does not exist on the first run (or after a manual delete). Keep that
+          # case in an `if` condition: a bare `gh release view ... | while` aborts the step
+          # under `bash -e -o pipefail` before the release is ever created.
+          if gh release view nightly --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release view nightly --repo "$GITHUB_REPOSITORY" --json assets \
+              --jq '.assets[].name' \
+            | while read -r asset; do
+                echo "Deleting old asset: $asset"
+                gh release delete-asset nightly "$asset" --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null || true
+              done
+          else
+            echo "No existing nightly release; nothing to delete."
+          fi
 
       - name: Create or update rolling nightly release
         shell: bash
@@ -153,6 +159,7 @@ jobs:
             --title "Nightly preview (${DATE})" \
             --notes-file /tmp/nightly-body.md \
             --prerelease \
+            --latest=false \
             && gh release upload nightly "$APK#$APK_NAME" \
               --repo "$GITHUB_REPOSITORY" \
               --clobber
