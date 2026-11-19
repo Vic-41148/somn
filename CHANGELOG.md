@@ -7,6 +7,9 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Unreleased
 
+- **Health Connect connects again.** The health module now declares `READ_STEPS` and `READ_EXERCISE`, the two permissions the client requests but the manifest was missing, so granting access no longer leaves the connection unusable.
+- **Cycle settings stay out of non-cycle profiles.** The “Cycle & hormones” card is hidden for male and not-specified profiles instead of rendering as an empty section. Fixes #116.
+
 ## Somn v0.2.1 — F-Droid unblock & import fix
 
 - **In-app updater fix.** Allow GitHub release asset CDN hosts and ignore store APKs in the standalone updater.
