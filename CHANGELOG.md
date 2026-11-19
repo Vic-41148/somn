@@ -9,6 +9,7 @@ the tag — keep section headers unique and tag-containing (for example
 
 ## Somn v0.2.1 — F-Droid unblock & import fix
 
+- **In-app updater fix.** Allow GitHub release asset CDN hosts and ignore store APKs in the standalone updater.
 - **F-Droid scanner fix.** Release APKs no longer carry AGP's `Dependency metadata` signing block (`0x504b4453`), which F-Droid's `check apk` rejects. The block is disabled in `app/build.gradle.kts` through `dependenciesInfo`.
 - **Idempotent Sleep as Android import.** Re-importing the same `sleep-export.csv` now skips sessions whose start and end timestamps already exist, and reports how many duplicates were skipped. Fixes #113.
 - **Reproducible versioning.** `versionName` now lives in `version.properties` (with `versionCode` derived from it) instead of `git describe`, so source-tarball builds such as F-Droid's get the real version. The release workflow rejects a tag that disagrees with the file.

@@ -91,4 +91,44 @@ class ReleaseParserTest {
         assertEquals(2, history.size)
         assertEquals(listOf("v0.2.0", "v0.1.2"), history.map { it.tag })
     }
+
+    @Test
+    fun `skips apk names containing store and selects standalone apk`() {
+        val assets = org.json.JSONArray().apply {
+            put(org.json.JSONObject().apply {
+                put("name", "Somn-store-v0.2.1.apk")
+                put("browser_download_url", "https://github.com/x/somn/releases/download/v0.2.1/Somn-store-v0.2.1.apk")
+            })
+            put(org.json.JSONObject().apply {
+                put("name", "Somn-v0.2.1.apk")
+                put("browser_download_url", "https://github.com/x/somn/releases/download/v0.2.1/Somn-v0.2.1.apk")
+            })
+        }
+        val json = org.json.JSONObject().apply {
+            put("tag_name", "v0.2.1")
+            put("prerelease", false)
+            put("body", "")
+            put("assets", assets)
+        }.toString()
+        val release = ReleaseParser.parseLatest(json)
+        assertEquals("Somn-v0.2.1.apk", release.apkUrl?.substringAfterLast('/'))
+    }
+
+    @Test
+    fun `ignores release when only store apk is present`() {
+        val assets = org.json.JSONArray().apply {
+            put(org.json.JSONObject().apply {
+                put("name", "Somn-store-v0.2.1.apk")
+                put("browser_download_url", "https://github.com/x/somn/releases/download/v0.2.1/Somn-store-v0.2.1.apk")
+            })
+        }
+        val json = org.json.JSONObject().apply {
+            put("tag_name", "v0.2.1")
+            put("prerelease", false)
+            put("body", "")
+            put("assets", assets)
+        }.toString()
+        val release = ReleaseParser.parseLatest(json)
+        assertNull(release.apkUrl)
+    }
 }
