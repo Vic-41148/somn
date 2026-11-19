@@ -8,9 +8,7 @@ IssueTracker: https://github.com/Vic-41148/somn/issues
 Changelog: https://github.com/Vic-41148/somn/blob/HEAD/CHANGELOG.md
 
 AutoName: Somn
-
 Summary: No wearable, no cloud, on-device - privacy-first sleep tracker
-
 Description: |
   Somn is a privacy-first sleep tracker for Android. It uses the phone's accelerometer while the phone rests on the bed, tracks sleep stages, and keeps everything on the device. No account, no subscription, no vendor cloud.
 
@@ -42,17 +40,18 @@ Description: |
 RepoType: git
 Repo: https://github.com/Vic-41148/somn.git
 Binaries: https://github.com/Vic-41148/somn/releases/download/v%v/Somn-store-v%v.apk
-AllowedAPKSigningKeys: 72752e40a8bf676cada66417efe4cef3cd20ad60e82752256eff69da953ce737
 
 Builds:
   - versionName: 0.2.1
     versionCode: 2001
-    commit: 54f4c7954de83f973e6af86d7c0eb1e0e0ff3c76  # v0.2.1
+    commit: 54f4c7954de83f973e6af86d7c0eb1e0e0ff3c76
     gradle:
       - store
     output: app/build/outputs/apk/store/release/app-store-release-unsigned.apk
     scanignore:
       - core/audio/build.gradle.kts
+
+AllowedAPKSigningKeys: 72752e40a8bf676cada66417efe4cef3cd20ad60e82752256eff69da953ce737
 
 AutoUpdateMode: None
 UpdateCheckMode: None
