@@ -282,7 +282,9 @@ class UpdateRepository @Inject constructor(
         val ALLOWED_UPDATE_HOSTS = setOf(
             "api.github.com",
             "github.com",
-            "objects.githubusercontent.com"
+            "objects.githubusercontent.com",
+            "release-assets.githubusercontent.com",
+            "github-releases.githubusercontent.com"
         )
     }
 }

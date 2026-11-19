@@ -68,4 +68,19 @@ class ChecksumTest {
         repo.verifyChecksum(file, Checksum.sha256(file))
         assertTrue(file.exists())
     }
+
+    @Test
+    fun `isAllowedHost accepts allowed github hosts and rejects others`() {
+        val appContext: Context = ApplicationProvider.getApplicationContext()
+        val repo = UpdateRepository(appContext)
+        assertTrue(repo.isAllowedHost("https://api.github.com/repos/x/y/releases"))
+        assertTrue(repo.isAllowedHost("https://github.com/x/y/releases/download/v1/app.apk"))
+        assertTrue(repo.isAllowedHost("https://objects.githubusercontent.com/blob123"))
+        assertTrue(repo.isAllowedHost("https://release-assets.githubusercontent.com/asset456"))
+        assertTrue(repo.isAllowedHost("https://github-releases.githubusercontent.com/asset789"))
+        assertFalse(repo.isAllowedHost("https://raw.githubusercontent.com/user/repo/main/app.apk"))
+        assertFalse(repo.isAllowedHost("https://gist.github.com/user/12345/raw/app.apk"))
+        assertFalse(repo.isAllowedHost("http://github.com/not-https"))
+        assertFalse(repo.isAllowedHost("https://malicious.com/app.apk"))
+    }
 }
