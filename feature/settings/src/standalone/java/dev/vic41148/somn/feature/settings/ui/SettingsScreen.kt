@@ -182,7 +182,11 @@ fun SettingsScreen(
     val showHealth = settingMatches("Health Connect", "health", "connect", "sync", "share")
     val showExperimental = settingMatches("Experimental", "experimental", "beta", "YAMNet", "ML", "model", "audio classification", "download")
     val showWindDown = settingMatches("Wind-Down Toolkit", "wind down", "wind-down", "toolkit", "breathing", "relax", "cognitive", "ADHD", "cooldown")
-    val anySectionVisible = showUpdates || showSleepTarget || showRecovery || showCycle ||
+    // Search matching alone is not enough for this section: showCycle is true for everyone when
+    // no search is active, which used to render an empty card for male / NOT_SPECIFIED profiles (#116).
+    val hasCycleProfile = profile.hasCycleProfile()
+    val showCycleSection = showCycle && hasCycleProfile
+    val anySectionVisible = showUpdates || showSleepTarget || showRecovery || showCycleSection ||
         showHaptics || showAbout || showAppearance || showWakeVerify || showSnore ||
         showSleepTalk || showDeleteData || showSensor || showBattery || showOversleep ||
         showSeasonal || showCaptcha || showExport || showNas || showHealth ||
@@ -792,7 +796,7 @@ fun SettingsScreen(
         }
 
         // Health
-        if (showHealth || showCycle) item {
+        if (showHealth || showCycleSection) item {
             SettingCategory(title = "Health", forceExpand = searchQuery.isNotBlank()) {
 
         
@@ -860,7 +864,7 @@ fun SettingsScreen(
 
             // R5: menopause check-in lives here so the peri/meno stages Somn already
             // models get Oura's questionnaire mechanic as pure UI over prefs.
-            if (showCycle) SettingSection(title = "Cycle & hormones") {
+            if (showCycleSection) SettingSection(title = "Cycle & hormones") {
                 if (profile?.showMenopauseFeatures == true) {
                         Text(
                             text = "Menopause check-in: 10 questions on how symptoms have " +

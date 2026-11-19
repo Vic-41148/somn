@@ -131,7 +131,7 @@ jobs:
               --jq '.assets[].name' \
             | while read -r asset; do
                 echo "Deleting old asset: $asset"
-                gh release delete-asset nightly "$asset" --repo "$GITHUB_REPOSITORY" --yes 2>/dev/null || true
+                gh release delete-asset nightly "$asset" --repo "$GITHUB_REPOSITORY" --yes
               done
           else
             echo "No existing nightly release; nothing to delete."
