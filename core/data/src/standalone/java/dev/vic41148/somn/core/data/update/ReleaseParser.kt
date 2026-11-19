@@ -43,7 +43,9 @@ object ReleaseParser {
             val name = asset.optString("name", "")
             val url = asset.optString("browser_download_url", "")
             when {
-                name.endsWith(".apk", ignoreCase = true) && apkName == null -> {
+                name.endsWith(".apk", ignoreCase = true) &&
+                    !name.contains("-store-", ignoreCase = true) &&
+                    apkName == null -> {
                     apkName = name
                     apkUrl = url.ifBlank { null }
                 }

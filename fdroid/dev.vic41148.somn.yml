@@ -1,9 +1,3 @@
-# Draft fdroiddata metadata for Somn, kept here so the submission recipe is
-# reviewable in-tree. Copy this file to metadata/dev.vic41148.somn.yml in a
-# fork of https://gitlab.com/fdroid/fdroiddata (see README.md beside this file).
-#
-# Built from source by F-Droid; the signed GitHub APK is never uploaded here.
-
 Categories:
   - Sports & Health
 License: GPL-3.0-only
@@ -14,9 +8,7 @@ IssueTracker: https://github.com/Vic-41148/somn/issues
 Changelog: https://github.com/Vic-41148/somn/blob/HEAD/CHANGELOG.md
 
 AutoName: Somn
-
 Summary: No wearable, no cloud, on-device - privacy-first sleep tracker
-
 Description: |
   Somn is a privacy-first sleep tracker for Android. It uses the phone's accelerometer while the phone rests on the bed, tracks sleep stages, and keeps everything on the device. No account, no subscription, no vendor cloud.
 
@@ -47,22 +39,21 @@ Description: |
 
 RepoType: git
 Repo: https://github.com/Vic-41148/somn.git
+Binaries: https://github.com/Vic-41148/somn/releases/download/v%v/Somn-store-v%v.apk
 
 Builds:
-  - versionName: 0.2.0
-    versionCode: 2000
-    commit: e81e29c1293bd560f175e04ea4bacc042c5fe973  # v0.2.0
-    # Flavor, not a full task name: fdroidserver runs assembleStoreRelease.
-    # The store flavor omits the self-updater and REQUEST_INSTALL_PACKAGES.
+  - versionName: 0.2.1
+    versionCode: 2001
+    commit: 54f4c7954de83f973e6af86d7c0eb1e0e0ff3c76
     gradle:
       - store
     output: app/build/outputs/apk/store/release/app-store-release-unsigned.apk
-    # v0.2.0 predates version.properties: the buildserver clone still has the
-    # v0.2.0 tag, so `git describe` derives 2000/0.2.0 there. From v0.2.1 on,
-    # versionName comes from the checked-in file and versionCode is derived
-    # from it, which also makes tarball/reproducible builds match.
+    scanignore:
+      - core/audio/build.gradle.kts
+
+AllowedAPKSigningKeys: 72752e40a8bf676cada66417efe4cef3cd20ad60e82752256eff69da953ce737
 
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: 0.2.0
-CurrentVersionCode: 2000
+CurrentVersion: 0.2.1
+CurrentVersionCode: 2001
