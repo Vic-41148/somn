@@ -62,7 +62,16 @@ Builds:
     # versionName comes from the checked-in file and versionCode is derived
     # from it, which also makes tarball/reproducible builds match.
 
+  - versionName: 0.2.1
+    versionCode: 2001
+    commit: 54f4c7954de83f973e6af86d7c0eb1e0e0ff3c76  # v0.2.1 recut — updater host allowlist + store-APK skip
+    gradle:
+      - store
+    output: app/build/outputs/apk/store/release/app-store-release-unsigned.apk
+    # Reproducibility verified: real clone at 54f4c795 produces
+    # sha256 ae39b1b97016e18a958bf324ccc5d8f0a49a2c698952165ca9f30951eac16783
+
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: 0.2.0
-CurrentVersionCode: 2000
+CurrentVersion: 0.2.1
+CurrentVersionCode: 2001
