@@ -21,6 +21,13 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
+
+    testOptions {
+        unitTests.all {
+            // HealthConnectManifestPermissionsTest reads the module manifest directly.
+            it.systemProperty("somn.health.manifest", file("src/main/AndroidManifest.xml").absolutePath)
+        }
+    }
 }
 
 dependencies {
@@ -33,4 +40,6 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    testImplementation(libs.junit)
 }
