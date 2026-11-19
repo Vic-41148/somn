@@ -11,6 +11,10 @@ permissions:
 
 jobs:
   dependency-review:
+    # The "main-dev" ruleset requires this check as "Dependency Review". A job
+    # without an explicit name reports the job id (`dependency-review`), which
+    # never matches, so the required check waits forever.
+    name: Dependency Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
