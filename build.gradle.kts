@@ -4,7 +4,7 @@ buildscript {
         resolutionStrategy {
             force(
                 "org.bouncycastle:bcprov-jdk18on:1.86",
-                "org.bouncycastle:bcpkix-jdk18on:1.86",
+                "org.bouncycastle:bcpkix-jdk18on:1.87",
                 "org.bouncycastle:bcutil-jdk18on:1.86",
                 "com.fasterxml.jackson.core:jackson-core:2.23.0",
                 "com.fasterxml.jackson.core:jackson-databind:2.23.0",
