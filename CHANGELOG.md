@@ -10,6 +10,7 @@ the tag — keep section headers unique and tag-containing (for example
 - **Health Connect connects again.** The health module now declares `READ_STEPS` and `READ_EXERCISE`, the two permissions the client requests but the manifest was missing, so granting access no longer leaves the connection unusable.
 - **Cycle settings stay out of non-cycle profiles.** The “Cycle & hormones” card is hidden for male and not-specified profiles instead of rendering as an empty section. Fixes #116.
 - **Nightly cleanup fails loudly.** The rolling-release job no longer swallows a failed asset delete, so a broken cleanup cannot finish green with two assets.
+- **Version metadata is cross-checked.** `versionCode` is now declared in `version.properties` next to `versionName`, and the build fails if the two disagree, so F-Droid can read the code from the same file the tag is validated against.
 
 ## Somn v0.2.1 — F-Droid unblock & import fix
 
