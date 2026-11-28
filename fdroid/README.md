@@ -14,9 +14,10 @@ F-Droid builds `assembleStoreRelease` from the tag commit. The `store` flavor:
 - has no Google Play Services, Firebase, ML Kit or analytics on the runtime classpath;
 - ships the same universal APK as GitHub (`arm64-v8a` + `armeabi-v7a`), currently ~19 MB.
 
-The recipe sets `Binaries:` and `AllowedAPKSigningKeys`, so F-Droid verifies that its
-build reproduces the published APK byte-for-byte and keeps the upstream signature. An
-F-Droid install can therefore update over a GitHub-release install (and vice versa).
+Once the app is accepted, the recipe's `Binaries:` and `AllowedAPKSigningKeys` mean
+F-Droid verifies that its build reproduces the published APK byte-for-byte and
+publishes it with the upstream signature. An F-Droid install can then update over a
+GitHub-release install (and vice versa).
 
 ## Submitting
 
