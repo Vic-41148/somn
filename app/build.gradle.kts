@@ -56,6 +56,11 @@ require(declaredVersionCode == derivedVersionCode) {
         "versionName '$derivedVersionName' ($derivedVersionCode)"
 }
 
+// Nightly signing material comes from the environment only (CI secrets). There is deliberately no
+// properties-file fallback and no access to keystore.properties: the nightly key must never be the
+// release key. Absent these variables the nightly build type assembles unsigned and CI refuses it.
+val nightlyKeystorePath: String? = System.getenv("NIGHTLY_KEYSTORE_PATH")
+
 android {
     namespace = "dev.vic41148.somn.app"
     compileSdk = 36
@@ -86,6 +91,14 @@ android {
                 keyPassword = keystoreProperties.getProperty("keyPassword")
             }
         }
+        if (nightlyKeystorePath != null) {
+            create("nightly") {
+                storeFile = file(nightlyKeystorePath)
+                storePassword = System.getenv("NIGHTLY_STORE_PASS")
+                keyAlias = System.getenv("NIGHTLY_KEY_ALIAS")
+                keyPassword = System.getenv("NIGHTLY_KEY_PASS")
+            }
+        }
     }
 
     // AGP encrypts the app's dependency tree into an extra APK signing block for Play Console
@@ -105,6 +118,20 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.findByName("release")
+        }
+        // Rolling preview channel: same code and R8 config as release, but a separate app
+        // (dev.vic41148.somn.nightly) with its own key, so it installs next to a stable build
+        // and can never be mistaken for, or update, one. Non-debuggable.
+        create("nightly") {
+            initWith(getByName("release"))
+            // Library modules only define debug/release; resolve them to release.
+            matchingFallbacks += listOf("release")
+            applicationIdSuffix = ".nightly"
+            versionNameSuffix = "-nightly"
+            // Overrides the release config copied by initWith. Null when the nightly env vars are
+            // absent; AGP then emits app-store-nightly-unsigned.apk, which the workflow's verify
+            // step rejects by name.
+            signingConfig = signingConfigs.findByName("nightly")
         }
     }
 
