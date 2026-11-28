@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Build-type source set overrides main: tells the launcher icon apart from stable Somn. -->
+    <string name="app_name">Somn Nightly</string>
+</resources>

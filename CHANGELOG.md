@@ -11,6 +11,7 @@ the tag — keep section headers unique and tag-containing (for example
 - **Cycle settings stay out of non-cycle profiles.** The “Cycle & hormones” card is hidden for male and not-specified profiles instead of rendering as an empty section. Fixes #116.
 - **Nightly cleanup fails loudly.** The rolling-release job no longer swallows a failed asset delete, so a broken cleanup cannot finish green with two assets.
 - **Version metadata is cross-checked.** `versionCode` is now declared in `version.properties` next to `versionName`, and the build fails if the two disagree, so F-Droid can read the code from the same file the tag is validated against.
+- **Nightly previews are signed and installable alongside stable.** The nightly build is now a non-debuggable `store` build with its own application ID (`dev.vic41148.somn.nightly`) and a dedicated nightly signing key, so it keeps separate data and Health Connect grants from stable Somn and never uses the release key. Testers on an older debug nightly (`dev.vic41148.somn`) must uninstall it before installing stable Somn.
 
 ## Somn v0.2.1 — F-Droid unblock & import fix
 

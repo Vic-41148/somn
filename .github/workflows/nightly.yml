@@ -1,17 +1,21 @@
 name: Nightly preview
 
-# Builds an unsigned debug APK from main every night and on manual trigger.
-# No signing secrets needed — this is a preview build for issue reporters to
-# sideload and test fixes before the next store release.
+# Builds a signed, non-debuggable preview APK (store channel) from main every night and on
+# manual trigger. It is a SEPARATE app (dev.vic41148.somn.nightly) signed with a dedicated
+# nightly key, so it installs next to a stable Somn and never touches stable data. The release
+# signing key is never available to this workflow.
+#
+# The nightly key lives in the "nightly" GitHub Environment (secrets NIGHTLY_KEYSTORE_B64,
+# NIGHTLY_STORE_PASS, NIGHTLY_KEY_ALIAS, NIGHTLY_KEY_PASS), restricted to the main branch.
 #
 # The build is attached to a rolling "nightly" GitHub Release (pre-release,
 # tag: nightly) that is updated in-place each run. Only the latest build is
 # kept — older assets are replaced automatically.
 #
-# Testers: download Somn-nightly-<date>.apk from the Releases page, enable
-# "Install from unknown sources", and sideload. This build is NOT signed with
-# the release key — it cannot update an existing release install. Fresh install
-# or use a second device.
+# Testers: download Somn-nightly-<date>-<sha>.apk from the Releases page, enable
+# "Install from unknown sources", and sideload. There is no in-app updater (store channel):
+# installing a newer nightly over an older one works while the nightly key stays the same.
+# It is a separate app with its own data and its own Health Connect grants.
 
 on:
   schedule:
@@ -36,6 +40,8 @@ jobs:
     name: Build nightly preview
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Secrets are scoped to this environment (branch policy: main only).
+    environment: nightly
     permissions:
       contents: write   # update the rolling release + upload assets
 
@@ -53,12 +59,59 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
 
-      - name: Build debug APK (standalone channel)
+      - name: Decode nightly keystore
+        shell: bash
+        env:
+          NIGHTLY_KEYSTORE_B64: ${{ secrets.NIGHTLY_KEYSTORE_B64 }}
         run: |
-          ./gradlew assembleStandaloneDebug \
+          test -n "$NIGHTLY_KEYSTORE_B64" || { echo "::error::NIGHTLY_KEYSTORE_B64 is not set"; exit 1; }
+          printf '%s' "$NIGHTLY_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/nightly.jks"
+          echo "NIGHTLY_KEYSTORE_PATH=$RUNNER_TEMP/nightly.jks" >> "$GITHUB_ENV"
+
+      - name: Build nightly APK (store channel, signed with the nightly key)
+        env:
+          NIGHTLY_STORE_PASS: ${{ secrets.NIGHTLY_STORE_PASS }}
+          NIGHTLY_KEY_ALIAS: ${{ secrets.NIGHTLY_KEY_ALIAS }}
+          NIGHTLY_KEY_PASS: ${{ secrets.NIGHTLY_KEY_PASS }}
+        run: |
+          ./gradlew assembleStoreNightly \
             -Dorg.gradle.java.home="$JAVA_HOME" \
             --no-daemon \
             --stacktrace
+
+      - name: Verify signature, package and non-debuggable
+        shell: bash
+        env:
+          # Repo VARIABLE (not a secret): SHA-256 of the release signing cert, public by design.
+          RELEASE_CERT_SHA256: ${{ vars.RELEASE_CERT_SHA256 }}
+        run: |
+          OUT="app/build/outputs/apk/store/nightly"
+          if [ -f "$OUT/app-store-nightly-unsigned.apk" ]; then
+            echo "::error::nightly APK is unsigned (NIGHTLY_* env/secrets missing)"
+            exit 1
+          fi
+          APK="$OUT/app-store-nightly.apk"
+          test -f "$APK" || { echo "::error::$APK not found"; ls -la "$OUT"; exit 1; }
+          BT="$(ls -d "${ANDROID_SDK_ROOT:-$ANDROID_HOME}"/build-tools/* | sort -V | tail -1)"
+          CERTS="$("$BT/apksigner" verify --print-certs "$APK")"
+          echo "$CERTS"
+          # Guard: the nightly must never be signed with the release key.
+          test -n "$RELEASE_CERT_SHA256" \
+            || { echo "::error::repo variable RELEASE_CERT_SHA256 is not set"; exit 1; }
+          if grep -qi "$RELEASE_CERT_SHA256" <<<"$CERTS"; then
+            echo "::error::nightly APK is signed with the release key"; exit 1
+          fi
+          BADGING="$("$BT/aapt2" dump badging "$APK")"
+          grep -q "package: name='dev.vic41148.somn.nightly'" <<<"$BADGING" \
+            || { echo "::error::unexpected applicationId"; exit 1; }
+          if grep -q "application-debuggable" <<<"$BADGING"; then
+            echo "::error::nightly APK is debuggable"; exit 1
+          fi
+
+      - name: Remove nightly keystore
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/nightly.jks"
 
       - name: Rename APK with date + short SHA
         id: apk
@@ -66,7 +119,7 @@ jobs:
         run: |
           DATE=$(date -u +%Y%m%d)
           SHA="${GITHUB_SHA::7}"
-          SRC="app/build/outputs/apk/standalone/debug/app-standalone-debug.apk"
+          SRC="app/build/outputs/apk/store/nightly/app-store-nightly.apk"
           DEST="Somn-nightly-${DATE}-${SHA}.apk"
           mv "$SRC" "$DEST"
           echo "path=$DEST" >> "$GITHUB_OUTPUT"
@@ -94,9 +147,15 @@ jobs:
           cat > /tmp/nightly-body.md << EOF
           ## Somn nightly preview
 
-          > **⚠️ Not a stable release.** This is an unsigned debug build from \`main\` for
-          > early testers and issue reporters. It cannot update an existing Play/F-Droid install —
-          > use a second device or a fresh install with sideloading enabled.
+          > **⚠️ Not a stable release.** This is a preview build from \`main\` for early
+          > testers and issue reporters. It installs as a separate app (\`dev.vic41148.somn.nightly\`)
+          > next to stable Somn, with its own data (starts empty) and its own Health Connect
+          > permissions (grant them again). There is no in-app updater: install a newer nightly
+          > over an older one.
+          >
+          > **Old debug nightlies:** earlier nightlies used the stable package name
+          > (\`dev.vic41148.somn\`) and a debug key. Uninstall one before installing stable Somn,
+          > which deletes that install's data; the new nightly coexists with both.
 
           **Built:** ${DATE} · commit [\`${SHA}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
           **Triggered by:** ${REASON}
