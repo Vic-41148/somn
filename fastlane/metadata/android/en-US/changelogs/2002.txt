@@ -1,0 +1,5 @@
+What's new in v0.2.2:
+
+- Health Connect connects again: the health module now declares READ_STEPS and READ_EXERCISE, so granting access no longer leaves the connection unusable
+- Cycle settings stay out of non-cycle profiles: the Cycle & hormones card is hidden for male and not-specified profiles (fixes #116)
+- Nightly cleanup fails loudly instead of finishing green when an asset delete breaks

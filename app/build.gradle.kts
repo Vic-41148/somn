@@ -27,14 +27,17 @@ val keystoreProperties = Properties().apply {
 // reproducible-build pipeline build from a source tarball with no .git, where a git-derived
 // version silently falls back to a stale value. The Release workflow fails if the pushed tag
 // disagrees with this file, so the tag, the APK and the self-updater still cannot diverge.
-// versionCode is derived from versionName (0.2.0 -> 2000) so the two cannot drift.
+// versionCode is declared in the same file because F-Droid's UpdateCheckData regex
+// reads it at the release tag; the build fails if it disagrees with the value
+// derived from versionName (0.2.0 -> 2000), so the two cannot drift.
 val versionPropertiesFile = rootProject.file("version.properties")
 require(versionPropertiesFile.exists()) {
-    "version.properties is missing; it is the single source of truth for versionName"
+    "version.properties is missing; it is the single source of truth for the app version"
 }
-val derivedVersionName: String = Properties().apply {
+val versionProperties = Properties().apply {
     versionPropertiesFile.inputStream().use { load(it) }
-}.getProperty("versionName")?.trim()
+}
+val derivedVersionName: String = versionProperties.getProperty("versionName")?.trim()
     ?: error("version.properties must define versionName")
 val releaseParts: List<Int> = derivedVersionName.split(".").map { part ->
     part.toIntOrNull() ?: error("versionName '$derivedVersionName' must be numeric major.minor.patch")
@@ -46,6 +49,12 @@ val derivedVersionCode: Int =
     releaseParts[0] * 1_000_000 +
         releaseParts[1] * 1_000 +
         releaseParts[2]
+val declaredVersionCode: Int = versionProperties.getProperty("versionCode")?.trim()?.toIntOrNull()
+    ?: error("version.properties must define a numeric versionCode")
+require(declaredVersionCode == derivedVersionCode) {
+    "version.properties versionCode=$declaredVersionCode does not match the value derived from " +
+        "versionName '$derivedVersionName' ($derivedVersionCode)"
+}
 
 android {
     namespace = "dev.vic41148.somn.app"
@@ -55,7 +64,7 @@ android {
         applicationId = "dev.vic41148.somn"
         minSdk = 26
         targetSdk = 36
-        versionCode = derivedVersionCode
+        versionCode = declaredVersionCode
         versionName = derivedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
